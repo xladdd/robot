@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const selections = candidates.map((candidate) => {
       const selection = parsed.selections?.find((item) => item.word === candidate.word);
       const pages = Array.isArray(selection?.pages)
-        ? selection.pages.filter((page): page is number => Number.isInteger(page) && allowed.get(candidate.word)?.has(page as number))
+        ? selection.pages.filter((page): page is number => Number.isInteger(page) && Boolean(allowed.get(candidate.word)?.has(page as number)))
         : [];
       return { word: candidate.word, pages: [...new Set(pages)].sort((a, b) => a - b) };
     });
