@@ -12,11 +12,11 @@ const copy = {
     text: "Text",
     design: "Design",
     apps: {
-      extraction: "Text Extraction",
+      extraction: "Text Extractor",
       index: "Index Creator",
       typesetter: "Typesetter",
-      prompt: "Prompt Extraction",
-      image: "Image Generation",
+      prompt: "Prompt Extractor",
+      image: "Image Generator",
       cover: "Cover Generator",
       figure: "Figure Generator",
       grep: "GREP Builder",
@@ -44,8 +44,8 @@ const copy = {
     pageMapping: "Page-number anchor",
     localExtraction: "The PDF text stays in this browser",
     comingSoon: "It’s nice to have something to look forward to.",
-    processing: ["communicating", "calculating", "formatting", "slicing bread", "spreading butter", "packing lunch", "looking up the way to the library", "waiting for the tram", "looking for a place to sit", "2+2=???", "abort search", "looking for a bench to sit in the park", "consuming sandwich", "looking into empty space", "looking up at the trees"],
-    indexProcessing: ["opening the book", "finding page one", "counting pages", "sharpening a pencil", "sorting the alphabet", "conjugating verbs", "declining nouns", "checking the margins", "ignoring the table of contents", "looking for tiny page numbers", "matching word endings", "arguing with grammar", "building index cards", "removing duplicates", "alphabetizing everything"],
+    processing: ["pouring a coffee", "sharpening pencils", "looking out of the window", "reading the small print", "straightening the paper", "finding the first line", "squinting at punctuation", "counting paragraphs", "checking the margins", "recognising letters", "putting words back in order"],
+    indexProcessing: ["communicating", "calculating", "slicing bread", "spreading butter", "packing lunch", "looking up the way to the library", "waiting for the tram", "looking for a place to sit", "2+2=???", "hm…", "looking for a bench in the park", "consuming sandwich", "staring into space", "looking at trees"],
     about: "About Taktik Automat",
     aboutBody:
       "A focused workspace for preparing textbook content, layouts and visual materials.",
@@ -56,11 +56,11 @@ const copy = {
     text: "Text",
     design: "Design",
     apps: {
-      extraction: "Extrakce textu",
+      extraction: "Extraktor textu",
       index: "Tvůrce rejstříku",
-      typesetter: "Sazba",
-      prompt: "Extrakce promptů",
-      image: "Generování obrázků",
+      typesetter: "Sazeč",
+      prompt: "Extraktor promptů",
+      image: "Generátor obrázků",
       cover: "Generátor obálek",
       figure: "Generátor ilustrací",
       grep: "Tvůrce GREP výrazů",
@@ -88,8 +88,8 @@ const copy = {
     pageMapping: "Kotva číslování stran",
     localExtraction: "Text PDF zůstává v tomto prohlížeči",
     comingSoon: "Je to fajn mít se na co těšit.",
-    processing: ["komunikace", "kalkulace", "informace", "krájení chleba", "mazání chleba máslem", "balení svačiny", "vyhledávání cesty do knihovny", "čekání na tramvaj", "hledání místa k sezení", "2+2=???", "rušení hledání", "hledání lavičky v parku", "konzumace svačiny", "koukání do blba", "koukání na stromy"],
-    indexProcessing: ["otevírání knihy", "hledání první strany", "počítání stran", "ořezávání tužky", "řazení abecedy", "časování sloves", "skloňování podstatných jmen", "kontrola okrajů", "ignorování obsahu", "hledání malých čísel stran", "porovnávání koncovek", "hádání s gramatikou", "zakládání kartotéky", "odstraňování duplicit", "řazení všeho podle abecedy"],
+    processing: ["nalévání kávy", "ořezávání tužek", "koukání z okna", "čtení drobného písma", "rovnání papíru", "hledání prvního řádku", "mhouření očí nad interpunkcí", "počítání odstavců", "kontrola okrajů", "rozpoznávání písmen", "skládání slov do správného pořadí"],
+    indexProcessing: ["komunikace", "kalkulace", "krájení chleba", "mazání chleba máslem", "balení svačiny", "vyhledávání cesty do knihovny", "čekání na tramvaj", "hledání místa k sezení", "2+2=???", "hm…", "hledání lavičky v parku", "konzumace svačiny", "koukání do blba", "koukání na stromy"],
     about: "O aplikaci Taktik Automat",
     aboutBody:
       "Soustředěné pracovní prostředí pro přípravu učebnic, sazby a obrazových materiálů.",
@@ -198,6 +198,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [indexFile, setIndexFile] = useState<File | null>(null);
   const [indexUrl, setIndexUrl] = useState<string | null>(null);
+  const [indexPreviewPage, setIndexPreviewPage] = useState(1);
   const [indexWords, setIndexWords] = useState("");
   const [indexResult, setIndexResult] = useState("");
   const [indexMatches, setIndexMatches] = useState<Array<{ word: string; pdfPages: number[]; otherPdfPages: number[] }>>([]);
@@ -401,6 +402,7 @@ export default function Home() {
     if (indexUrl) URL.revokeObjectURL(indexUrl);
     setIndexFile(file);
     setIndexUrl(URL.createObjectURL(file));
+    setIndexPreviewPage(1);
     setIndexResult("");
     setIndexMatches([]);
     setIndexProgress(0);
@@ -527,6 +529,12 @@ export default function Home() {
   const selectedLabel = selected
     ? t.apps[selected as keyof typeof t.apps]
     : null;
+  const selectedGroup = selected ? groups.find((group) => group.items.some((item) => item === selected)) : undefined;
+  const selectedNumber = selected && selectedGroup
+    ? String(selectedGroup.items.findIndex((item) => item === selected) + 1).padStart(2, "0")
+    : null;
+  const selectedInitial = selectedLabel?.trim().charAt(0).toLocaleUpperCase(language === "cs" ? "cs-CZ" : "en-US") ?? null;
+  const selectedSection = selectedGroup ? t[selectedGroup.key].toUpperCase() : null;
   const helpKey = selected === "extraction" || selected === "index" || selected === "grep" ? selected : "general";
   const help = contextualHelp[language][helpKey];
   const clockHours = now ? String(now.getHours()).padStart(2, "0") : "--";
@@ -598,12 +606,12 @@ export default function Home() {
 
       <section className="workspace">
         <div className="workspace-grid" aria-hidden="true" />
-        <span className="axis axis-x">{selected === "index" ? "02" : "01"}</span>
-        <span className="axis axis-y">{selected === "index" ? "T" : selected === "grep" ? "G" : "A"}</span>
+        {selectedNumber && <span className="axis axis-x">{selectedNumber}</span>}
+        {selectedInitial && <span className="axis axis-y">{selectedInitial}</span>}
         {selected === "extraction" ? (
           <div className={`extraction-module ${sourceKind ? "has-source" : ""}`}>
             <div className="extraction-head">
-              {!sourceKind && <div className="module-code">MODULE / EXTRACTION</div>}
+              {!sourceKind && <div className="module-code">{selectedSection} / EXTRACTION</div>}
               <h1>{t.apps.extraction}</h1>
               <input ref={fileInputRef} type="file" accept="application/pdf,image/png,image/jpeg" onChange={handleFileInput} hidden />
               <button
@@ -635,13 +643,12 @@ export default function Home() {
                       <button className="download-button" onClick={() => downloadText(ocrText, "extracted-text.md", "text/markdown")} disabled={!ocrText}>MD</button>
                       <button className="download-button" onClick={() => downloadText(ocrText, "extracted-text.txt", "text/plain")} disabled={!ocrText}>TXT</button>
                     </div>
-                    {isProcessing ? <LoadingText items={t.processing} /> : <textarea value={ocrText} onChange={(event) => setOcrText(event.target.value)} spellCheck />}
+                    {isProcessing || isCorrecting ? <LoadingText items={t.processing} /> : <textarea value={ocrText} onChange={(event) => setOcrText(event.target.value)} spellCheck />}
                   </section>
                 </div>
                 <div className="correction-box">
-                  <textarea rows={2} value={correctionPrompt} onChange={(event) => setCorrectionPrompt(event.target.value)} placeholder={t.correctionPlaceholder} />
+                  <textarea rows={2} value={correctionPrompt} onChange={(event) => setCorrectionPrompt(event.target.value)} placeholder={t.correctionPlaceholder} disabled={isCorrecting} />
                   <button onClick={correctText} disabled={!ocrText.trim() || !correctionPrompt.trim() || isCorrecting} aria-label={t.correct}>{isCorrecting ? "…" : "→"}</button>
-                  {isCorrecting && <LoadingText items={t.processing} compact />}
                 </div>
               </div>
             )}
@@ -651,7 +658,7 @@ export default function Home() {
             <input ref={indexFileInputRef} type="file" accept="application/pdf" onChange={handleIndexFileInput} hidden />
             {!indexFile ? (
               <div className="index-head">
-                <div className="module-code">MODULE / INDEX</div>
+                <div className="module-code">{selectedSection} / INDEX</div>
                 <h1>{t.apps.index}</h1>
                 <button className="start-button upload-button" onClick={() => indexFileInputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={handleIndexDrop}>
                   <span>{t.indexUpload}</span><b>＋</b>
@@ -664,7 +671,7 @@ export default function Home() {
               <div className="index-split">
                 <section className="source-pane index-pdf-column">
                   <div className="pane-label"><span>{t.source}</span><span>{indexFile.name}</span></div>
-                  <div className="source-viewer">{indexUrl && <iframe src={indexUrl} title={indexFile.name} />}</div>
+                  <div className="source-viewer">{indexUrl && <iframe key={indexPreviewPage} src={`${indexUrl}#page=${indexPreviewPage}`} title={indexFile.name} />}</div>
                 </section>
                 <div className="index-side-column">
                   <div className="index-active-head">
@@ -691,7 +698,27 @@ export default function Home() {
                     <button className="download-button" onClick={() => downloadText(indexResult, "index.md", "text/markdown")} disabled={!indexResult}>MD</button>
                     <button className="download-button" onClick={() => downloadText(indexResult, "index.txt", "text/plain")} disabled={!indexResult}>TXT</button>
                   </div>
-                  {isIndexing ? <LoadingText items={t.indexProcessing} /> : <textarea value={indexResult} onChange={(event) => setIndexResult(event.target.value)} spellCheck={false} />}
+                  {isIndexing ? <LoadingText items={t.indexProcessing} /> : indexMatches.length ? (
+                    <div className="index-result-view" aria-label={t.indexOutput}>
+                      {indexMatches.map(({ word, pdfPages, otherPdfPages }) => (
+                        <div className="index-result-line" key={word}>
+                          <span className="index-result-term">{word}</span>
+                          <span className="index-result-pages">
+                            {pdfPages.map((pdfPage, index) => {
+                              const printedPage = printedAnchor + pdfPage - pdfAnchor;
+                              return <span key={pdfPage}>{index > 0 && ", "}<button type="button" onClick={() => setIndexPreviewPage(pdfPage)} title={`${t.printedPage} ${printedPage} · ${t.pdfPage} ${pdfPage}`}>{printedPage}</button></span>;
+                            })}
+                          </span>
+                          <span className="index-result-pages index-result-other">(
+                            {otherPdfPages.map((pdfPage, index) => {
+                              const printedPage = printedAnchor + pdfPage - pdfAnchor;
+                              return <span key={pdfPage}>{index > 0 && ", "}<button type="button" onClick={() => setIndexPreviewPage(pdfPage)} title={`${t.printedPage} ${printedPage} · ${t.pdfPage} ${pdfPage}`}>{printedPage}</button></span>;
+                            })}
+                          )</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <textarea value={indexResult} readOnly spellCheck={false} />}
                 </section>
                 <div className="page-map">
                   <span>{t.pageMapping}</span>
@@ -705,7 +732,7 @@ export default function Home() {
           </div>
         ) : selected === "grep" ? (
           <div className="grep-module">
-            <div className="module-code">MODULE / GREP</div>
+            <div className="module-code">{selectedSection} / GREP</div>
             <h1>{t.apps.grep}</h1>
             <div className="grep-fields">
               <label className={`grep-field ${grepResult ? "has-result" : ""}`}>
@@ -732,7 +759,7 @@ export default function Home() {
         <div className={`welcome ${selectedLabel ? "has-selection" : ""}`}>
           {selectedLabel ? (
             <>
-              <div className="module-code">MODULE / {selected?.toUpperCase()}</div>
+              <div className="module-code">{selectedSection} / {selected?.toUpperCase()}</div>
               <h1>{selectedLabel}</h1>
               <button className="start-button">{t.ready}<span>→</span></button>
             </>
@@ -777,7 +804,7 @@ function LoadingText({ items, compact = false }: { items: readonly string[]; com
     const phraseTimer = window.setInterval(() => setIndex((value) => (value + 1) % items.length), 3000);
     return () => window.clearInterval(phraseTimer);
   }, [items.length]);
-  return <div className={`loading-copy ${compact ? "compact" : ""}`} role="status"><span>{items[index]}...</span></div>;
+  return <div className={`loading-copy ${compact ? "compact" : ""}`} role="status"><span>{items[index]}</span></div>;
 }
 
 function formatIndexOutput(matches: Array<{ word: string; pdfPages: number[]; otherPdfPages: number[] }>, pdfAnchor: number, printedAnchor: number) {

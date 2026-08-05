@@ -251,8 +251,6 @@ button { color: inherit; font: inherit; }
 .correction-box button { border: 0; background: var(--orange); color: #111; cursor: pointer; font-size: 22px; }
 .correction-box button:hover:not(:disabled) { background: var(--teal); }
 .correction-box button:disabled { background: var(--line); cursor: default; }
-.loading-copy.compact { position: absolute; inset: 0 54px 0 0; z-index: 2; min-height: 0; place-items: center start; padding: 12px 15px; background: var(--panel); font-size: 10px; text-align: left; }
-
 .index-module { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: clamp(28px, 5vw, 72px); overflow: auto; }
 .index-head { position: relative; z-index: 1; width: min(560px, 100%); text-align: center; }
 .index-head h1 { margin: 14px 0 0; font-size: clamp(28px, 4vw, 58px); line-height: 1.02; letter-spacing: -.055em; font-weight: 400; }
@@ -282,6 +280,12 @@ button { color: inherit; font: inherit; }
 .index-controls > .local-note { grid-column: 1 / -1; margin: -2px 0 0; }
 .index-output-pane { min-height: 0; border: 1px solid var(--ink); background: var(--panel-2); }
 .index-output-pane textarea { tab-size: 4; white-space: pre; }
+.index-result-view { min-height: 0; flex: 1; overflow: auto; padding: 18px 52px 18px 18px; background: var(--bg); color: var(--ink); font: 11px/1.65 Verdana, Geneva, sans-serif; }
+.index-result-line { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr); column-gap: 16px; }
+.index-result-term { min-width: 0; overflow-wrap: anywhere; }
+.index-result-pages button { display: inline; padding: 0; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.index-result-pages button:hover, .index-result-pages button:focus-visible { border-color: var(--orange); color: var(--orange); outline: 0; }
+.index-result-other { color: var(--muted); }
 .index-output-label span:last-child { max-width: 78%; font-size: 6px; text-align: right; }
 .page-map { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 7px 10px; border: 1px solid var(--ink); background: var(--panel); color: var(--muted); font-size: 7px; letter-spacing: .08em; text-transform: uppercase; }
 .page-map > span:first-child { margin-right: auto; }

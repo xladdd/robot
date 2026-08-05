@@ -1,0 +1,21 @@
+{
+  "name": "Taktik Automat",
+  "short_name": "Automat",
+  "description": "A focused workspace for textbook publishing.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e6e6e6",
+  "theme_color": "#00a5a0",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
