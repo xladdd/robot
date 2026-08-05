@@ -1,0 +1,912 @@
+{
+  "chapters": [
+    {
+      "title": "Grafici",
+      "blocks": []
+    },
+    {
+      "title": "Úvod",
+      "blocks": [
+        {
+          "type": "h2",
+          "text": "Typografie a sazba"
+        },
+        {
+          "type": "bullet",
+          "text": "Sazba je proces převodu rukopisu ve Wordu připraveného redaktorem do profesionálního tiskového souboru."
+        },
+        {
+          "type": "bullet",
+          "text": "Pro sazbu používáme Adobe InDesign. Preferujeme práci v nejnovější dostupné verzi InDesignu."
+        },
+        {
+          "type": "bullet",
+          "text": "Wordový rukopis by měl být jasně strukturovaný a obsahovat všechny prvky publikace: nadpisy, texty, úlohy a poznámky redaktora."
+        },
+        {
+          "type": "bullet",
+          "text": "Grafik by se měl soustředit především na věrné a vizuálně kvalitní zpracování podkladů."
+        },
+        {
+          "type": "h2",
+          "text": "Výkon a plánování práce"
+        },
+        {
+          "type": "bullet",
+          "text": "Za standardní pracovní den (8 hodin) grafik obvykle zpracuje 6 až 8 stran dle složitosti layoutu."
+        },
+        {
+          "type": "bullet",
+          "text": "Jedna strana tedy běžně zabere přibližně 1 až 1,5 hodiny práce."
+        },
+        {
+          "type": "bullet",
+          "text": "Při práci na více projektech současně se čas rozděluje mezi jednotlivé projekty."
+        },
+        {
+          "type": "bullet",
+          "text": "Do časového odhadu je nutné započítat i opravy a korektury."
+        },
+        {
+          "type": "h2",
+          "text": "Google Drive vs Dropbox"
+        },
+        {
+          "type": "bullet",
+          "text": "Google Drive používáme pro pracovní dokumenty a sdílení."
+        },
+        {
+          "type": "bullet",
+          "text": "Dropbox slouží pouze pro ukládání finálních verzí: zdrojových balíčků a tiskových PDF."
+        },
+        {
+          "type": "h2",
+          "text": "Kompatibilita fontů mezi Windows a macOS"
+        },
+        {
+          "type": "bullet",
+          "text": "Při otevírání InDesign dokumentů mezi Windows a macOS může dojít k problémům s rozpoznáním fontů."
+        },
+        {
+          "type": "bullet",
+          "text": "Některé fonty mají ve Windows a macOS odlišné názvy."
+        },
+        {
+          "type": "bullet",
+          "text": "Řešením je nahradit fonty verzemi dostupnými v aktuálním systému."
+        },
+        {
+          "type": "bullet",
+          "text": "Po výměně fontů musíme vždy zkontrolovat vzhled dokumentu oproti exportovanému PDF."
+        },
+        {
+          "type": "h2",
+          "text": "Důležité odkazy"
+        },
+        {
+          "type": "bullet",
+          "text": "Šablona obálek"
+        },
+        {
+          "type": "bullet",
+          "text": "Šablona obálek – Revidované RVP"
+        }
+      ]
+    },
+    {
+      "title": "Sazba",
+      "blocks": [
+        {
+          "type": "h2",
+          "text": "Doporučení pro layout"
+        },
+        {
+          "type": "bullet",
+          "text": "Design publikace by měl být dobře zarovnaný, konzistentní a přehledný."
+        },
+        {
+          "type": "bullet",
+          "text": "Použité grafické prvky (barvy, fonty, číslování, nadpisy apod.) musí být sjednocené napříč celou publikací."
+        },
+        {
+          "type": "bullet",
+          "text": "Při práci na nové knize v rámci existující řady je vhodné navazovat na předchozí díly."
+        },
+        {
+          "type": "bullet",
+          "text": "Ve většině případů používejte zarovnání textu do bloku, pokud není zadáno jinak."
+        },
+        {
+          "type": "bullet",
+          "text": "Barvy je vhodné přebírat z již vytištěných publikací, aby nedocházelo k příliš vybledlým nebo přesaturovaným odstínům."
+        },
+        {
+          "type": "bullet",
+          "text": "Vzorník barev by měl být omezený a znovupoužitelný."
+        },
+        {
+          "type": "h2",
+          "text": "Zrcadlo sazby"
+        },
+        {
+          "type": "bullet",
+          "text": "Je třeba nastavit tak, aby obsah nebyl příliš blízko okrajům stránky (v minulosti velmi častý jev), dle pravidel zlatého řezu a s ohledem na druh vazby."
+        },
+        {
+          "type": "bullet",
+          "text": "U vazby V2 je třeba počítat se ztrátami ve hřbetu (cca 6–7 mm dle počtu stran a tloušťky papíru)."
+        },
+        {
+          "type": "bullet",
+          "text": "Text v záhlaví by měl být minimálně 5 mm od ořezu."
+        },
+        {
+          "type": "h2",
+          "text": "Spadávka"
+        },
+        {
+          "type": "bullet",
+          "text": "Standardně používáme spadávku 5 mm, v krajním případě minimálně 3 mm."
+        },
+        {
+          "type": "h2",
+          "text": "Zlom"
+        },
+        {
+          "type": "bullet",
+          "text": "Na začátku vytvořte maketu publikace, rozvržení stran a kapitol."
+        },
+        {
+          "type": "bullet",
+          "text": "Definujte textové a znakové styly, vzorové strany se záhlavím a zápatím, automatickou paginaci a je dobré si připravit i vzorník barev"
+        },
+        {
+          "type": "bullet",
+          "text": "Vše pojmenovávejte srozumitelně tak, aby se v dokumentu snadno orientoval i další grafik."
+        },
+        {
+          "type": "bullet",
+          "text": "Větší publikace doporučujeme rozdělit do InDesignové knihy."
+        },
+        {
+          "type": "bullet",
+          "text": "Snadno tak lze publikaci rozdělit na jednotlivé části a generovat pro potřeby redakce (korektury, opravy atd.) jednotlivá PDF, jednotlivě sbalit a podobně."
+        },
+        {
+          "type": "bullet",
+          "text": "Ve zlomu vždy zohledněte účel publikace (např. učebnice či pracovní sešit). Zejména u pracovních sešitů ponechte dostatek místa pro psaní."
+        },
+        {
+          "type": "bullet",
+          "text": "Doporučuji vytisknout a ideálně dát dítěti vyzkoušet. Případně se o to pokusit sám. \nČasto je velmi nereálné se do prostoru vejít."
+        },
+        {
+          "type": "h2",
+          "text": "Čárové kódy"
+        },
+        {
+          "type": "bullet",
+          "text": "Generovat na internetu, ideálně ve formátu SVG, EPS nebo AI. \nNapř. zde: https://freebarcodegenerator.com/."
+        },
+        {
+          "type": "bullet",
+          "text": "Výsledný kód musí být v křivkách a v CMYK režimu, pouze černý (C 0/M 0/Y 0/K 100, nikoliv složená černá)."
+        },
+        {
+          "type": "bullet",
+          "text": "Pro publikace používáme čárový kód ISBN ve standardu EAN-13."
+        },
+        {
+          "type": "bullet",
+          "text": "tj. ISBN: 978-606-95968-7-6 → EAN-13: 9786069596876. \nTo samé číslo, ale bez pomlček."
+        },
+        {
+          "type": "h2",
+          "text": "QR kódy"
+        },
+        {
+          "type": "bullet",
+          "text": "QR kódy lze generovat online nebo přímo v InDesignu."
+        },
+        {
+          "type": "bullet",
+          "text": "Preferovaně používat vestavěnou funkci InDesignu (Objekt → Vytvořit QR kód…)."
+        },
+        {
+          "type": "bullet",
+          "text": "Také musí být v křivkách a v CMYK režimu, pouze černý (nikoliv složená černá)."
+        },
+        {
+          "type": "bullet",
+          "text": "Pro menší děti lze u větších formátů použít barevné varianty."
+        },
+        {
+          "type": "bullet",
+          "text": "Minimální doporučená velikost je 12 mm."
+        },
+        {
+          "type": "bullet",
+          "text": "Výrazně to ulehčí jakoukoliv další editaci v průběhu samotné sazby a při pozdějších úpravách."
+        },
+        {
+          "type": "h2",
+          "text": "Obrázky, ilustrace, vektory"
+        },
+        {
+          "type": "bullet",
+          "text": "Podklady využíváme primárně ze Shutterstocku, Wikimedia nebo od vlastních ilustrátorů."
+        },
+        {
+          "type": "bullet",
+          "text": "Dle preferenci redaktorů obrázky můžou byt i generované AI (např. ChatGPT)."
+        },
+        {
+          "type": "bullet",
+          "text": "U ostatních zdrojů vždy ověřujte autorská práva."
+        },
+        {
+          "type": "h2",
+          "text": "Vrstva řešení"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image1.png",
+            "/design-manual/media/image2.png",
+            "/design-manual/media/image3.png"
+          ],
+          "text": "",
+          "style": "Normal"
+        },
+        {
+          "type": "caption",
+          "text": "Vrstva řešení vypnutá\tVrstva řešení zapnutá\tPříklad řešení"
+        },
+        {
+          "type": "bullet",
+          "text": "Interaktivní pracovní sešity musí obsahovat samostatnou horní vrstvu s řešeními."
+        },
+        {
+          "type": "bullet",
+          "text": "Vrstva řešení musí jít jednoduše zapnout a vypnout."
+        },
+        {
+          "type": "bullet",
+          "text": "Řešení obvykle nejdou do tisku, leda u některých metodických příruček."
+        },
+        {
+          "type": "bullet",
+          "text": "Řešení by měla být vysázena ručně psaným fontem, ideálně v tmavě modré barvě. Preferovaný formát řešení zjistěte od redaktora."
+        },
+        {
+          "type": "bullet",
+          "text": "Každý úkol by měl mít vyplněné řešení. Pokud chybí, informujte redaktora."
+        }
+      ]
+    },
+    {
+      "title": "Export a ukládání dat",
+      "blocks": [
+        {
+          "type": "h2",
+          "text": "Sbalení InDesign dokumentů"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image4.png",
+            "/design-manual/media/image5.png"
+          ],
+          "text": "",
+          "style": "Normal"
+        },
+        {
+          "type": "caption",
+          "text": "Okno „Sbalit“\tNastavení (tisk. PDF se zde negeneruje)"
+        },
+        {
+          "type": "bullet",
+          "text": "Balit kompletní dokument včetně fontů, vazeb a IDML souboru."
+        },
+        {
+          "type": "bullet",
+          "text": "Sbalení IDML umožňuje soubor otevřít i z nižší verze InDesignu či na jiné platformě."
+        },
+        {
+          "type": "bullet",
+          "text": "Fonty je bohužel většinou potřeba znovu aktivovat, protože používáme fonty z Adobe Creative Cloudu. Ale většinou si je sám dohledá a stačí dát stáhnout."
+        },
+        {
+          "type": "bullet",
+          "text": "Kontrolovat barevnost, rozlišení a kompletnost vazeb."
+        },
+        {
+          "type": "bullet",
+          "text": "Když se používají například duplex (duotones) je nutné je ve Photoshopu převést na CMYK, jinak se nevytisknou správně"
+        },
+        {
+          "type": "bullet",
+          "text": "Tiskové PDF přikládat již hotové."
+        },
+        {
+          "type": "h2",
+          "text": "Barevnost"
+        },
+        {
+          "type": "bullet",
+          "text": "Povinný ruční převod všech obrázků do CMYK není vždy nutný. Při exportu PDF/X-1a dochází automaticky k převodu dle výstupního profilu (např. FOGRA39)."
+        },
+        {
+          "type": "bullet",
+          "text": "Při exportu do tiskového PDF je nutné zkontrolovat případné skryté vrstvy (např. řešení)."
+        },
+        {
+          "type": "bullet",
+          "text": "Rozlišení obrázků by nemělo být nižší než 240 dpi, ideálně 300 dpi."
+        },
+        {
+          "type": "bullet",
+          "text": "Obrázky ve zlomu by neměly být zvětšeny nad 120 %."
+        },
+        {
+          "type": "bullet",
+          "text": "Důležitá je výsledná vizuální kontrola exportovaného PDF."
+        },
+        {
+          "type": "h2",
+          "text": "Kontrola před výstupem"
+        },
+        {
+          "type": "bullet",
+          "text": "Doporučuje se používat vlastní profil kontroly před výstupem v InDesignu (Preflight). Ten lze nastavit přes Okna → Výstup → Kontrola před výstupem. Může odhalit věci, které je jinak těžké podchytit, např. registrační černou ve vloženém obrázku."
+        },
+        {
+          "type": "bullet",
+          "text": "Kontrolovat zejména:"
+        },
+        {
+          "type": "bullet",
+          "text": "Chybějící a změněné vazby"
+        },
+        {
+          "type": "bullet",
+          "text": "Přímé barvy"
+        },
+        {
+          "type": "bullet",
+          "text": "Registrační černá"
+        },
+        {
+          "type": "bullet",
+          "text": "Rozlišení obrázků: 270 dpi"
+        },
+        {
+          "type": "bullet",
+          "text": "Chybějící písmo"
+        },
+        {
+          "type": "bullet",
+          "text": "Přesahující text"
+        },
+        {
+          "type": "bullet",
+          "text": "Minimální velikost písma"
+        },
+        {
+          "type": "bullet",
+          "text": "Nastavení spadávky"
+        },
+        {
+          "type": "h2",
+          "text": "Nastavení PDF exportu pro tisk"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image6.png",
+            "/design-manual/media/image7.png"
+          ],
+          "text": "",
+          "style": "Normal"
+        },
+        {
+          "type": "caption",
+          "text": "Přednastavení PDF/X-1a, kompatibilita: Acrobat 8/9\tNastavení tiskových značek"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image8.png"
+          ],
+          "text": "",
+          "style": "Normal"
+        },
+        {
+          "type": "caption",
+          "text": "Výstupní profil FOGRA39"
+        },
+        {
+          "type": "bullet",
+          "text": "Při exportu nastavte spadávky a ořezové značky."
+        },
+        {
+          "type": "bullet",
+          "text": "Soutiskové značky a značky spadávky většina tiskáren nepotřebuje. Doporučeno ponechat pouze ořezové značky."
+        },
+        {
+          "type": "bullet",
+          "text": "Používejte přednastavení PDF/X-1a."
+        },
+        {
+          "type": "bullet",
+          "text": "Doporučená kompatibilita Acrobat 8/9. Nedělá to v náhledu PDF okraje objektů."
+        },
+        {
+          "type": "bullet",
+          "text": "Výstupní profil: FOGRA39, rozlišení vysoké."
+        },
+        {
+          "type": "bullet",
+          "text": "Standardně exportujeme samostatné strany, nikoliv dvoustrany."
+        },
+        {
+          "type": "h2",
+          "text": "Kontrola v Acrobatu"
+        },
+        {
+          "type": "bullet",
+          "text": "Před nahráním na Dropbox provést vizuální kontrolu PDF v Adobe Acrobatu."
+        },
+        {
+          "type": "bullet",
+          "text": "Kontrolovat spadávky, ořezové značky, barevné pláty a ostrost obrázků."
+        },
+        {
+          "type": "bullet",
+          "text": "Poté ideální je i kontrola naripovaných stránek z tiskárny (CTP)."
+        },
+        {
+          "type": "h2",
+          "text": "Přístupná PDF"
+        },
+        {
+          "type": "paragraph",
+          "text": "Aby bylo PDF správně čitelné pro čtečky obrazovky a další asistivní technologie, musí být vytvořeno jako tzv. přístupné (accessible) PDF."
+        },
+        {
+          "type": "h3",
+          "text": "Nastavení struktury dokumentu v InDesignu"
+        },
+        {
+          "type": "bullet",
+          "text": "Používejte styly odstavců a nadpisů pro správnou hierarchii obsahu."
+        },
+        {
+          "type": "bullet",
+          "text": "Každému důležitému obrázku přidejte alternativní text (Alt Text)."
+        },
+        {
+          "type": "bullet",
+          "text": "Související objekty správně seskupujte."
+        },
+        {
+          "type": "h3",
+          "text": "Panel Articles"
+        },
+        {
+          "type": "bullet",
+          "text": "Otevřete Window → Articles."
+        },
+        {
+          "type": "bullet",
+          "text": "Přetáhněte textové rámečky, obrázky a další prvky do panelu ve správném pořadí."
+        },
+        {
+          "type": "h3",
+          "text": "Tagování obsahu"
+        },
+        {
+          "type": "bullet",
+          "text": "Zapněte View → Structure → Show Structure."
+        },
+        {
+          "type": "bullet",
+          "text": "Používejte správné tagy jako H1, P apod."
+        },
+        {
+          "type": "h3",
+          "text": "Export do PDF"
+        },
+        {
+          "type": "bullet",
+          "text": "Exportujte jako Adobe PDF (Interactive) nebo Adobe PDF (Print)."
+        },
+        {
+          "type": "bullet",
+          "text": "V záložce Tags zapněte Create Tagged PDF."
+        },
+        {
+          "type": "bullet",
+          "text": "V Accessibility povolte Use Structure for Tab Order."
+        },
+        {
+          "type": "h3",
+          "text": "Kontrola v Adobe Acrobatu"
+        },
+        {
+          "type": "bullet",
+          "text": "Spusťte Tools → Accessibility → Full Check."
+        },
+        {
+          "type": "bullet",
+          "text": "Zkontrolujte pořadí čtení, Alt Texty a hierarchii nadpisů."
+        },
+        {
+          "type": "h2",
+          "text": "Nahrávání na Dropbox"
+        },
+        {
+          "type": "bullet",
+          "text": "Data nahrávat i při malých úpravách a vždy aktualizovat zdrojová i tisková data."
+        },
+        {
+          "type": "bullet",
+          "text": "Chybějící data nebo neshody mezi datem nahrání tiskových dat a zdrojáků plýtvají časem ostatních, kteří musí detektivně dohledávat, co se kdy upravovalo a zda jsou data aktuální!"
+        },
+        {
+          "type": "bullet",
+          "text": "Dodržujte jednotný systém názvů složek a souborů:"
+        },
+        {
+          "type": "bullet",
+          "text": "ZAKLADNI SKOLY – školní stupeň – Název složek bez diakritiky, s mezerami."
+        },
+        {
+          "type": "bullet",
+          "text": "📂 MATEMATIKA 1. stupen – předmět/stupeň"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 Hrava MATEMATIKA – řada"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 Hrava MATEMATIKA 1. rocnik – ročník"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PRACOVNI UCEBNICE 1. dil – typ/díl publikace"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PRACOVNI UCEBNICE 1. dil – tisk"
+        },
+        {
+          "type": "bullet",
+          "text": "HM1_PU-1dil_obalka_TISK_(20-6-2026).pdf"
+        },
+        {
+          "type": "bullet",
+          "text": "– Název souborů bez mezer, s podtržítky."
+        },
+        {
+          "type": "bullet",
+          "text": "📄 HM1_PU-1dil_vnitrek_TISK_(20-6-2026).pdf"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 archiv"
+        },
+        {
+          "type": "bullet",
+          "text": "📄 HM1_PU-1dil_vnitrek_TISK_(15-1-2025).pdf"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PRACOVNI UCEBNICE 1. dil – zdroje"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PU 1.dil obalka indd (20-6-2026)"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 Document fonts"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 Links"
+        },
+        {
+          "type": "bullet",
+          "text": "📄 HM1_PU-1dil_obalka.indd"
+        },
+        {
+          "type": "bullet",
+          "text": "📄 HM1_PU-1dil_obalka.idml"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PU 1.dil vnitrek indd (20-6-2026)"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 (…)"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 archiv"
+        },
+        {
+          "type": "bullet",
+          "text": "📂 HM1 PU 1.dil vnitrek indd (15-1-2025)"
+        },
+        {
+          "type": "bullet",
+          "text": "U každé publikace udržujte samostatné složky pro tisková a zdrojová data."
+        },
+        {
+          "type": "bullet",
+          "text": "Starší data nikdy nemažte – přesouvejte je do archivních složek."
+        },
+        {
+          "type": "bullet",
+          "text": "Datum musí být vždy součástí názvu exportovaných PDF."
+        },
+        {
+          "type": "h2",
+          "text": "Dropbox odkazy do Specifikací"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image9.png"
+          ],
+          "text": "Po najetí myší na název souboru klikněte na tlačítko Share.",
+          "style": "List Bullet"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image10.png"
+          ],
+          "text": "Ve vyskakovacím okně otevřete nastavení sdílení přes ikonu ozubeného kolečka.",
+          "style": "List Bullet"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image11.png"
+          ],
+          "text": "V záložce Link for viewing nastavte parametry odkazu.",
+          "style": "List Bullet"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image12.png"
+          ],
+          "text": "Pokud odkaz ještě neexistuje, klikněte na Create link.",
+          "style": "List Bullet"
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image13.png"
+          ],
+          "text": "Nastavení odkazu musí být:\n• Anyone with the link\n• Expiry: Off\n• Require password: On (heslo: printer)\n• Disable downloads: Off",
+          "style": "List Bullet"
+        },
+        {
+          "type": "bullet",
+          "text": "Nastavení potvrďte tlačítkem Save."
+        },
+        {
+          "type": "images",
+          "images": [
+            "/design-manual/media/image14.png"
+          ],
+          "text": "Klikněte na Copy Link a zkopírujte odkaz.",
+          "style": "List Bullet"
+        },
+        {
+          "type": "bullet",
+          "text": "Odkaz vložte do příslušného pole ve Specifikaci publikace a odešlete ke kontrole."
+        },
+        {
+          "type": "bullet",
+          "text": "v Adminu: Tisk → Specifikace → [zelené edit. tlačítko před „ID“ u příslušného projektu]"
+        },
+        {
+          "type": "bullet",
+          "text": "pak: sekce Tisková data – obálka nebo – vnitřek; vložit odkaz do pole „URL“ \na zmačknout „Odeslat data ke kontrole“"
+        }
+      ]
+    },
+    {
+      "title": "Redaktoři",
+      "blocks": [
+        {
+          "type": "h3",
+          "text": "Role redaktora a grafika"
+        },
+        {
+          "type": "bullet",
+          "text": "Grafik nebo sazeč určuje layout publikace: barvy, fonty, velikosti písma apod."
+        },
+        {
+          "type": "bullet",
+          "text": "Úkolem redaktora je připravit obsah publikace pro sazbu."
+        },
+        {
+          "type": "bullet",
+          "text": "Sazba je převod rukopisu z Wordu do profesionálního PDF pro tisk."
+        },
+        {
+          "type": "h3",
+          "text": "Kontrola odborníkem"
+        },
+        {
+          "type": "bullet",
+          "text": "Všechny materiály musí být schválené odborným garantem před předáním grafikovi."
+        },
+        {
+          "type": "bullet",
+          "text": "Velké obsahové změny po vysázení výrazně komplikují práci."
+        },
+        {
+          "type": "h3",
+          "text": "Struktura dokumentu"
+        },
+        {
+          "type": "bullet",
+          "text": "Dokument musí mít jasnou strukturu: nadpisy, podnadpisy, texty, cvičení a další prvky."
+        },
+        {
+          "type": "bullet",
+          "text": "Doporučuje se nastavit Word co nejblíže finálnímu layoutu PDF."
+        },
+        {
+          "type": "bullet",
+          "text": "Každá stránka musí být očíslovaná a musí být jasné, kam v publikaci patří."
+        },
+        {
+          "type": "h3",
+          "text": "Obrázky"
+        },
+        {
+          "type": "bullet",
+          "text": "Vkládejte výřezy obrázků nebo jasně označte jejich umístění."
+        },
+        {
+          "type": "bullet",
+          "text": "ANO: “Vložte tento obrázek do rámečku ve tvaru hvězdy: https://www.shutterstock.com/cs/image-vector/cow-238683511“"
+        },
+        {
+          "type": "bullet",
+          "text": "NE: „Chtěla bych, abys vložila obrázek krávy. Mohla bys prosím umístit obrázek do rámečku ve tvaru hvězdy? Děkuji.“"
+        },
+        {
+          "type": "bullet",
+          "text": "Vždy přidávejte odkazy na obrázky."
+        },
+        {
+          "type": "bullet",
+          "text": "Pokud pracujete s ilustrátorem, odkazy nejsou nutné, ilustrace dodá přímo."
+        },
+        {
+          "type": "h3",
+          "text": "Komunikace s grafikem"
+        },
+        {
+          "type": "bullet",
+          "text": "Komentáře musí být stručné, jasné a přehledné."
+        },
+        {
+          "type": "bullet",
+          "text": "Musí být zřejmé, ke které části stránky komentář patří."
+        },
+        {
+          "type": "bullet",
+          "text": "Grafik není odpovědný za obsahovou správnost textu."
+        },
+        {
+          "type": "h3",
+          "text": "Korektury"
+        },
+        {
+          "type": "bullet",
+          "text": "Po každém kole oprav vzniká nové PDF."
+        },
+        {
+          "type": "bullet",
+          "text": "Komentáře zapisujte vždy do nejnovější verze PDF."
+        },
+        {
+          "type": "bullet",
+          "text": "Doporučuje se systematické pojmenování PDF souborů."
+        },
+        {
+          "type": "h3",
+          "text": "Vrstva řešení"
+        },
+        {
+          "type": "bullet",
+          "text": "Řešení doporučujeme mít v InDesignu jako samostatnou zapínatelnou vrstvu."
+        },
+        {
+          "type": "bullet",
+          "text": "Budoucí změny pak není nutné dělat dvakrát."
+        },
+        {
+          "type": "bullet",
+          "text": "Pokud budou řešení dodána později, grafik o tom musí vědět předem."
+        },
+        {
+          "type": "h3",
+          "text": "Schválení publikace"
+        },
+        {
+          "type": "bullet",
+          "text": "Před tiskem musí publikaci zkontrolovat redaktor, team leader a případně majitel."
+        },
+        {
+          "type": "bullet",
+          "text": "Teprve poté grafik exportuje tiskové PDF a nahraje data na Dropbox."
+        },
+        {
+          "type": "h3",
+          "text": "Nahrávání na Dropbox"
+        },
+        {
+          "type": "bullet",
+          "text": "Po schválení publikace grafik nahraje data na Dropbox a vloží odkazy do Adminu."
+        },
+        {
+          "type": "bullet",
+          "text": "V této fázi by již neměly vznikat větší obsahové změny."
+        }
+      ]
+    },
+    {
+      "title": "Historie verzí",
+      "blocks": [
+        {
+          "type": "table",
+          "rows": [
+            [
+              "Verze",
+              "Datum",
+              "Autor",
+              "Změny"
+            ],
+            [
+              "1",
+              "2026-5-27",
+              "Vlad Frolov",
+              "Sloučení a vytvoření manuálu"
+            ],
+            [
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              ""
+            ],
+            [
+              "",
+              "",
+              "",
+              ""
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
