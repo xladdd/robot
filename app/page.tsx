@@ -50,13 +50,13 @@ const copy = {
     printedPage: "Printed page",
     pageMapping: "Page-number anchor",
     localExtraction: "The PDF text stays in this browser",
-    promptUpload: "Drag a manuscript PDF (up to 20 pages), or click here to select file",
+    promptUpload: "Drag a manuscript PDF (up to 20 pages), or select",
     extractedPrompts: "Extracted prompts",
     noIllustrations: "No meaningful illustrations found.",
     comingSoon: "It’s nice to have something to look forward to.",
     processing: ["pouring a coffee", "sharpening pencils", "looking out of the window", "reading the small print", "straightening the paper", "finding the first line", "squinting at punctuation", "counting paragraphs", "checking the margins", "recognising letters", "putting words back in order"],
     indexProcessing: ["communicating", "calculating", "slicing bread", "spreading butter", "packing lunch", "looking up the way to the library", "waiting for the tram", "looking for a place to sit", "2+2=???", "hm…", "looking for a bench in the park", "consuming sandwich", "staring into space", "looking at trees"],
-    promptProcessing: ["turning pages", "ignoring the small print", "looking for pictures", "examining characters", "watching what they are doing", "sorting simple scenes", "untangling complex scenes", "writing short prompts", "checking the page again"],
+    promptProcessing: ["polishing the magnifier", "playing with the pen", "turning a page", "looking out of the window", "turning on the lamp", "hunching over the computer", "thinking about stuff", "procrastinating", "checking the horoscope", "taking a deep sigh", "thinking about things", "pouring a coffee", "doing some push-ups"],
     about: "About Taktik Automat",
     aboutBody:
       "A focused workspace for preparing textbook content, layouts and visual materials.",
@@ -100,13 +100,13 @@ const copy = {
     printedPage: "Tištěná strana",
     pageMapping: "Kotva číslování stran",
     localExtraction: "Text PDF zůstává v tomto prohlížeči",
-    promptUpload: "Přetáhněte rukopis v PDF (max. 20 stran) nebo klikněte pro výběr",
+    promptUpload: "Přetáhněte rukopis v PDF (max. 20 stran), nebo vyberte",
     extractedPrompts: "Extrahované prompty",
     noIllustrations: "Nebyly nalezeny žádné smysluplné ilustrace.",
     comingSoon: "Je to fajn mít se na co těšit.",
     processing: ["nalévání kávy", "ořezávání tužek", "koukání z okna", "čtení drobného písma", "rovnání papíru", "hledání prvního řádku", "mhouření očí nad interpunkcí", "počítání odstavců", "kontrola okrajů", "rozpoznávání písmen", "skládání slov do správného pořadí"],
     indexProcessing: ["komunikace", "kalkulace", "krájení chleba", "mazání chleba máslem", "balení svačiny", "vyhledávání cesty do knihovny", "čekání na tramvaj", "hledání místa k sezení", "2+2=???", "hm…", "hledání lavičky v parku", "konzumace svačiny", "koukání do blba", "koukání na stromy"],
-    promptProcessing: ["otáčení stránek", "ignorování drobného písma", "hledání obrázků", "prohlížení postav", "sledování, co dělají", "třídění jednoduchých scén", "rozplétání složitých scén", "psaní krátkých promptů", "ještě jedna kontrola stránky"],
+    promptProcessing: ["leštění lupy", "hraní si s propiskou", "otáčení stránky", "koukání z okna", "rozsvěcení lampy", "hrbení se nad počítačem", "přemýšlení o všem možném", "prokrastinování", "kontrolování horoskopu", "hluboké povzdechnutí", "přemýšlení nad věcmi", "nalévání kávy", "dělání kliků"],
     about: "O aplikaci Taktik Automat",
     aboutBody:
       "Soustředěné pracovní prostředí pro přípravu učebnic, sazby a obrazových materiálů.",
@@ -254,7 +254,7 @@ const contextualHelp = {
     prompt: {
       what: [
         "Prompt Extractor finds meaningful illustrations in a manuscript PDF of up to 20 pages.",
-        "It describes simple pictures as a short subject-and-action prompt. More involved scenes receive a concise but fuller description and are grouped separately under COMPLEX.",
+        "The extractor separates independent visual assets, while keeping intentional groups together with useful counts and arrangement details. Assets extracted from a framed illustration with a developed background are grouped under COMPLEX.",
         "Empty areas, borders, logos, decorative marks and visible writing are ignored. Copy the finished list or download it as MD or TXT.",
         "Always compare the prompts with the manuscript. Visual AI can miss an illustration or misunderstand an action.",
       ],
@@ -296,7 +296,7 @@ const contextualHelp = {
     prompt: {
       what: [
         "Extraktor promptů vyhledá smysluplné ilustrace v rukopisu v PDF o rozsahu nejvýše 20 stran.",
-        "Jednoduché obrázky popíše krátkým promptem se subjektem a činností. Složitější scény popíše o něco podrobněji a zařadí je zvlášť pod nadpis COMPLEX.",
+        "Extraktor oddělí samostatné obrazové prvky, zatímco záměrné skupiny ponechá pohromadě a doplní užitečný počet či uspořádání. Prvky získané z ohraničené ilustrace s rozvinutým pozadím zařadí pod nadpis COMPLEX.",
         "Prázdná místa, rámečky, loga, dekorace a viditelný text ignoruje. Hotový seznam můžete zkopírovat nebo stáhnout jako MD či TXT.",
         "Prompty vždy porovnejte s rukopisem. Vizuální AI může ilustraci přehlédnout nebo nesprávně pochopit děj.",
       ],
@@ -700,7 +700,7 @@ export default function Home() {
       const renderer = await import("./lib/pdf-images");
       const pages = await renderer.renderPdfPages(file, (done, total) => setPromptProgress(Math.round((done / total) * 38)));
       const illustrations: IllustrationPrompt[] = [];
-      const batchSize = 4;
+      const batchSize = 1;
       const batches = Array.from({ length: Math.ceil(pages.length / batchSize) }, (_, index) => pages.slice(index * batchSize, (index + 1) * batchSize));
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex += 1) {
         const response = await fetch("/api/prompts", {
@@ -1165,10 +1165,18 @@ function formatIndexOutput(matches: Array<{ word: string; pdfPages: number[]; ot
 }
 
 function formatPromptOutput(items: IllustrationPrompt[]) {
-  const sorted = [...items].sort((left, right) => left.page - right.page);
+  const seen = new Set<string>();
+  const sorted = [...items]
+    .sort((left, right) => left.page - right.page)
+    .filter((item) => {
+      const key = item.prompt.trim().toLocaleLowerCase("en-US").replace(/\s+/g, " ").replace(/[.,;:!?]+$/g, "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   const simple = sorted.filter((item) => item.complexity === "simple");
   const complex = sorted.filter((item) => item.complexity === "complex");
-  const lines = (group: IllustrationPrompt[]) => group.map((item) => `- ${item.prompt}`).join("\n");
+  const lines = (group: IllustrationPrompt[]) => group.map((item) => item.prompt).join("\n");
   if (simple.length && complex.length) return `# SIMPLE\n\n${lines(simple)}\n\n# COMPLEX\n\n${lines(complex)}`;
   return lines(simple.length ? simple : complex);
 }
