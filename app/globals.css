@@ -532,6 +532,8 @@ button { color: inherit; font: inherit; }
 .drawer-content p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .drawer-content p + p { margin-top: 10px; }
 .drawer-content .drawer-warning { color: var(--ink); font-style: italic; font-weight: 700; }
+.drawer-content .drawer-editor { margin: 18px 0 !important; padding: 15px 16px; border: 1px solid var(--teal); background: color-mix(in srgb, var(--teal) 16%, var(--bg)); color: var(--ink); line-height: 1.65; box-shadow: 3px 3px 0 color-mix(in srgb, var(--teal) 48%, transparent); }
+.drawer-content .drawer-editor strong { display: block; margin-bottom: 7px; color: var(--teal); font-style: normal; letter-spacing: .04em; text-transform: uppercase; }
 .drawer-content dl { margin-top: 48px; border-top: 1px solid var(--line); }
 .drawer-content dl div { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 8px; }
 .drawer-content dt { color: var(--muted); }.drawer-content dd { margin: 0; }

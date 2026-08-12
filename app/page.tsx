@@ -309,12 +309,12 @@ const contextualHelp = {
     },
     solutions: {
       what: [
-        "Importér řešení porovná čisté náhledové PDF s odpovídajícím PDF obsahujícím vepsaná řešení a vytvoří malý soubor JSON. Stažitelný skript pro InDesign jej použije k automatickému umístění nového textu řešení do vrstvy SOLUTIONS.",
-        "Importovanou vrstvu před uložením vždy zkontrolujte.",
-        "Pro redaktory: řešení vepisujte jako skutečný označitelný text přímo do kopie čistého náhledového PDF. Každé řešení umístěte blízko příslušného cvičení nebo prostoru pro odpověď. Nepoužívejte komentáře, lístečky, kreslené anotace, rukopis, text převedený do křivek, snímky obrazovky ani naskenované odpovědi—importér je nedokáže spolehlivě extrahovat. Při doplňování řešení původní obsah stran neposouvejte, neměňte jeho velikost ani zalomení.",
-        "Obě PDF musí obsahovat stejné strany ve stejném pořadí a používat stejný nezměněný layout.",
+        "Solutions Importer compares a clean preview PDF with the matching PDF that contains typed answers and provides a small JSON file that the downloadable InDesign script uses to place the new answer text on a SOLUTIONS layer automatically.",
+        "Always review the imported layer before saving.",
+        "For editors: add answers as real, selectable typed text directly onto a copy of the clean preview PDF. Keep every answer close to the exercise or answer space where it belongs. Do not use comments, sticky notes, drawing annotations, handwriting, outlined text, screenshots or scanned answers—the importer cannot extract those reliably. Do not move, resize, reflow or otherwise alter the original page content while adding answers.",
+        "Both PDFs must contain the same pages, in the same order, and use the same unchanged layout.",
       ],
-      how: "Python a pdfplumber načtou a porovnají obě PDF výhradně v tomto prohlížeči prostřednictvím Pyodide. PDF ani jejich text se nikdy nenahrávají do Automatu, služby AI ani na jiný server. Místní skript InDesignu později použije pouze stažený soubor JSON.",
+      how: "Python and pdfplumber read and compare both PDFs entirely inside this browser through Pyodide. The PDFs and their text are never uploaded to Automat, an AI service, or any other server. Only the JSON file you download is used later by the local InDesign script.",
     },
     barcode: {
       what: ["Barcode Generator validates ISBN-10 and ISBN-13 numbers and creates the corresponding EAN-13 publication barcode.", "The PDF is vector artwork at the standard nominal size, with outlined Verdana digits and pure process black throughout."],
@@ -364,12 +364,12 @@ const contextualHelp = {
     },
     solutions: {
       what: [
-        "Solutions Importer compares a clean preview PDF with the matching PDF that contains typed answers and provides a small JSON file that the downloadable InDesign script uses to place the new answer text on a SOLUTIONS layer automatically.",
-        "Always review the imported layer before saving.",
-        "For editors: add answers as real, selectable typed text directly onto a copy of the clean preview PDF. Keep every answer close to the exercise or answer space where it belongs. Do not use comments, sticky notes, drawing annotations, handwriting, outlined text, screenshots or scanned answers—the importer cannot extract those reliably. Do not move, resize, reflow or otherwise alter the original page content while adding answers.",
-        "Both PDFs must contain the same pages, in the same order, and use the same unchanged layout.",
+        "Importér řešení porovná čisté náhledové PDF s odpovídajícím PDF obsahujícím vepsaná řešení a vytvoří malý soubor JSON. Stažitelný skript pro InDesign jej použije k automatickému umístění nového textu řešení do vrstvy SOLUTIONS.",
+        "Importovanou vrstvu před uložením vždy zkontrolujte.",
+        "Pro redaktory: řešení vepisujte jako skutečný označitelný text přímo do kopie čistého náhledového PDF. Každé řešení umístěte blízko příslušného cvičení nebo prostoru pro odpověď. Nepoužívejte komentáře, lístečky, kreslené anotace, rukopis, text převedený do křivek, snímky obrazovky ani naskenované odpovědi—importér je nedokáže spolehlivě extrahovat. Při doplňování řešení původní obsah stran neposouvejte, neměňte jeho velikost ani zalomení.",
+        "Obě PDF musí obsahovat stejné strany ve stejném pořadí a používat stejný nezměněný layout.",
       ],
-      how: "Python and pdfplumber read and compare both PDFs entirely inside this browser through Pyodide. The PDFs and their text are never uploaded to Automat, an AI service, or any other server. Only the JSON file you download is used later by the local InDesign script.",
+      how: "Python a pdfplumber načtou a porovnají obě PDF výhradně v tomto prohlížeči prostřednictvím Pyodide. PDF ani jejich text se nikdy nenahrávají do Automatu, služby AI ani na jiný server. Místní skript InDesignu později použije pouze stažený soubor JSON.",
     },
     barcode: {
       what: ["Generátor ověří ISBN-10 nebo ISBN-13 a vytvoří odpovídající publikační čárový kód EAN-13.", "PDF obsahuje vektorovou kresbu ve standardní jmenovité velikosti, číslice Verdana převedené do křivek a čistou procesní černou."],
@@ -1427,7 +1427,13 @@ export default function Home() {
           <span className="drawer-kicker">TAKTIK AUTOMAT</span>
           <h2>{selectedLabel || t.about}</h2>
           <h3>{language === "cs" ? "Co to je?" : "What is this?"}</h3>
-          {help.what.map((paragraph, index) => <p className={selected === "solutions" && index === 1 ? "drawer-warning" : undefined} key={paragraph}>{paragraph}</p>)}
+          {help.what.map((paragraph, index) => {
+            if (selected === "solutions" && index === 2) {
+              const separator = paragraph.indexOf(":");
+              return <p className="drawer-editor" key={paragraph}><strong>{paragraph.slice(0, separator + 1)}</strong>{paragraph.slice(separator + 1)}</p>;
+            }
+            return <p className={selected === "solutions" && index === 1 ? "drawer-warning" : undefined} key={paragraph}>{paragraph}</p>;
+          })}
           <h3>{language === "cs" ? "Jak to funguje?" : "How does it work?"}</h3>
           <p>{help.how}</p>
         </div>
