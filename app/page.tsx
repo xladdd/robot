@@ -4,6 +4,7 @@ import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { czechNamedays } from "./czechNamedays";
 import manualCzechContent from "../public/design-manual/content-cs.json";
 import manualEnglishContent from "../public/design-manual/content-en.json";
+import { createEan13Pdf, eanModules, normalizeIsbn } from "./lib/ean13";
 
 type Language = "en" | "cs";
 type Theme = "light" | "dark";
@@ -25,6 +26,8 @@ const copy = {
       cover: "Cover Generator",
       figure: "Figure Generator",
       grep: "GREP Builder",
+      solutions: "Solutions Importer",
+      barcode: "Barcode Generator",
       manual: "Design Manual",
       brand: "Brand Manual",
     },
@@ -75,6 +78,8 @@ const copy = {
       cover: "Generátor obálek",
       figure: "Generátor ilustrací",
       grep: "Tvůrce GREP výrazů",
+      solutions: "Importér řešení",
+      barcode: "Generátor čárových kódů",
       manual: "Grafický manuál",
       brand: "Brand manuál",
     },
@@ -118,11 +123,53 @@ const groups = [
   { key: "text" as const, items: ["extraction", "index"] as const },
   {
     key: "design" as const,
-    items: ["grep", "typesetter", "prompt", "image", "cover", "figure"] as const,
+    items: ["grep", "solutions", "barcode", "typesetter", "prompt", "image", "cover", "figure"] as const,
   },
 ];
 
-const completedApps = new Set(["extraction", "index", "grep", "prompt"]);
+const completedApps = new Set(["extraction", "index", "grep", "prompt", "solutions", "barcode"]);
+const solutionsUi = {
+  en: {
+    heading: "Solutions Importer", subtitle: "Choose the clean preview and its matching solutions PDF. Automat compares them locally and downloads the JSON file for InDesign.", local: "PROCESSED LOCALLY",
+    clean: "CLEAN PREVIEW PDF", answers: "SOLUTIONS PDF", choose: "Drop PDF here or choose file", compare: "Create and download JSON", again: "Create and download again", comparing: "Comparing PDFs…", log: "LOCAL PROCESS LOG", success: "JSON downloaded. Keep it with the matching InDesign chapter.", privacy: "Python and pdfplumber run inside this browser. The PDFs stay on this computer and are never uploaded.",
+    download: "DOWNLOAD FOR INDESIGN", importer: "InDesign importer", need: "YOU WILL NEED", needs: ["The blank preview PDF", "The matching solutions PDF", "The matching InDesign chapter", "The downloaded InDesign importer"], warningTitle: "Work on a copy first.", warning: "Both PDFs must contain the same pages, in the same order, with the same layout.",
+    steps: [
+      ["Prepare matching PDFs", "Export or split both PDFs so they contain only the pages in one InDesign chapter. The first is the clean preview; the second is the same unchanged document with typed answers. Their page counts must match the INDD file."],
+      ["Create the JSON", "Choose both PDFs at the top of this page, then click Create and download JSON. The comparison happens on this computer. Keep the downloaded JSON with its InDesign chapter."],
+      ["Install the InDesign script", "Download import_solution_text.jsx. In InDesign, choose Window → Utilities → Scripts. Right-click User, choose Reveal in Finder or Reveal in Explorer, open Scripts Panel, and copy the JSX file there. You only need to install it once."],
+      ["Import and check", "Open the matching InDesign chapter. Make sure it contains a paragraph style named exactly Solutions. Double-click import_solution_text.jsx in the Scripts panel and choose your new JSON file."],
+    ],
+    checks: ["Check the new SOLUTIONS layer page by page.", "Correct any small position differences before saving.", "If something is wrong, one Undo removes the complete import.", "Before running again, delete the existing SOLUTIONS layer to avoid duplicates."],
+    trouble: "If it does not work", troubles: [["Page-count mismatch", "Split both PDFs again so they match the exact pages in the InDesign chapter."], ["Page-size mismatch", "Make sure both PDFs were exported from the same unchanged layout and use identical page dimensions."], ["Missing “Solutions” style", "Create or copy a paragraph style named exactly Solutions, including the capital S."], ["Some answers are missing", "The extractor reads typed PDF text only. Handwriting, outlined letters, images, and drawing annotations cannot be imported."]],
+    pdfError: "Please choose a PDF file.", failed: "Could not compare the PDFs.", starting: "Starting local browser comparison. No files will be uploaded.", cleanLog: "Clean preview", answersLog: "Solutions PDF", worker: "Starting isolated Python worker…", jsonReady: "Python JSON ready", downloading: "Starting download…", downloaded: "Downloaded successfully.", error: "ERROR",
+  },
+  cs: {
+    heading: "Importér řešení", subtitle: "Vyberte čisté náhledové PDF a odpovídající PDF s řešeními. Automat je porovná místně a stáhne soubor JSON pro InDesign.", local: "ZPRACOVÁNO MÍSTNĚ",
+    clean: "ČISTÉ NÁHLEDOVÉ PDF", answers: "PDF S ŘEŠENÍMI", choose: "Přetáhněte PDF nebo vyberte soubor", compare: "Vytvořit a stáhnout JSON", again: "Vytvořit a stáhnout znovu", comparing: "Porovnávání PDF…", log: "MÍSTNÍ PROTOKOL ZPRACOVÁNÍ", success: "JSON byl stažen. Uložte jej k odpovídající kapitole InDesignu.", privacy: "Python a pdfplumber běží v tomto prohlížeči. PDF zůstávají v tomto počítači a nikam se nenahrávají.",
+    download: "STÁHNOUT PRO INDESIGN", importer: "Importér pro InDesign", need: "BUDETE POTŘEBOVAT", needs: ["Čisté náhledové PDF", "Odpovídající PDF s řešeními", "Odpovídající kapitolu InDesignu", "Stažený importér pro InDesign"], warningTitle: "Nejprve pracujte na kopii.", warning: "Obě PDF musí obsahovat stejné strany ve stejném pořadí a se stejným layoutem.",
+    steps: [
+      ["Připravte odpovídající PDF", "Exportujte nebo rozdělte obě PDF tak, aby obsahovala pouze strany jedné kapitoly InDesignu. První soubor je čistý náhled, druhý je stejný nezměněný dokument s vepsanými řešeními. Počet stran musí odpovídat souboru INDD."],
+      ["Vytvořte JSON", "Nahoře na této stránce vyberte obě PDF a klikněte na Vytvořit a stáhnout JSON. Porovnání proběhne v tomto počítači. Stažený JSON uložte k příslušné kapitole InDesignu."],
+      ["Nainstalujte skript InDesignu", "Stáhněte import_solution_text.jsx. V InDesignu zvolte Okna → Pomůcky → Skripty. Klikněte pravým tlačítkem na User, zvolte Reveal in Finder nebo Reveal in Explorer, otevřete složku Scripts Panel a zkopírujte do ní soubor JSX. Instalaci stačí provést jednou."],
+      ["Importujte a zkontrolujte", "Otevřete odpovídající kapitolu InDesignu. Ověřte, že obsahuje odstavcový styl s přesným názvem Solutions. V panelu Skripty dvakrát klikněte na import_solution_text.jsx a vyberte nový soubor JSON."],
+    ],
+    checks: ["Zkontrolujte novou vrstvu SOLUTIONS stranu po straně.", "Před uložením opravte případné drobné odchylky polohy.", "Pokud něco není v pořádku, jeden krok Zpět odstraní celý import.", "Před opakovaným spuštěním odstraňte stávající vrstvu SOLUTIONS, aby nevznikly duplicity."],
+    trouble: "Když něco nefunguje", troubles: [["Nesouhlasí počet stran", "Znovu rozdělte obě PDF tak, aby přesně odpovídala stranám kapitoly InDesignu."], ["Nesouhlasí velikost stran", "Ověřte, že obě PDF byla exportována ze stejného nezměněného layoutu a mají shodné rozměry stran."], ["Chybí styl „Solutions“", "Vytvořte nebo zkopírujte odstavcový styl s přesným názvem Solutions, včetně velkého S."], ["Některá řešení chybí", "Extraktor čte pouze živý text PDF. Rukopis, text převedený do křivek, obrázky a kreslené anotace nelze importovat."]],
+    pdfError: "Vyberte soubor PDF.", failed: "PDF se nepodařilo porovnat.", starting: "Spouštím místní porovnání v prohlížeči. Žádné soubory se nebudou nahrávat.", cleanLog: "Čistý náhled", answersLog: "PDF s řešeními", worker: "Spouštím izolovaný proces Pythonu…", jsonReady: "Python JSON je připraven", downloading: "Spouštím stahování…", downloaded: "Soubor byl úspěšně stažen.", error: "CHYBA",
+  },
+} as const;
+const barcodeUi = {
+  en: {
+    heading: "Barcode Generator", subtitle: "Enter an ISBN with or without hyphens. Download a press-ready vector EAN-13 PDF.", local: "CREATED LOCALLY",
+    label: "ISBN-10 OR ISBN-13", placeholder: "978-80-7563-123-4", generate: "Download vector PDF", ready: "READY FOR PRODUCTION", empty: "Enter an ISBN to preview the barcode.",
+    valid: "CHECKSUM VALID", converted: "ISBN-10 CONVERTED", format: "EAN-13", size: "37.29 × 25.93 MM", colour: "CMYK 0 / 0 / 0 / 100", type: "VERDANA · OUTLINED", privacy: "Everything is generated in this browser. No ISBN is uploaded.",
+  },
+  cs: {
+    heading: "Generátor čárových kódů", subtitle: "Zadejte ISBN s pomlčkami nebo bez nich. Stáhněte tiskové vektorové PDF EAN-13.", local: "VYTVOŘENO MÍSTNĚ",
+    label: "ISBN-10 NEBO ISBN-13", placeholder: "978-80-7563-123-4", generate: "Stáhnout vektorové PDF", ready: "PŘIPRAVENO PRO TISK", empty: "Zadejte ISBN pro náhled čárového kódu.",
+    valid: "KONTROLNÍ ČÍSLICE PLATÍ", converted: "ISBN-10 PŘEVEDENO", format: "EAN-13", size: "37,29 × 25,93 MM", colour: "CMYK 0 / 0 / 0 / 100", type: "VERDANA · V KŘIVKÁCH", privacy: "Vše se generuje v tomto prohlížeči. ISBN se nikam neodesílá.",
+  },
+} as const;
 const brandGuidelinesUrl = "https://drive.google.com/open?id=1RGk5Wju28DMBMia1gd9ONdjYH0mQmiTC&usp=drive_fs";
 const manualEnglishPages = [
   {
@@ -260,6 +307,19 @@ const contextualHelp = {
       ],
       how: "PDF.js checks the page count and renders every page locally as an image. The PDF text layer is never extracted or uploaded. Page images travel in small batches through the protected server route to the fixed Mistral Medium 3.5 vision model on OpenRouter, which returns structured illustration descriptions. The browser groups and formats those descriptions.",
     },
+    solutions: {
+      what: [
+        "Importér řešení porovná čisté náhledové PDF s odpovídajícím PDF obsahujícím vepsaná řešení a vytvoří malý soubor JSON. Stažitelný skript pro InDesign jej použije k automatickému umístění nového textu řešení do vrstvy SOLUTIONS.",
+        "Importovanou vrstvu před uložením vždy zkontrolujte.",
+        "Pro redaktory: řešení vepisujte jako skutečný označitelný text přímo do kopie čistého náhledového PDF. Každé řešení umístěte blízko příslušného cvičení nebo prostoru pro odpověď. Nepoužívejte komentáře, lístečky, kreslené anotace, rukopis, text převedený do křivek, snímky obrazovky ani naskenované odpovědi—importér je nedokáže spolehlivě extrahovat. Při doplňování řešení původní obsah stran neposouvejte, neměňte jeho velikost ani zalomení.",
+        "Obě PDF musí obsahovat stejné strany ve stejném pořadí a používat stejný nezměněný layout.",
+      ],
+      how: "Python a pdfplumber načtou a porovnají obě PDF výhradně v tomto prohlížeči prostřednictvím Pyodide. PDF ani jejich text se nikdy nenahrávají do Automatu, služby AI ani na jiný server. Místní skript InDesignu později použije pouze stažený soubor JSON.",
+    },
+    barcode: {
+      what: ["Barcode Generator validates ISBN-10 and ISBN-13 numbers and creates the corresponding EAN-13 publication barcode.", "The PDF is vector artwork at the standard nominal size, with outlined Verdana digits and pure process black throughout."],
+      how: "The ISBN, checksum, bars, digit outlines and PDF are produced locally in this browser. Nothing is uploaded and no external barcode service is used.",
+    },
     general: {
       what: ["Taktik Automat is a focused set of tools for preparing textbook content, layouts and visual materials."],
       how: "Choose a tool from the left. Each module explains what it does here, including which parts stay local and which AI services it uses.",
@@ -301,6 +361,19 @@ const contextualHelp = {
         "Prompty vždy porovnejte s rukopisem. Vizuální AI může ilustraci přehlédnout nebo nesprávně pochopit děj.",
       ],
       how: "PDF.js místně zkontroluje počet stran a každou stranu vykreslí jako obrázek. Textová vrstva PDF se neextrahuje ani neodesílá. Obrázky stran putují v malých dávkách přes chráněnou serverovou cestu do pevně zvoleného vizuálního modelu Mistral Medium 3.5 na OpenRouteru. Prohlížeč vrácené strukturované popisy seskupí a naformátuje.",
+    },
+    solutions: {
+      what: [
+        "Solutions Importer compares a clean preview PDF with the matching PDF that contains typed answers and provides a small JSON file that the downloadable InDesign script uses to place the new answer text on a SOLUTIONS layer automatically.",
+        "Always review the imported layer before saving.",
+        "For editors: add answers as real, selectable typed text directly onto a copy of the clean preview PDF. Keep every answer close to the exercise or answer space where it belongs. Do not use comments, sticky notes, drawing annotations, handwriting, outlined text, screenshots or scanned answers—the importer cannot extract those reliably. Do not move, resize, reflow or otherwise alter the original page content while adding answers.",
+        "Both PDFs must contain the same pages, in the same order, and use the same unchanged layout.",
+      ],
+      how: "Python and pdfplumber read and compare both PDFs entirely inside this browser through Pyodide. The PDFs and their text are never uploaded to Automat, an AI service, or any other server. Only the JSON file you download is used later by the local InDesign script.",
+    },
+    barcode: {
+      what: ["Generátor ověří ISBN-10 nebo ISBN-13 a vytvoří odpovídající publikační čárový kód EAN-13.", "PDF obsahuje vektorovou kresbu ve standardní jmenovité velikosti, číslice Verdana převedené do křivek a čistou procesní černou."],
+      how: "ISBN, kontrolní číslice, pruhy, obrysy číslic i PDF vznikají místně v tomto prohlížeči. Nic se neodesílá a nepoužívá se žádná externí služba.",
     },
     general: {
       what: ["Taktik Automat je soustředěná sada nástrojů pro přípravu obsahu, sazby a obrazových materiálů učebnic."],
@@ -358,9 +431,21 @@ export default function Home() {
   const [promptProgress, setPromptProgress] = useState(0);
   const [promptError, setPromptError] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
+  const [solutionsBlankFile, setSolutionsBlankFile] = useState<File | null>(null);
+  const [solutionsAnswerFile, setSolutionsAnswerFile] = useState<File | null>(null);
+  const [solutionsResult, setSolutionsResult] = useState("");
+  const [solutionsProgress, setSolutionsProgress] = useState(0);
+  const [solutionsError, setSolutionsError] = useState("");
+  const [solutionsLog, setSolutionsLog] = useState<string[]>([]);
+  const [isExtractingSolutions, setIsExtractingSolutions] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const solutionsBlankInputRef = useRef<HTMLInputElement>(null);
+  const solutionsAnswerInputRef = useRef<HTMLInputElement>(null);
   const promptFileInputRef = useRef<HTMLInputElement>(null);
   const indexFileInputRef = useRef<HTMLInputElement>(null);
   const t = copy[language];
+  const solutionsT = solutionsUi[language];
+  const barcodeT = barcodeUi[language];
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("ta-theme") as Theme | null;
@@ -546,6 +631,86 @@ export default function Home() {
     link.download = filename;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  function selectSolutionPdf(kind: "blank" | "answers", file: File) {
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setSolutionsError(solutionsT.pdfError);
+      return;
+    }
+    if (kind === "blank") setSolutionsBlankFile(file);
+    else setSolutionsAnswerFile(file);
+    setSolutionsResult("");
+    setSolutionsProgress(0);
+    setSolutionsError("");
+  }
+
+  function handleSolutionFileInput(kind: "blank" | "answers", event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) selectSolutionPdf(kind, file);
+    event.target.value = "";
+  }
+
+  function handleSolutionDrop(kind: "blank" | "answers", event: DragEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file) selectSolutionPdf(kind, file);
+  }
+
+  async function createSolutionJson() {
+    if (!solutionsBlankFile || !solutionsAnswerFile || isExtractingSolutions) return;
+    setIsExtractingSolutions(true);
+    setSolutionsResult("");
+    setSolutionsError("");
+    setSolutionsLog([]);
+    setSolutionsProgress(1);
+    const addLog = (message: string) => {
+      const timestamp = new Date().toLocaleTimeString("en-GB", { hour12: false });
+      const line = `[${timestamp}] ${message}`;
+      setSolutionsLog((current) => [...current, line]);
+      console.info(`[Solutions Importer] ${message}`);
+    };
+    try {
+      addLog(solutionsT.starting);
+      addLog(`${solutionsT.cleanLog}: ${solutionsBlankFile.name} · ${formatFileSize(solutionsBlankFile.size)}`);
+      addLog(`${solutionsT.answersLog}: ${solutionsAnswerFile.name} · ${formatFileSize(solutionsAnswerFile.size)}`);
+      addLog(solutionsT.worker);
+      const json = await new Promise<string>(async (resolve, reject) => {
+        const worker = new Worker("/solutions/pyodide-worker.js");
+        worker.onmessage = (event: MessageEvent<{ type: string; message?: string; progress?: number; json?: string; stack?: string }>) => {
+          const message = event.data;
+          if (message.type === "log" && message.message) {
+            if (typeof message.progress === "number") setSolutionsProgress(message.progress);
+            addLog(message.message);
+          } else if (message.type === "result" && message.json) {
+            worker.terminate();
+            resolve(message.json);
+          } else if (message.type === "error") {
+            worker.terminate();
+            reject(new Error(message.message || solutionsT.failed));
+          }
+        };
+        worker.onerror = (event) => {
+          worker.terminate();
+          reject(new Error(event.message || solutionsT.failed));
+        };
+        const [blank, solutions] = await Promise.all([solutionsBlankFile.arrayBuffer(), solutionsAnswerFile.arrayBuffer()]);
+        worker.postMessage({ blank, solutions, blankName: solutionsBlankFile.name, solutionsName: solutionsAnswerFile.name, language }, [blank, solutions]);
+      });
+      setSolutionsResult(json);
+      const sourceName = solutionsAnswerFile.name.replace(/\.pdf$/i, "") || "chapter-solutions";
+      addLog(`${solutionsT.jsonReady}: ${formatFileSize(new Blob([json]).size)}. ${solutionsT.downloading}`);
+      downloadText(json, `${sourceName}.json`, "application/json");
+      addLog(`${sourceName}.json: ${solutionsT.downloaded}`);
+      setSolutionsProgress(100);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : solutionsT.failed;
+      addLog(`${solutionsT.error}: ${message}`);
+      console.error("[Solutions Importer] Comparison failed", error);
+      setSolutionsError(message);
+    } finally {
+      setIsExtractingSolutions(false);
+    }
   }
 
   function selectIndexFile(file: File) {
@@ -741,6 +906,23 @@ export default function Home() {
     window.setTimeout(() => setPromptCopied(false), 1600);
   }
 
+  let barcodeResult: ReturnType<typeof normalizeIsbn> | null = null;
+  let barcodeError = "";
+  if (barcodeInput.trim()) {
+    try { barcodeResult = normalizeIsbn(barcodeInput); }
+    catch (error) { barcodeError = error instanceof Error ? error.message : "Invalid ISBN."; }
+  }
+
+  function downloadBarcode() {
+    if (!barcodeResult) return;
+    const url = URL.createObjectURL(createEan13Pdf(barcodeResult.digits));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `EAN13_${barcodeResult.digits}.pdf`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   const selectedLabel = selected
     ? t.apps[selected as keyof typeof t.apps]
     : null;
@@ -750,7 +932,7 @@ export default function Home() {
     : null;
   const selectedInitial = selectedLabel?.trim().charAt(0).toLocaleUpperCase(language === "cs" ? "cs-CZ" : "en-US") ?? null;
   const selectedSection = selected === "manual" ? "REFERENCE" : selectedGroup ? t[selectedGroup.key].toUpperCase() : null;
-  const helpKey = selected === "extraction" || selected === "index" || selected === "grep" || selected === "prompt" ? selected : "general";
+  const helpKey = selected === "extraction" || selected === "index" || selected === "grep" || selected === "prompt" || selected === "solutions" || selected === "barcode" ? selected : "general";
   const help = contextualHelp[language][helpKey];
   const clockHours = now ? String(now.getHours()).padStart(2, "0") : "--";
   const clockMinutes = now ? String(now.getMinutes()).padStart(2, "0") : "--";
@@ -909,6 +1091,115 @@ export default function Home() {
                 <button onClick={() => setManualChapter((chapter) => Math.min(visibleManualChapters.length - 1, chapter + 1))} disabled={manualChapter >= visibleManualChapters.length - 1}><span>{language === "cs" ? "Další" : "Next"}</span> →</button>
               </nav>
             </article>
+          </div>
+        ) : selected === "barcode" ? (
+          <div className="barcode-module">
+            <header className="barcode-header">
+              <div><div className="module-code">DESIGN / EAN-13</div><h1>{barcodeT.heading}</h1><p>{barcodeT.subtitle}</p></div>
+              <span className="solutions-local-badge"><i />{barcodeT.local}</span>
+            </header>
+            <div className="barcode-workbench">
+              <section className="barcode-controls">
+                <label htmlFor="barcode-isbn">{barcodeT.label}</label>
+                <input id="barcode-isbn" inputMode="text" autoComplete="off" spellCheck={false} value={barcodeInput} onChange={(event) => setBarcodeInput(event.target.value)} placeholder={barcodeT.placeholder} />
+                {barcodeError && <p className="extraction-error" role="alert">{barcodeError}</p>}
+                <button className="solutions-create" onClick={downloadBarcode} disabled={!barcodeResult}><span>{barcodeT.generate}</span><b>↓</b></button>
+                <p className="solutions-privacy">{barcodeT.privacy}</p>
+              </section>
+              <section className={`barcode-preview-card ${barcodeResult ? "is-ready" : ""}`}>
+                <div className="barcode-preview-head"><span>{barcodeResult ? barcodeT.ready : "PREVIEW"}</span>{barcodeResult && <b>✓ {barcodeResult.source === "ISBN-10" ? barcodeT.converted : barcodeT.valid}</b>}</div>
+                <div className="barcode-paper">
+                  {barcodeResult ? <svg viewBox="0 0 113 78.6" role="img" aria-label={`EAN-13 ${barcodeResult.digits}`}>
+                    <g fill="#000">{[...eanModules(barcodeResult.digits)].map((bit, index) => bit === "1" ? <rect key={index} x={11 + index} y="2" width="1" height={index < 3 || (index >= 45 && index < 50) || index >= 92 ? 68 : 64} /> : null)}</g>
+                    <g className="barcode-preview-digits"><text x="2" y="77">{barcodeResult.digits[0]}</text><text x="34" y="77" textAnchor="middle">{barcodeResult.digits.slice(1, 7)}</text><text x="81" y="77" textAnchor="middle">{barcodeResult.digits.slice(7)}</text></g>
+                  </svg> : <p>{barcodeT.empty}</p>}
+                </div>
+                <dl className="barcode-specs"><div><dt>{barcodeT.format}</dt><dd>{barcodeResult?.digits || "—"}</dd></div><div><dt>{barcodeT.size}</dt><dd>100%</dd></div><div><dt>{barcodeT.colour}</dt><dd>K100</dd></div><div><dt>{barcodeT.type}</dt><dd>VECTOR</dd></div></dl>
+              </section>
+            </div>
+          </div>
+        ) : selected === "solutions" ? (
+          <div className="solutions-module">
+            <header className="solutions-header">
+              <div>
+                <div className="module-code">DESIGN / SOLUTIONS</div>
+                <h1>{solutionsT.heading}</h1>
+                <p>{solutionsT.subtitle}</p>
+              </div>
+              <span className="solutions-local-badge"><i />{solutionsT.local}</span>
+            </header>
+
+            <section className="solutions-generator">
+              <input ref={solutionsBlankInputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => handleSolutionFileInput("blank", event)} hidden />
+              <input ref={solutionsAnswerInputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => handleSolutionFileInput("answers", event)} hidden />
+              <div className="solutions-file-grid">
+                <button className={solutionsBlankFile ? "has-file" : ""} onClick={() => solutionsBlankInputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleSolutionDrop("blank", event)}>
+                  <span>01 / {solutionsT.clean}</span><strong>{solutionsBlankFile?.name || solutionsT.choose}</strong><b>{solutionsBlankFile ? "✓" : "+"}</b>
+                </button>
+                <button className={solutionsAnswerFile ? "has-file" : ""} onClick={() => solutionsAnswerInputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleSolutionDrop("answers", event)}>
+                  <span>02 / {solutionsT.answers}</span><strong>{solutionsAnswerFile?.name || solutionsT.choose}</strong><b>{solutionsAnswerFile ? "✓" : "+"}</b>
+                </button>
+              </div>
+              {solutionsError && <p className="extraction-error" role="alert">{solutionsError}</p>}
+              <button className="solutions-create" onClick={() => void createSolutionJson()} disabled={!solutionsBlankFile || !solutionsAnswerFile || isExtractingSolutions}>
+                <span>{isExtractingSolutions ? `${solutionsT.comparing} ${solutionsProgress}%` : solutionsResult ? solutionsT.again : solutionsT.compare}</span><b>{isExtractingSolutions ? "…" : "↓"}</b>
+              </button>
+              {(isExtractingSolutions || solutionsLog.length > 0) && <div className="solutions-progress" aria-live="polite">
+                <div className="solutions-progress-head"><span>{solutionsT.log}</span><b>{solutionsProgress}%</b></div>
+                <div className="solutions-progress-track"><i style={{ width: `${solutionsProgress}%` }} /></div>
+                <div className="solutions-console">{solutionsLog.map((line, index) => <code key={`${index}-${line}`}>{line}</code>)}</div>
+              </div>}
+              {solutionsResult && <p className="solutions-success">✓ {solutionsT.success}</p>}
+              <p className="solutions-privacy">{solutionsT.privacy}</p>
+            </section>
+
+            <div className="solutions-content">
+              <aside className="solutions-summary">
+                <span>{solutionsT.download}</span>
+                <div className="solutions-downloads">
+                  <a href="/solutions/import_solution_text.jsx" download><b>JSX</b><span><strong>{solutionsT.importer}</strong><small>import_solution_text.jsx</small></span><i>↓</i></a>
+                </div>
+                <span>{solutionsT.need}</span>
+                <ul>{solutionsT.needs.map((item) => <li key={item}>{item}</li>)}</ul>
+                <div className="solutions-note"><b>{solutionsT.warningTitle}</b><br />{solutionsT.warning}</div>
+              </aside>
+
+              <div className="solutions-steps">
+                <section className="solution-step">
+                  <span className="step-number">01</span>
+                  <div>
+                    <h2>{solutionsT.steps[0][0]}</h2><p>{solutionsT.steps[0][1]}</p>
+                  </div>
+                </section>
+
+                <section className="solution-step">
+                  <span className="step-number">02</span>
+                  <div>
+                    <h2>{solutionsT.steps[1][0]}</h2><p>{solutionsT.steps[1][1]}</p>
+                  </div>
+                </section>
+
+                <section className="solution-step">
+                  <span className="step-number">03</span>
+                  <div>
+                    <h2>{solutionsT.steps[2][0]}</h2><p>{solutionsT.steps[2][1]}</p>
+                  </div>
+                </section>
+
+                <section className="solution-step">
+                  <span className="step-number">04</span>
+                  <div>
+                    <h2>{solutionsT.steps[3][0]}</h2><p>{solutionsT.steps[3][1]}</p>
+                    <ul className="check-list">{solutionsT.checks.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                </section>
+
+                <section className="solutions-troubleshooting">
+                  <h2>{solutionsT.trouble}</h2>
+                  <dl>{solutionsT.troubles.map(([title, body]) => <div key={title}><dt>{title}</dt><dd>{body}</dd></div>)}</dl>
+                </section>
+              </div>
+            </div>
           </div>
         ) : selected === "extraction" ? (
           <div className={`extraction-module ${sourceKind ? "has-source" : ""}`}>
@@ -1136,7 +1427,7 @@ export default function Home() {
           <span className="drawer-kicker">TAKTIK AUTOMAT</span>
           <h2>{selectedLabel || t.about}</h2>
           <h3>{language === "cs" ? "Co to je?" : "What is this?"}</h3>
-          {help.what.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          {help.what.map((paragraph, index) => <p className={selected === "solutions" && index === 1 ? "drawer-warning" : undefined} key={paragraph}>{paragraph}</p>)}
           <h3>{language === "cs" ? "Jak to funguje?" : "How does it work?"}</h3>
           <p>{help.how}</p>
         </div>
@@ -1179,4 +1470,10 @@ function formatPromptOutput(items: IllustrationPrompt[]) {
   const lines = (group: IllustrationPrompt[]) => group.map((item) => item.prompt).join("\n");
   if (simple.length && complex.length) return `# SIMPLE\n\n${lines(simple)}\n\n# COMPLEX\n\n${lines(complex)}`;
   return lines(simple.length ? simple : complex);
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
