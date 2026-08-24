@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 
 const inputPath = process.argv[2];
-const outputPath = process.argv[3] || "app/data/cliopatria-timeline.json";
+const outputPath = process.argv[3] || "public/data/cliopatria-timeline.json";
 const tolerance = Number(process.argv[4] || 0.12);
 if (!inputPath) throw new Error("Usage: node scripts/import-cliopatria.mjs <cliopatria.geojson> [output] [tolerance-degrees]");
 

@@ -1,102 +1,65 @@
 # Taktik Robot
 
-A publishing workspace running on [vinext](https://github.com/cloudflare/vinext),
-with optional Cloudflare D1 and Drizzle support.
+A local publishing workspace for preparing textbook text, indexes, production
+assets, diagrams, graphs, maps, barcodes, and cover concepts.
 
-## Prerequisites
+## Requirements
 
 - Node.js `>=22.13.0`
+- An OpenRouter API key for AI-assisted tools
 
-## Quick Start
+## Local setup
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open [http://localhost:3000](http://localhost:3000). The app uses the local
+username/password pairs configured in `APP_USERS`.
 
-The cover generator uses `OPENROUTER_API_KEY`. Optional Shutterstock preview
-research requires either `SHUTTERSTOCK_API_TOKEN` or the
-`SHUTTERSTOCK_API_KEY` / `SHUTTERSTOCK_API_SECRET` pair. Watermarked previews
-are research references only and must be licensed before publication.
+## Environment
 
-## Included Shape
+Required values:
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+- `OPENROUTER_API_KEY`: shared API key used by protected server routes.
+- `APP_USERS`: comma-separated `username:password` pairs.
+- `AUTH_SECRET`: long random value used to sign local sessions.
 
-## Workspace Auth Headers
+Optional Shutterstock preview research accepts either
+`SHUTTERSTOCK_API_TOKEN` or the `SHUTTERSTOCK_API_KEY` /
+`SHUTTERSTOCK_API_SECRET` pair. Watermarked previews are research references
+only and must be licensed before publication.
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+Model environment variables are listed in `.env.example` and have application
+defaults.
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+## Project structure
 
-Treat the full name as optional and fall back to email when it is absent:
+- `app/`: Next.js pages, protected API routes, and application modules.
+- `app/content/`: static bilingual UI copy and design-manual content.
+- `app/data/`: local processed datasets used by server-side map generation.
+- `app/lib/`: deterministic renderers, parsers, authentication, and exporters.
+- `public/`: browser-served assets and the single Cliopatria timeline dataset.
+- `scripts/`: data imports, evaluations, and workflow checks.
+- `tests/`: automated regression tests.
+- `docs/`: dated development summaries and technical handoffs.
 
-```tsx
-import { headers } from "next/headers";
+The Cliopatria dataset lives once at
+`public/data/cliopatria-timeline.json`. The timeline API reads that repository
+copy directly from disk.
 
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
+## Commands
 
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run dev          # local development server
+npm run build        # production compilation
+npm start            # serve the production build locally
+npm test             # build plus rendered HTML tests
+npm run test:figures # deterministic figure and map tests
+npm run lint         # ESLint
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Generated `.next`, `dist`, `.vinext`, `.wrangler`, and `tmp` directories are
+ignored and can be safely cleared. They are not application source.

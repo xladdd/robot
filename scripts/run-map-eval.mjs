@@ -7,7 +7,7 @@ const attempt = Number(process.argv[3] || 1);
 const evaluationModel = process.argv[4] || "";
 if (!Number.isInteger(index) || index < 1 || index > 5) throw new Error("Usage: node scripts/run-map-eval.mjs <prompt 1-5> [attempt]");
 
-const source = await fs.readFile("test_prompts_maps.md", "utf8");
+const source = await fs.readFile("map-test-results/prompts.md", "utf8");
 const entries = [...source.matchAll(/^# (.+)\n\nPrompt: "([\s\S]*?)"$/gm)].map(([, title, prompt]) => ({ title, prompt }));
 const entry = entries[index - 1];
 if (!entry) throw new Error(`Prompt ${index} was not found.`);

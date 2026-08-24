@@ -2,7 +2,7 @@ import copy
 import json
 
 
-source = json.load(open("public/design-manual/content-cs.json", encoding="utf-8"))
+source = json.load(open("app/content/design-manual/content-cs.json", encoding="utf-8"))
 chapters = [chapter for chapter in source["chapters"] if chapter["blocks"] and chapter["title"] != "Historie verzí"]
 
 translations = {
@@ -228,5 +228,5 @@ for chapter in chapters:
     for block, text in zip(text_blocks, translated):
         block["text"] = text
 
-with open("public/design-manual/content-en.json", "w", encoding="utf-8") as output:
+with open("app/content/design-manual/content-en.json", "w", encoding="utf-8") as output:
     json.dump({"chapters": chapters}, output, ensure_ascii=False, indent=2)

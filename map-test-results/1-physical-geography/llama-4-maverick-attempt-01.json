@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a factual map of South America showing national borders and labeling every country. Also label the Andes Mountains, Amazon River, Amazon Basin, Atacama Desert, Brazilian Highlands, Pacific Ocean, and Atlantic Ocean. Include a scale bar, north arrow, and legend.",
-  "status": 500,
-  "seconds": 65,
-  "result": {
-    "error": "Map region 1 needs a label and declared category."
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "prompt": "Create a map of Europe showing the major climate regions: Mediterranean, oceanic, continental, subarctic, tundra, and mountain climate. Use separate filled regions, label major seas and selected countries for orientation, and include a legend.",
-  "status": 500,
-  "seconds": 82,
-  "result": {
-    "error": "Use between 1 and 240 map regions."
-  }
-}

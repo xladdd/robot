@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
-import { applyCliopatriaBoundaryCatalog, applyHistoricalBoundaryCatalog, type CliopatriaTimeline } from "../../../lib/map-catalog";
+import { loadCliopatriaTimeline } from "../../../lib/cliopatria";
+import { applyCliopatriaBoundaryCatalog, applyHistoricalBoundaryCatalog } from "../../../lib/map-catalog";
 import { createMapReport, renderMapSvg, type MapSpec } from "../../../lib/figure";
 import worldAtlas from "world-atlas/countries-50m.json" with { type: "json" };
 
 export const dynamic = "force-dynamic";
-
-let cliopatriaPromise: Promise<CliopatriaTimeline> | null = null;
-function loadCliopatria(request: Request) {
-  cliopatriaPromise ??= fetch(new URL("/data/cliopatria-timeline.json", request.url), { headers: { cookie: request.headers.get("cookie") || "" } }).then(async (response) => {
-    if (!response.ok) throw new Error(`Could not load the local Cliopatria dataset (${response.status}).`);
-    return response.json() as Promise<CliopatriaTimeline>;
-  }).catch((error) => { cliopatriaPromise = null; throw error; });
-  return cliopatriaPromise;
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -26,7 +18,7 @@ export async function GET(request: Request) {
     categories: [{ id: "state", label: `States in ${year}`, color: "grey" }], regions: [], features: [], labels: [], viewport: { west: -180, south: -58, east: 180, north: 82 }, showScaleBar: true, showNorthArrow: false,
     sources: [{ id: "CLIOPATRIA", title: "Cliopatria — worldwide historical polities", url: "https://github.com/Seshat-Global-History-Databank/cliopatria" }], notes: [], referenceSummary: "Timeline view generated locally from Cliopatria.",
   };
-  if (ancient) applyCliopatriaBoundaryCatalog(year, spec, await loadCliopatria(request));
+  if (ancient) applyCliopatriaBoundaryCatalog(year, spec, await loadCliopatriaTimeline());
   else if (contemporary) {
     spec.geometry = "countries";
     spec.date = displayYear;

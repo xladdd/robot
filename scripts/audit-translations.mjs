@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import ts from "typescript";
 
-const filename = new URL("../app/page.tsx", import.meta.url);
-const source = ts.createSourceFile("page.tsx", fs.readFileSync(filename, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const filename = new URL("../app/content/ui.ts", import.meta.url);
+const source = ts.createSourceFile("ui.ts", fs.readFileSync(filename, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 const dictionaries = new Set(["copy", "coverUi", "figureUi", "solutionsUi", "barcodeUi", "contextualHelp"]);
 let failures = 0;
 
