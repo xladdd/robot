@@ -97,7 +97,7 @@ export function createEan13Pdf(digits: string) {
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${fmt(width)} ${fmt(height)}] /Resources << /ProcSet [/PDF] >> /Contents 4 0 R >>`,
     `<< /Length ${streamLength} >>\nstream\n${content}endstream`,
-    "<< /Title (EAN-13 ISBN barcode) /Creator (Taktik Automat) /Subject (Vector EAN-13; outlined Verdana digits; DeviceCMYK 0 0 0 1) >>",
+    "<< /Title (EAN-13 ISBN barcode) /Creator (Taktik Robot) /Subject (Vector EAN-13; outlined Verdana digits; DeviceCMYK 0 0 0 1) >>",
   ];
   let pdf = "%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n";
   const offsets = [0];

@@ -1,5 +1,5 @@
 /* Import positioned solution text into the active Adobe InDesign document.
- * Input: JSON downloaded from Taktik Automat's Solutions tool.
+ * Input: JSON downloaded from Taktik Robot's Solutions tool.
  */
 
 #target "InDesign"
@@ -33,7 +33,7 @@ function importSolutionText() {
         if (typeof JSON !== "undefined" && JSON.parse) {
             data = JSON.parse(raw);
         } else {
-            // The JSON is produced locally by Taktik Automat. Parentheses
+            // The JSON is produced locally by Taktik Robot. Parentheses
             // force object-literal parsing in legacy ExtendScript engines.
             data = eval("(" + raw + ")");
         }

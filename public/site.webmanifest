@@ -1,6 +1,6 @@
 {
-  "name": "Taktik Automat",
-  "short_name": "Automat",
+  "name": "Taktik Robot",
+  "short_name": "Robot",
   "description": "A focused workspace for textbook publishing.",
   "start_url": "/",
   "display": "standalone",

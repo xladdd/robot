@@ -5,7 +5,7 @@ const publicPaths = new Set(["/login", "/api/auth/login", "/favicon.svg"]);
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (publicPaths.has(pathname) || pathname.startsWith("/_next/")) return NextResponse.next();
+  if (publicPaths.has(pathname) || pathname.startsWith("/_next/") || pathname.startsWith("/data/")) return NextResponse.next();
   if (await verifySession(request.cookies.get(authCookieName)?.value)) return NextResponse.next();
   if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   const login = new URL("/login", request.url);

@@ -29,7 +29,7 @@ export default function LoginPage() {
       <form className="login-panel" onSubmit={signIn}>
         <span className="login-mark" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}</span>
         <div className="login-kicker">TAKTIK / ACCESS</div>
-        <h1>AUTOMAT</h1>
+        <h1>ROBOT</h1>
         <label>USERNAME<input autoComplete="username" autoFocus value={username} onChange={(event) => setUsername(event.target.value)} /></label>
         <label>PASSWORD<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
         {error && <p role="alert">{error}</p>}

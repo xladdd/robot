@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-        "X-Title": "Taktik Automat",
+        "X-Title": "Taktik Robot",
       },
       body: JSON.stringify({
         model: process.env.OPENROUTER_INDEX_MODEL || "mistralai/mistral-medium-3-5",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Taktik Automat",
+  title: "Taktik Robot",
   description: "A focused workspace for textbook publishing.",
   manifest: "/site.webmanifest",
   icons: {

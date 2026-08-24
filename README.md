@@ -1,8 +1,7 @@
-# vinext-starter
+# Taktik Robot
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+A publishing workspace running on [vinext](https://github.com/cloudflare/vinext),
+with optional Cloudflare D1 and Drizzle support.
 
 ## Prerequisites
 
@@ -17,6 +16,11 @@ npm run build
 ```
 
 This starter does not use `wrangler.jsonc`.
+
+The cover generator uses `OPENROUTER_API_KEY`. Optional Shutterstock preview
+research requires either `SHUTTERSTOCK_API_TOKEN` or the
+`SHUTTERSTOCK_API_KEY` / `SHUTTERSTOCK_API_SECRET` pair. Watermarked previews
+are research references only and must be licensed before publication.
 
 ## Included Shape
 
