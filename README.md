@@ -97,6 +97,18 @@ To rebuild the Design Manual PDF downloads after editing its Markdown:
 npm run manual:pdf
 ```
 
+### Design Manual PDF export
+
+The exporter reads `app/_tools/design-manual/manual.en.md`, `manual.cs.md`, the local `images/` folder, and [the shared changelog](app/_tools/design-manual/changelog.md). It writes both public downloads to `app/_tools/design-manual/public/`.
+
+```bash
+npm run manual:pdf       # English and Czech
+npm run manual:pdf -- en # English only
+npm run manual:pdf -- cs # Czech only
+```
+
+The PDF uses the same Markdown content as the website, but it has its own print layout rather than copying the browser page pixel for pixel. It currently uses macOS Verdana system fonts, so export on Windows or Linux needs font-path configuration in `scripts/export-design-manual.mjs`.
+
 ## Configuration
 
 Read `.env.example` for the current settings. At minimum, local use needs the login values, session secret, and OpenRouter key. Model names are settings so they can be changed without editing request code.

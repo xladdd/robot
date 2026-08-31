@@ -301,6 +301,14 @@ The following completes the folder map by naming every source-file role. Repeate
 - `images/image1.png` through `images/image14.png`: the manual's actual illustrated content.
 - `public/design-manual.en.pdf`, `public/design-manual.cs.pdf`: generated download files, regenerated with `npm run manual:pdf`.
 
+#### Running the Design Manual PDF export
+
+`npm run manual:pdf` runs `scripts/export-design-manual.mjs`. With no extra argument it builds both languages; `npm run manual:pdf -- en` and `npm run manual:pdf -- cs` build one edition.
+
+For each edition, the script reads `manual.<language>.md` and `changelog.md`, parses Markdown using `remark-parse`, and draws an A4 PDF using PDFKit. It creates a custom cover, chapter pages, headings, bullets, paragraphs, image captions, page headers/footers, and a final changelog appendix. It takes every image filename from Markdown and loads the matching file from `design-manual/images/`.
+
+The output is written to `design-manual/public/design-manual.en.pdf` and `design-manual.cs.pdf`; the `public/design-manual/downloads` link exposes those files in the browser. The website uses the same Markdown source but its own React renderer, so the PDF is visually similar rather than a pixel-for-pixel browser export. The script currently registers Verdana from macOS system paths, which must be made configurable before it can reliably run on Windows or Linux.
+
 ### `scripts/`, `tests/`, and `docs/`
 
 - `scripts/audit-translations.mjs`: checks bilingual UI objects for missing keys.
