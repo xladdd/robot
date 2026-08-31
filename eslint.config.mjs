@@ -12,8 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "public/**",
+    // Adobe ExtendScript downloads use directives such as `#target` that
+    // ESLint's JavaScript parser does not understand.
+    "app/_tools/**/public/**/*.jsx",
     "map-test-results/**",
-    "app/content/design-manual/**",
     "next-env.d.ts",
   ]),
   {

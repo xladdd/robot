@@ -1,0 +1,1 @@
+For human evolution, show a scientifically recognisable left-to-right paleoanthropological reconstruction sequence—Australopithecus, Homo habilis, Homo erectus, Neanderthal, and Homo sapiens—not ordinary modern people of different ages. Keep every figure classroom-safe, non-explicit, and covered with simple neutral museum-diorama garments.

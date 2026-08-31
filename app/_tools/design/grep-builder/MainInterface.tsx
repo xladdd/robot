@@ -1,0 +1,52 @@
+type GrepResult = { findWhat: string; replaceWith: string };
+
+type GrepMainInterfaceProps = {
+  section: string | null;
+  heading: string;
+  findLabel: string;
+  replaceLabel: string;
+  copyLabel: string;
+  generateLabel: string;
+  tryAgainLabel: string;
+  findPrompt: string;
+  replacePrompt: string;
+  result: GrepResult | null;
+  error: string;
+  copied: "find" | "replace" | null;
+  isGenerating: boolean;
+  onFindPrompt: (value: string) => void;
+  onReplacePrompt: (value: string) => void;
+  onCopy: (value: string, field: "find" | "replace") => void;
+  onGenerate: () => void;
+  onReset: () => void;
+};
+
+export function GrepMainInterface(props: GrepMainInterfaceProps) {
+  const { result } = props;
+  return (
+    <div className="grep-module">
+      <div className="module-code">{props.section} / GREP</div>
+      <h1>{props.heading}</h1>
+      <div className="grep-fields">
+        <label className={`grep-field ${result ? "has-result" : ""}`}>
+          <span>{props.findLabel}</span>
+          <input value={result?.findWhat ?? props.findPrompt} onChange={(event) => props.onFindPrompt(event.target.value)} readOnly={Boolean(result)} />
+          {result && <button onClick={() => props.onCopy(result.findWhat, "find")} aria-label={props.copyLabel}>{props.copied === "find" ? "✓" : "▣"}</button>}
+        </label>
+        <label className={`grep-field ${result ? "has-result" : ""}`}>
+          <span>{props.replaceLabel}</span>
+          <input value={result?.replaceWith ?? props.replacePrompt} onChange={(event) => props.onReplacePrompt(event.target.value)} readOnly={Boolean(result)} />
+          {result && <button onClick={() => props.onCopy(result.replaceWith, "replace")} aria-label={props.copyLabel}>{props.copied === "replace" ? "✓" : "▣"}</button>}
+        </label>
+      </div>
+      {props.error && <p className="extraction-error" role="alert">{props.error}</p>}
+      <button
+        className="grep-generate"
+        onClick={result ? props.onReset : props.onGenerate}
+        disabled={!result && (!props.findPrompt.trim() || !props.replacePrompt.trim() || props.isGenerating)}
+      >
+        <span>{result ? props.tryAgainLabel : props.generateLabel}</span><b>{props.isGenerating ? "…" : "→"}</b>
+      </button>
+    </div>
+  );
+}
