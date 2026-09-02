@@ -3,21 +3,33 @@
 import { FormEvent, useState } from "react";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [working, setWorking] = useState(false);
 
-  async function signIn(event: FormEvent) {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const submittedUsername = String(formData.get("username") ?? "").trim();
+    const submittedPassword = String(formData.get("password") ?? "");
     setWorking(true);
     setError("");
     try {
-      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
-      const result = await response.json() as { error?: string };
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: submittedUsername,
+          password: submittedPassword,
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not sign in.");
-      const requested = new URLSearchParams(window.location.search).get("returnTo") || "/";
-      window.location.href = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+      const requested =
+        new URLSearchParams(window.location.search).get("returnTo") || "/";
+      window.location.href =
+        requested.startsWith("/") && !requested.startsWith("//")
+          ? requested
+          : "/";
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not sign in.");
       setWorking(false);
@@ -26,14 +38,32 @@ export default function LoginPage() {
 
   return (
     <main className="login-screen">
-      <form className="login-panel" onSubmit={signIn}>
-        <span className="login-mark" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <i key={index} />)}</span>
+      <form className="login-panel" method="post" onSubmit={signIn}>
+        <span className="login-mark" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => (
+            <i key={index} />
+          ))}
+        </span>
         <div className="login-kicker">TAKTIK / ACCESS</div>
         <h1>ROBOT</h1>
-        <label>USERNAME<input autoComplete="username" autoFocus value={username} onChange={(event) => setUsername(event.target.value)} /></label>
-        <label>PASSWORD<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+        <label>
+          USERNAME
+          <input name="username" autoComplete="username" autoFocus required />
+        </label>
+        <label>
+          PASSWORD
+          <input
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+        </label>
         {error && <p role="alert">{error}</p>}
-        <button disabled={working || !username || !password}>{working ? "CONNECTING…" : "ENTER"}<span>→</span></button>
+        <button disabled={working}>
+          {working ? "CONNECTING…" : "ENTER"}
+          <span>→</span>
+        </button>
         <small>SESSION RESETS AT MIDNIGHT / PRAGUE</small>
       </form>
     </main>
