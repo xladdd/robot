@@ -24,13 +24,14 @@ app/_tools/
 
 An app folder may contain:
 
-- `MainInterface.tsx`: the app's browser interface. Graph, Diagram, and Map share one because their controls and preview are the same workbench in three modes.
+- `MainInterface.tsx`: the app's browser interface.
 - `code/`: browser helpers, server implementation, parsers, and data used only by that app.
 - `public/`: files that users or browser workers download.
 - `scripts/`: data preparation or evaluation commands.
 - `tests/`: tests owned by that app.
 - `prompts/`: readable Markdown containing stable instructions sent to OpenRouter.
 - `info.en.md` and `info.cs.md`: the live info-drawer copy.
+- `copy.ts`: typed English/Czech in-app UI copy, when the tool has a browser interface.
 
 `app/` is the Next.js entry layer. It owns pages and URL endpoints, but app-specific endpoint files only forward to code under `app/_tools/`.
 
@@ -78,13 +79,13 @@ Cons:
 ### `app/`: Next.js entry points and shared shell
 
 - `app/page.tsx`: server page. It reads all info Markdown and passes it to the browser workspace.
-- `app/Workspace.tsx`: shared browser shell, navigation, long-lived app state, and action functions. App markup now lives in app-owned interface files; moving controllers is the remaining split.
-- `app/_components/LoadingText.tsx`: shared rotating progress text used by several interfaces.
+- `app/Workspace.tsx`: shared browser shell, navigation, long-lived app state, and action functions. It renders each image app through its explicit app-owned interface; moving controllers is the remaining split.
+- `app/_components/LoadingText.tsx`: shared rotating progress-text component used by several interfaces.
 - `app/layout.tsx`: page metadata, icons, manifest, and global CSS import.
 - `app/globals.css`: handwritten CSS, divided by labelled sections. Tailwind is not used.
 - `app/login/page.tsx`: login form.
-- `app/content/ui.ts`: bilingual button labels, status text, and longer on-screen workflow copy. Info-drawer prose does not live here.
-- `app/czechNamedays.ts`: date-to-name lookup used by the footer clock.
+- `app/content/ui.ts`: bilingual shared shell copy: navigation, categories, availability messaging, and status text. It does not contain individual app copy or info-drawer prose.
+- `app/content/czechNamedays.ts`: local date-to-name lookup used by the footer clock.
 - `app/lib/auth.ts`: session signing, expiry, and credential checks.
 - `app/api/**/route.ts`: thin Next.js URL adapters. Authentication routes remain here; app routes re-export handlers from the owning app folder. Next.js route settings remain declared literally in these files because Turbopack cannot read re-exported settings.
 
@@ -93,7 +94,9 @@ The individual route files are deliberately small:
 - `app/api/auth/login/route.ts`: checks configured credentials and creates the signed session cookie.
 - `app/api/auth/logout/route.ts`: removes that cookie.
 - `app/api/ocr/route.ts`, `correct/route.ts`, `index/forms/route.ts`, and `index/select/route.ts`: Text Extractor and Index Creator endpoint addresses.
-- `app/api/figures/route.ts` and `maps/timeline/route.ts`: Graph, Diagram, and Map endpoint addresses. The timeline route declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
+- `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
+- `app/api/graphs/route.ts`, `diagrams/route.ts`, and `maps/generate/route.ts`: app-native Graph, Diagram, and model-backed Map generation adapters.
+- `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
 - `app/api/covers/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, GREP Builder, and Prompt Extractor endpoint addresses.
 
 ### `app/_tools/`: tool ownership
@@ -106,10 +109,12 @@ The individual route files are deliberately small:
 Text apps:
 
 - `app/_tools/text/text-extractor/MainInterface.tsx`: Text Extractor upload, preview, result, correction, and download interface.
+- `app/_tools/text/text-extractor/copy.ts`: bilingual Text Extractor UI copy.
 - `app/_tools/text/text-extractor/code/ocr-server.ts`: sends images or PDFs to the fixed OCR model.
 - `app/_tools/text/text-extractor/code/correct-server.ts`: sends extracted text plus a correction instruction to the fixed text model.
 - `app/_tools/text/text-extractor/prompts/`: OCR and correction instructions sent to OpenRouter.
 - `app/_tools/text/index-creator/MainInterface.tsx`: Index Creator PDF, term, result, and page-mapping interface.
+- `app/_tools/text/index-creator/copy.ts`: bilingual Index Creator UI copy.
 - `app/_tools/text/index-creator/code/pdf-indexer.ts`: reads PDF text locally, detects printed page numbers, finds candidate word forms, and formats matches.
 - `app/_tools/text/index-creator/code/forms-server.ts`: asks the language model for grammatical forms.
 - `app/_tools/text/index-creator/code/select-server.ts`: asks the model which candidate pages are index-worthy.
@@ -117,11 +122,10 @@ Text apps:
 
 Image apps:
 
-- `app/_tools/image/shared/MainInterface.tsx`: the shared Graph, Diagram, and Map workbench in its three existing modes.
-- `app/_tools/image/shared/code/ase.ts`: reads Adobe Swatch Exchange files for map, graph, and diagram colours.
-- `app/_tools/image/shared/code/figure.ts`: validates figure descriptions and draws graph, diagram, and map SVG.
-- `app/_tools/image/shared/code/server.ts`: calls the model for graph/diagram/map descriptions, then validates and renders them.
-- `app/_tools/image/graph-generator/prompts/`, `diagram-generator/prompts/`, and `map-generator/prompts/`: mode-specific OpenRouter instructions used by the shared server.
+- `app/_tools/image/graph-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Graph UI, copy, ASE parser, chart validator/renderer, and model-backed generation handler.
+- `app/_tools/image/diagram-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Diagram UI, copy, ASE parser, biological-diagram validator/renderer, and model-backed generation handler.
+- `app/_tools/image/map-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Map UI, copy, ASE parser, deterministic map renderer, model-backed generation handler, timeline handler, and local map data.
+- Each image app has its own `tests/` folder; graph, diagram, and map renderer regressions run independently.
 - `app/_tools/image/map-generator/code/map-catalog.ts`: adds physical and historical map data to a map description.
 - `app/_tools/image/map-generator/code/historical-boundaries.ts`: chooses boundary records by date.
 - `app/_tools/image/map-generator/code/cliopatria.ts`: reads the large Cliopatria timeline once and caches it.
@@ -131,6 +135,7 @@ Image apps:
 - `app/_tools/image/cover-generator/code/server.ts`: OpenRouter image generation, Shutterstock research, object analysis, master generation, and separate asset generation.
 - `app/_tools/image/cover-generator/prompts/`: editable prompt templates and reusable medium/subject instructions for each cover workflow.
 - `app/_tools/image/cover-generator/MainInterface.tsx`: cover references, concepts, production controls, results, and lightbox.
+- `app/_tools/image/cover-generator/copy.ts`: bilingual Cover Generator UI copy.
 - `app/_tools/image/cover-generator/code/cover-artboard.ts`: creates a PDF contact sheet from generated covers in the browser.
 - `app/_tools/image/cover-generator/scripts/`: cover workflow checks and evaluation helpers.
 - `app/_tools/image/image-generator/`: reserved for the unavailable sidebar app.
@@ -138,15 +143,19 @@ Image apps:
 Design apps:
 
 - `app/_tools/design/grep-builder/server.ts`: converts plain instructions to InDesign GREP Find and Change strings.
-- `app/_tools/design/grep-builder/MainInterface.tsx`: GREP fields, result controls, and copy buttons.
+- `app/_tools/design/grep-builder/copy.ts`: bilingual GREP Builder UI copy.
+- `app/_tools/design/grep-builder/MainInterface.tsx: GREP fields, result controls, and copy buttons.
 - `app/_tools/design/grep-builder/prompts/system.md`: the GREP conversion rules sent to OpenRouter.
+- `app/_tools/design/prompt-extractor/copy.ts`: bilingual Prompt Extractor UI copy.
 - `app/_tools/design/prompt-extractor/code/pdf-images.ts`: renders PDF pages to browser images with PDF.js.
 - `app/_tools/design/prompt-extractor/code/server.ts`: asks the vision model to describe illustration needs on those page images.
 - `app/_tools/design/prompt-extractor/MainInterface.tsx`: manuscript preview, progress, and prompt-result interface.
 - `app/_tools/design/prompt-extractor/prompts/system.md`: the page-image inspection rules sent to OpenRouter.
 - `app/_tools/design/barcode-generator/code/ean13.ts`: validates ISBN, builds EAN-13 bars, outlines the digits, and writes a vector PDF.
-- `app/_tools/design/barcode-generator/MainInterface.tsx`: barcode input, preview, specifications, and download control.
+- `app/_tools/design/barcode-generator/copy.ts`: bilingual Barcode Generator UI copy.
+- `app/_tools/design/barcode-generator/MainInterface.tsx: barcode input, preview, specifications, and download control.
 - `app/_tools/design/solutions-importer/MainInterface.tsx`: the complete three-file analysis and review interface.
+- `app/_tools/design/solutions-importer/copy.ts`: bilingual Solutions Importer UI copy.
 - `app/_tools/design/solutions-importer/code/pdf.ts`: extracts positioned PDF text before local Python comparison.
 - `app/_tools/design/solutions-importer/public/extract_solution_operations.py`: creates the shared `indesign-solutions-v2` operation manifest.
 - `app/_tools/design/solutions-importer/public/import_solutions_simple.jsx`: places enabled text directly at PDF coordinates.
@@ -164,7 +173,7 @@ Design Manual:
 - `app/_tools/design-manual/images/`: manual images. The stable browser address remains `/design-manual/media/...`.
 - `app/_tools/design-manual/changelog.md`: appendix added to generated PDFs.
 - `app/_tools/design-manual/public/`: generated English and Czech PDF downloads.
-- `scripts/export-design-manual.mjs`: reads the same Markdown and images, styles them with PDFKit, and writes both PDF editions.
+- `app/_tools/design-manual/scripts/export-pdf.mjs`: reads the same Markdown and images, styles them with PDFKit, and writes both PDF editions.
 
 ### `public/`: stable browser URLs
 
@@ -184,11 +193,12 @@ Direct files in `public/` are shared browser assets rather than app content:
 
 ### Complete app file guide
 
-The following completes the folder map by naming every source-file role. Repeated bilingual info files have one role: `info.en.md` and `info.cs.md` are the English and Czech live info-drawer source for that app. Repeated `MainInterface.tsx` files are that app's browser UI.
+The following completes the folder map by naming every source-file role. Repeated bilingual info files have one role: `info.en.md` and `info.cs.md` are the English and Czech live info-drawer source for that app. Repeated `copy.ts` files hold typed English/Czech UI copy owned by that app. Repeated `MainInterface.tsx` files are that app's browser UI.
 
 #### Text Extractor: `app/_tools/text/text-extractor/`
 
 - `MainInterface.tsx`: accepts input, displays the editable text, sends OCR/correction requests, and downloads text.
+- `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/ocr-server.ts`: private OCR endpoint implementation.
 - `code/correct-server.ts`: private text-correction endpoint implementation.
 - `prompts/transcription.md`: stable OCR instruction.
@@ -198,28 +208,42 @@ The following completes the folder map by naming every source-file role. Repeate
 #### Index Creator: `app/_tools/text/index-creator/`
 
 - `MainInterface.tsx`: PDF and term input, review controls, and index output interface.
+- `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/pdf-indexer.ts`: local PDF text reading, printed-page detection, candidate search, and output formatting helpers.
 - `code/forms-server.ts`: model request for word forms.
 - `code/select-server.ts`: model request for page selection.
 - `prompts/forms.md`, `prompts/select-pages.md`: stable model instructions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
-#### Shared figure workbench: `app/_tools/image/shared/`
+#### Graph Generator: `app/_tools/image/graph-generator/`
 
-- `MainInterface.tsx`: shared UI for the Map, Diagram, and Graph modes.
+- `MainInterface.tsx`: chart request, palette, preview, checks, and download interface.
+- `copy.ts`: bilingual Graph UI and progress copy.
 - `code/ase.ts`: ASE palette reader.
-- `code/figure.ts`: validation, deterministic SVG rendering, and reports for graphs, diagrams, and model-created maps.
-- `code/server.ts`: private figure-generation request implementation.
-- `tests/figure.test.mts`: deterministic renderer and validator tests.
+- `code/graph.ts`: chart validation, deterministic SVG rendering, and report generation.
+- `code/server.ts`: private graph-generation request implementation.
+- `prompts/system.md`: stable chart-structure instruction.
+- `tests/graph.test.mts`: chart renderer and validator regressions.
+- `info.en.md`, `info.cs.md`: live drawer content.
 
-#### Graph and Diagram definitions
+#### Diagram Generator: `app/_tools/image/diagram-generator/`
 
-- `app/_tools/image/graph-generator/prompts/system.md`: stable chart-structure instruction.
-- `app/_tools/image/diagram-generator/prompts/system.md`: stable biological-diagram instruction.
-- Each folder's `info.en.md` and `info.cs.md` supplies the live drawer content; neither needs a separate UI because both use the shared workbench.
+- `MainInterface.tsx`: biological description, references, palette, preview, checks, and download interface.
+- `copy.ts`: bilingual Diagram UI and progress copy.
+- `code/ase.ts`: ASE palette reader.
+- `code/diagram.ts`: biological-diagram validation, deterministic SVG rendering, and report generation.
+- `code/server.ts`: private diagram-generation request implementation.
+- `prompts/system.md`: stable biological-diagram instruction.
+- `tests/diagram.test.mts`: diagram renderer and validator regressions.
+- `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Map Generator: `app/_tools/image/map-generator/`
 
+- `MainInterface.tsx`: deterministic map editor, timeline, layers, palette, and cropped-SVG export interface.
+- `copy.ts`: bilingual Map UI and progress copy.
+- `code/ase.ts`: ASE palette reader.
+- `code/map.ts`: map validation, deterministic SVG rendering, and report generation.
+- `code/generate-server.ts`: optional model-backed map-generation API implementation.
 - `code/timeline-server.ts`: timeline API implementation.
 - `code/map-catalog.ts`: present-day geography and physical layer selection.
 - `code/historical-boundaries.ts`: historical boundary selection by date.
@@ -233,10 +257,12 @@ The following completes the folder map by naming every source-file role. Repeate
 - `scripts/run-map-eval.mjs`: map evaluation command.
 - `docs/map generation eval.md`, `docs/map-generator-handoff.md`, `docs/map-prompts.md`: app-specific evaluation, handoff, and prompt notes.
 - `info.en.md`, `info.cs.md`: live drawer content.
+- `tests/map.test.mts`: map renderer, catalog, and historical-map regressions.
 
 #### Cover Generator: `app/_tools/image/cover-generator/`
 
 - `MainInterface.tsx`: reference intake, direction selection, production controls, results, and lightbox.
+- `copy.ts`: bilingual in-app UI copy.
 - `code/server.ts`: Shutterstock lookup, model calls, response handling, and cover workflow operations.
 - `code/cover-artboard.ts`: browser-created PDF contact sheet.
 - `prompts/analyse-assets.md`, `asset.md`, `master.md`, `sketch.md`: the main stable workflow instructions.
@@ -252,6 +278,7 @@ The following completes the folder map by naming every source-file role. Repeate
 #### GREP Builder: `app/_tools/design/grep-builder/`
 
 - `MainInterface.tsx`: instruction input and copyable GREP result UI.
+- `copy.ts`: bilingual in-app UI copy.
 - `server.ts`: private GREP model request.
 - `prompts/system.md`: stable conversion rules.
 - `info.en.md`, `info.cs.md`: live drawer content.
@@ -259,6 +286,7 @@ The following completes the folder map by naming every source-file role. Repeate
 #### Prompt Extractor: `app/_tools/design/prompt-extractor/`
 
 - `MainInterface.tsx`: manuscript controls, preview, progress, and output UI.
+- `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/pdf-images.ts`: local PDF page-to-image rendering.
 - `code/server.ts`: private vision-model request and response validation.
 - `prompts/system.md`: stable page-inspection instruction.
@@ -267,12 +295,14 @@ The following completes the folder map by naming every source-file role. Repeate
 #### Barcode Generator: `app/_tools/design/barcode-generator/`
 
 - `MainInterface.tsx`: ISBN input, barcode preview, and PDF download UI.
+- `copy.ts`: bilingual in-app UI copy.
 - `code/ean13.ts`: ISBN/EAN validation, SVG bar construction, and vector-PDF creation.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Solutions Importer: `app/_tools/design/solutions-importer/`
 
 - `MainInterface.tsx`: three-file input, local comparison worker, operation review, and JSON/script downloads.
+- `copy.ts`: bilingual in-app UI copy.
 - `code/pdf.ts`: positioned text extraction from PDFs for the worker.
 - `public/pyodide-worker.js`: browser worker that runs the local Python extractor.
 - `public/extract_solution_operations.py`: PDF/IDML comparison that writes the `indesign-solutions-v2` manifest.
@@ -303,18 +333,17 @@ The following completes the folder map by naming every source-file role. Repeate
 
 #### Running the Design Manual PDF export
 
-`npm run manual:pdf` runs `scripts/export-design-manual.mjs`. With no extra argument it builds both languages; `npm run manual:pdf -- en` and `npm run manual:pdf -- cs` build one edition.
+`npm run manual:pdf` runs `app/_tools/design-manual/scripts/export-pdf.mjs`. With no extra argument it builds both languages; `npm run manual:pdf -- en` and `npm run manual:pdf -- cs` build one edition.
 
 For each edition, the script reads `manual.<language>.md` and `changelog.md`, parses Markdown using `remark-parse`, and draws an A4 PDF using PDFKit. It creates a custom cover, chapter pages, headings, bullets, paragraphs, image captions, page headers/footers, and a final changelog appendix. It takes every image filename from Markdown and loads the matching file from `design-manual/images/`.
 
 The output is written to `design-manual/public/design-manual.en.pdf` and `design-manual.cs.pdf`; the `public/design-manual/downloads` link exposes those files in the browser. The website uses the same Markdown source but its own React renderer, so the PDF is visually similar rather than a pixel-for-pixel browser export. The script currently registers Verdana from macOS system paths, which must be made configurable before it can reliably run on Windows or Linux.
 
-### `scripts/`, `tests/`, and `docs/`
+### `tests/` and `docs/`
 
-- `scripts/audit-translations.mjs`: checks bilingual UI objects for missing keys.
-- `scripts/export-design-manual.mjs`: creates the Design Manual PDFs from Markdown.
 - `tests/architecture.test.mjs`: protects the folder rules, Markdown drawer source, and lack of Tailwind.
-- `docs/2026-08-24-robot-work-summary.md`: dated historical work record, not current architecture.
+- `tests/translations.test.mjs`: discovers every app-owned `copy.ts` module and verifies matching English/Czech dictionary paths.
+
 - App-specific scripts, tests, and handoff notes live with their app.
 
 ## Main execution flow
@@ -628,7 +657,7 @@ manual.en.md or manual.cs.md plus changelog.md
 ↓
 npm run manual:pdf
 ↓
-export-design-manual.mjs parses Markdown and reads local images
+export-pdf.mjs parses Markdown and reads local images
 ↓
 PDFKit lays out the manual and changelog
 ↓
@@ -675,28 +704,28 @@ Reserved app folder
 
 Model names are defaults from `.env.example`. Each can be changed through its named environment setting without editing code.
 
-| App | Job | Setting | Default model |
-| --- | --- | --- | --- |
-| Text Extractor | OCR and image reading | `OPENROUTER_OCR_MODEL` | `mistralai/mistral-small-2603` |
-| Text Extractor | correction | `OPENROUTER_CORRECTION_MODEL` | `mistralai/ministral-8b-2512` |
-| Index Creator | grammatical forms | `OPENROUTER_INDEX_MODEL` | `mistralai/mistral-medium-3-5` |
-| Index Creator | page selection | `OPENROUTER_INDEX_SELECTION_MODEL` | `mistralai/mistral-medium-3-5` |
-| Diagram Generator | diagram description | `OPENROUTER_FIGURE_MODEL` | `mistralai/mistral-large-2512` |
-| Graph Generator | chart structure | `OPENROUTER_FIGURE_MODEL` | `mistralai/mistral-large-2512` |
-| Cover Generator | fast 512 px concepts | `OPENROUTER_COVER_SKETCH_MODEL` | `black-forest-labs/flux.2-klein-4b` |
-| Cover Generator | high-quality concepts | `OPENROUTER_COVER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro` |
-| Cover Generator | 2K master and assets | `OPENROUTER_COVER_PRODUCTION_MODEL` | `black-forest-labs/flux.2-pro` |
-| Cover Generator | object analysis | `OPENROUTER_COVER_ANALYSIS_MODEL` | `mistralai/mistral-small-2603` |
-| GREP Builder | GREP conversion | `OPENROUTER_GREP_MODEL` | `mistralai/ministral-3b-2512` |
-| Prompt Extractor | page-image reading | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b` |
+| App               | Job                   | Setting                             | Default model                       |
+| ----------------- | --------------------- | ----------------------------------- | ----------------------------------- |
+| Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`              | `mistralai/mistral-small-2603`      |
+| Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL`       | `mistralai/ministral-8b-2512`       |
+| Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`            | `mistralai/mistral-medium-3-5`      |
+| Index Creator     | page selection        | `OPENROUTER_INDEX_SELECTION_MODEL`  | `mistralai/mistral-medium-3-5`      |
+| Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
+| Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
+| Cover Generator   | fast 512 px concepts  | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
+| Cover Generator   | high-quality concepts | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
+| Cover Generator   | 2K master and assets  | `OPENROUTER_COVER_PRODUCTION_MODEL` | `black-forest-labs/flux.2-pro`      |
+| Cover Generator   | object analysis       | `OPENROUTER_COVER_ANALYSIS_MODEL`   | `mistralai/mistral-small-2603`      |
+| GREP Builder      | GREP conversion       | `OPENROUTER_GREP_MODEL`             | `mistralai/ministral-3b-2512`       |
+| Prompt Extractor  | page-image reading    | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b`            |
 
-Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, Image Generator, and Typesetter make no OpenRouter call in their current visible flows. The shared generated-map endpoint does use the Figure model and a web-research pass when map generation is invoked.
+Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, Image Generator, and Typesetter make no OpenRouter call in their current visible flows. Its optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
 
 ## Important functions
 
 `Workspace.tsx` functions:
 
-- `selectApp`: opens an available app and sets the shared figure mode.
+- `selectApp`: opens an available app and selects its generation mode while preserving the existing image-workbench state.
 - `toggleLanguage`, `toggleTheme`: update shell preferences.
 - `handlePaste`, `selectSourceFile`, `extractSource`, `correctText`: Text Extractor input and API flow.
 - `selectIndexFile`, `createIndex`, `formatIndexOutput`: Index Creator orchestration and display formatting.
@@ -712,15 +741,13 @@ Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, B
 - `verificationMarkdown`: converts a figure report from JSON to readable Markdown.
 - `PageLoadStatus`: shared changing status text. `LoadingText` is in `app/_components/LoadingText.tsx`.
 
-The exported functions in `app/_tools/image/shared/code/figure.ts` are deliberately pure where possible: each validator accepts unknown input and returns a safe description plus checks; each renderer accepts that description and returns SVG; each report function returns a serializable report.
+The exported functions in `graph-generator/code/graph.ts`, `diagram-generator/code/diagram.ts`, and `map-generator/code/map.ts` are deliberately pure where possible: each validator accepts unknown input and returns a safe description plus checks; each renderer accepts that description and returns SVG; each report function returns a serializable report.
 
 ## Where responsibilities are still mixed
 
 - `app/Workspace.tsx` still mixes shell navigation with every app's long-lived browser state, local file work, API calls, and downloads. Interfaces are separated, but controller ownership is now its main extension risk.
-- `app/_tools/image/shared/code/figure.ts` mixes graph, biological diagram, and map drawing. Map drawing also imports large map data, so graph and diagram code know about map dependencies.
 - `app/_tools/image/cover-generator/code/server.ts` mixes Shutterstock page reading, prompt construction, OpenRouter calls, response parsing, and four workflow modes.
-- `app/content/ui.ts` mixes shared shell labels with detailed copy for unrelated tools.
-- Every available app now renders through an app-owned `MainInterface.tsx`, except Graph, Diagram, and Map, which deliberately share `app/_tools/image/shared/MainInterface.tsx` because they are three modes of the same workbench.
+- `app/Workspace.tsx` preserves image-app state in one controller while rendering three interfaces. This avoids a behavior change during the split, but controller ownership remains to be moved.
 - Some download and upload helpers are repeated rather than shared because they have slightly different limits and output rules.
 
 ## Duplication, dead code, and confusing names
@@ -731,14 +758,14 @@ The exported functions in `app/_tools/image/shared/code/figure.ts` are deliberat
 - Solutions has one extractor but two importer strategies. Keep their shared v2 input contract tested while allowing their placement code to remain deliberately different.
 - `findIndexMatches` and `formatIndex` in `pdf-indexer.ts` appear unused by the current UI.
 - `mapEditPrompt` and its field are not connected to generation.
-- `copy.aboutBody` is no longer the drawer source.
+
 - `bio` means Diagram Generator and `graph` means chart generation. These keys are old internal names and should eventually become `diagram` and `chart` through a tested migration.
 - “blank”, “clean”, “answers”, “solutions”, “manuscript”, and “annotated manuscript” name related but different files. New code should use the terms documented in each Solutions contract.
 
 ## Extension risks
 
-- Adding an app currently requires a registry entry, bilingual UI copy, two info files, an interface, CSS, and a component call in `Workspace.tsx`. Missing one is easy.
-- Workspace state can accidentally leak assumptions between graph, diagram, and map because they share the same state object.
+- Adding an app currently requires a registry entry, app-owned bilingual `copy.ts`, two info files, an interface, CSS, and a component call in `Workspace.tsx`. Missing one is easy.
+- Workspace state can accidentally leak assumptions between graph, diagram, and map because their controller state is still co-located.
 - Long functions make it hard to test one workflow without rendering the full page.
 - API response shapes are local TypeScript types rather than shared checked contracts.
 - Large map JSON imports can increase build and memory cost for unrelated figure routes.
@@ -752,7 +779,7 @@ Continue the current structure without adding a framework inside the framework:
 1. Move one complete controller at a time from `Workspace.tsx` to the owning app after adding a switching-app browser test.
 2. Give an interface a small controller hook only when its state and actions are large enough to benefit from it.
 3. Decide explicitly whether each app should preserve or reset its form when switching; moving state changes that behavior.
-4. Split `figure.ts` into `graph.ts`, `diagram.ts`, and `map-renderer.ts`, leaving only genuinely shared SVG helpers in `image/shared`.
+4. Move one image-app controller at a time only after a switching-app browser test protects its state behavior.
 5. Add a small shared OpenRouter request helper after tests cover the current error behavior.
 6. Remove confirmed dead files and functions in separate changes so behavior changes are easy to review.
 

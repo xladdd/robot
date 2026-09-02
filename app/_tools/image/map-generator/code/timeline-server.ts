@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadCliopatriaTimeline } from "./cliopatria";
 import { applyCliopatriaBoundaryCatalog, applyHistoricalBoundaryCatalog } from "./map-catalog";
-import { createMapReport, renderMapSvg, type MapSpec } from "../../shared/code/figure";
+import { createMapReport, renderMapSvg, type MapSpec } from "./map";
 import worldAtlas from "world-atlas/countries-50m.json" with { type: "json" };
 
 export async function GET(request: Request) {

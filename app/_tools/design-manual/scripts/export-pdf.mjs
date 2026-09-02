@@ -7,8 +7,7 @@ import PDFDocument from "pdfkit";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
-const repository = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const manualDirectory = join(repository, "app", "_tools", "design-manual");
+const manualDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outputDirectory = join(manualDirectory, "public");
 const requestedLanguages = process.argv.slice(2);
 const languages = requestedLanguages.length ? requestedLanguages : ["en", "cs"];
@@ -40,8 +39,14 @@ async function exportManual(language) {
     margins: { top: 60, right: 58, bottom: 60, left: 58 },
     size: "A4",
   });
-  document.registerFont("Body", "/System/Library/Fonts/Supplemental/Verdana.ttf");
-  document.registerFont("Bold", "/System/Library/Fonts/Supplemental/Verdana Bold.ttf");
+  document.registerFont(
+    "Body",
+    "/System/Library/Fonts/Supplemental/Verdana.ttf",
+  );
+  document.registerFont(
+    "Bold",
+    "/System/Library/Fonts/Supplemental/Verdana Bold.ttf",
+  );
 
   const finished = new Promise((resolveFinished, rejectFinished) => {
     const stream = createWriteStream(output);
@@ -61,40 +66,61 @@ async function exportManual(language) {
 
 function addPage(document, section = "DESIGN MANUAL") {
   document.addPage();
-  document.rect(0, 0, document.page.width, document.page.height).fill("#e6e6e6");
+  document
+    .rect(0, 0, document.page.width, document.page.height)
+    .fill("#e6e6e6");
   document.fillColor("#1a1a1a");
   document.font("Body").fontSize(7).fillColor("#00a5a0").text(section, 58, 30, {
     characterSpacing: 1.2,
   });
-  document.moveTo(58, 47).lineTo(document.page.width - 58, 47).lineWidth(0.6).stroke("#999999");
+  document
+    .moveTo(58, 47)
+    .lineTo(document.page.width - 58, 47)
+    .lineWidth(0.6)
+    .stroke("#999999");
   document.x = 58;
   document.y = 70;
 }
 
 function addCover(document, language) {
   document.addPage();
-  document.rect(0, 0, document.page.width, document.page.height).fill("#cccccc");
+  document
+    .rect(0, 0, document.page.width, document.page.height)
+    .fill("#cccccc");
   document.rect(58, 72, 48, 48).fill("#1a1a1a");
   for (let row = 0; row < 3; row++) {
     for (let column = 0; column < 3; column++) {
       document.rect(70 + column * 12, 84 + row * 12, 5, 5).fill("#ff661a");
     }
   }
-  document.font("Body").fontSize(8).fillColor("#00a5a0").text("TAKTIK / REFERENCE", 58, 186, {
-    characterSpacing: 1.4,
-  });
-  document.font("Body").fontSize(42).fillColor("#1a1a1a").text(
-    language === "cs" ? "Grafický\nmanuál" : "Design\nManual",
-    58,
-    212,
-    { lineGap: 2 },
-  );
-  document.font("Body").fontSize(10).fillColor("#666666").text(
-    language === "cs" ? "Pravidla pro grafiky a redaktory" : "Working guidance for designers and editors",
-    58,
-    340,
-  );
-  document.rect(58, document.page.height - 90, document.page.width - 116, 18).fill("#ff661a");
+  document
+    .font("Body")
+    .fontSize(8)
+    .fillColor("#00a5a0")
+    .text("TAKTIK / REFERENCE", 58, 186, {
+      characterSpacing: 1.4,
+    });
+  document
+    .font("Body")
+    .fontSize(42)
+    .fillColor("#1a1a1a")
+    .text(language === "cs" ? "Grafický\nmanuál" : "Design\nManual", 58, 212, {
+      lineGap: 2,
+    });
+  document
+    .font("Body")
+    .fontSize(10)
+    .fillColor("#666666")
+    .text(
+      language === "cs"
+        ? "Pravidla pro grafiky a redaktory"
+        : "Working guidance for designers and editors",
+      58,
+      340,
+    );
+  document
+    .rect(58, document.page.height - 90, document.page.width - 116, 18)
+    .fill("#ff661a");
 }
 
 function renderMarkdown(document, markdown, language, appendix) {
@@ -103,7 +129,10 @@ function renderMarkdown(document, markdown, language, appendix) {
   let hasContentPage = false;
 
   if (appendix) {
-    addPage(document, language === "cs" ? "PŘÍLOHA / HISTORIE ZMĚN" : "APPENDIX / CHANGELOG");
+    addPage(
+      document,
+      language === "cs" ? "PŘÍLOHA / HISTORIE ZMĚN" : "APPENDIX / CHANGELOG",
+    );
     hasContentPage = true;
   }
 
@@ -114,11 +143,18 @@ function renderMarkdown(document, markdown, language, appendix) {
       if (!title) continue;
       if (!appendix) {
         chapter++;
-        addPage(document, `${String(chapter).padStart(2, "0")} / ${language === "cs" ? "GRAFICKÝ MANUÁL" : "DESIGN MANUAL"}`);
+        addPage(
+          document,
+          `${String(chapter).padStart(2, "0")} / ${language === "cs" ? "GRAFICKÝ MANUÁL" : "DESIGN MANUAL"}`,
+        );
         hasContentPage = true;
       }
       ensureSpace(document, 90);
-      document.font("Body").fontSize(31).fillColor("#1a1a1a").text(title, { lineGap: 4 });
+      document
+        .font("Body")
+        .fontSize(31)
+        .fillColor("#1a1a1a")
+        .text(title, { lineGap: 4 });
       document.moveDown(1.1);
       continue;
     }
@@ -127,7 +163,8 @@ function renderMarkdown(document, markdown, language, appendix) {
     if (node.type === "heading") {
       ensureSpace(document, 70);
       document.moveDown(0.7);
-      document.font(node.depth === 2 ? "Body" : "Bold")
+      document
+        .font(node.depth === 2 ? "Body" : "Bold")
         .fontSize(node.depth === 2 ? 17 : 11)
         .fillColor(node.depth === 2 ? "#ff661a" : "#00a5a0")
         .text(toString(node), { lineGap: 3 });
@@ -139,35 +176,48 @@ function renderMarkdown(document, markdown, language, appendix) {
         ensureSpace(document, 38);
         const y = document.y + 5;
         document.rect(61, y, 4, 4).fill("#ff661a");
-        document.font("Body").fontSize(8.6).fillColor("#1a1a1a").text(text, 76, document.y, {
-          width: document.page.width - 134,
-          lineGap: 4.2,
-        });
+        document
+          .font("Body")
+          .fontSize(8.6)
+          .fillColor("#1a1a1a")
+          .text(text, 76, document.y, {
+            width: document.page.width - 134,
+            lineGap: 4.2,
+          });
         document.moveDown(0.5);
       }
     } else if (node.type === "paragraph") {
       const images = node.children.filter((child) => child.type === "image");
       if (images.length) {
-        for (const image of images) renderImage(document, image.url, image.alt || "");
+        for (const image of images)
+          renderImage(document, image.url, image.alt || "");
       } else {
         const text = toString(node).trim();
         if (!text) continue;
         ensureSpace(document, 46);
-        document.font("Body").fontSize(8.6).fillColor("#1a1a1a").text(text, {
-          width: document.page.width - 116,
-          lineGap: 4.4,
-        });
+        document
+          .font("Body")
+          .fontSize(8.6)
+          .fillColor("#1a1a1a")
+          .text(text, {
+            width: document.page.width - 116,
+            lineGap: 4.4,
+          });
         document.moveDown(0.7);
       }
     } else if (node.type === "blockquote") {
       const text = toString(node).trim();
       if (!text) continue;
       ensureSpace(document, 38);
-      document.font("Body").fontSize(7).fillColor("#666666").text(text, 76, document.y, {
-        width: document.page.width - 152,
-        align: "center",
-        lineGap: 3,
-      });
+      document
+        .font("Body")
+        .fontSize(7)
+        .fillColor("#666666")
+        .text(text, 76, document.y, {
+          width: document.page.width - 152,
+          align: "center",
+          lineGap: 3,
+        });
       document.moveDown(0.8);
     }
   }
@@ -188,10 +238,14 @@ function renderImage(document, source, alt) {
   document.image(path, x, document.y, { width, height });
   document.y += height + 7;
   if (alt) {
-    document.font("Body").fontSize(6.8).fillColor("#666666").text(alt, 76, document.y, {
-      width: document.page.width - 152,
-      align: "center",
-    });
+    document
+      .font("Body")
+      .fontSize(6.8)
+      .fillColor("#666666")
+      .text(alt, 76, document.y, {
+        width: document.page.width - 152,
+        align: "center",
+      });
     document.moveDown(0.7);
   }
 }
@@ -205,12 +259,23 @@ function addPageFurniture(document, language) {
   for (let index = range.start; index < range.start + range.count; index++) {
     if (index === 0) continue;
     document.switchToPage(index);
-    document.moveTo(58, document.page.height - 94)
+    document
+      .moveTo(58, document.page.height - 94)
       .lineTo(document.page.width - 58, document.page.height - 94)
       .lineWidth(0.6)
       .stroke("#999999");
     document.font("Body").fontSize(6.5).fillColor("#666666");
-    document.text(language === "cs" ? "TAKTIK / GRAFICKÝ MANUÁL" : "TAKTIK / DESIGN MANUAL", 58, document.page.height - 82, { lineBreak: false });
-    document.text(String(index + 1).padStart(2, "0"), document.page.width - 80, document.page.height - 82, { width: 22, align: "right", lineBreak: false });
+    document.text(
+      language === "cs" ? "TAKTIK / GRAFICKÝ MANUÁL" : "TAKTIK / DESIGN MANUAL",
+      58,
+      document.page.height - 82,
+      { lineBreak: false },
+    );
+    document.text(
+      String(index + 1).padStart(2, "0"),
+      document.page.width - 80,
+      document.page.height - 82,
+      { width: 22, align: "right", lineBreak: false },
+    );
   }
 }

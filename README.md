@@ -107,7 +107,7 @@ npm run manual:pdf -- en # English only
 npm run manual:pdf -- cs # Czech only
 ```
 
-The PDF uses the same Markdown content as the website, but it has its own print layout rather than copying the browser page pixel for pixel. It currently uses macOS Verdana system fonts, so export on Windows or Linux needs font-path configuration in `scripts/export-design-manual.mjs`.
+The PDF uses the same Markdown content as the website, but it has its own print layout rather than copying the browser page pixel for pixel. It currently uses macOS Verdana system fonts, so export on Windows or Linux needs font-path configuration in `app/_tools/design-manual/scripts/export-pdf.mjs`.
 
 ## Configuration
 

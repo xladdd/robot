@@ -8,11 +8,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "manual:pdf": "node scripts/export-design-manual.mjs",
+    "manual:pdf": "node app/_tools/design-manual/scripts/export-pdf.mjs",
     "start": "next start",
-    "test": "npm run build && node --experimental-strip-types --test tests/architecture.test.mjs app/_tools/image/shared/tests/figure.test.mts app/_tools/design/solutions-importer/tests/solutions-importer.test.mjs",
+    "test": "npm run build && node --experimental-strip-types --test tests/architecture.test.mjs tests/translations.test.mjs app/_tools/image/graph-generator/tests/graph.test.mts app/_tools/image/diagram-generator/tests/diagram.test.mts app/_tools/image/map-generator/tests/map.test.mts app/_tools/design/solutions-importer/tests/solutions-importer.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test:figures": "node --experimental-strip-types --test app/_tools/image/shared/tests/figure.test.mts"
+    "test:figures": "node --experimental-strip-types --test app/_tools/image/graph-generator/tests/graph.test.mts app/_tools/image/diagram-generator/tests/diagram.test.mts app/_tools/image/map-generator/tests/map.test.mts"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",

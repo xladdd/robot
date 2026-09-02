@@ -2,7 +2,7 @@
 
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
 import { extractPositionedPdfText } from "./code/pdf";
-import { solutionsImporterUi } from "../../../content/ui";
+import { solutionsImporterUi } from "./copy";
 
 type Language = "en" | "cs";
 type SolutionOperation = {

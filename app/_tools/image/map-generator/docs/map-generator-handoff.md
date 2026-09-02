@@ -8,14 +8,15 @@ The original AI-first figure generator has been split into separate sidebar apps
 
 ## Important files
 
-- `app/page.tsx` — map editor UI, state, pan/zoom, timeline, palette handling, country filling, and WYSIWYG cropped export.
+- `app/Workspace.tsx` — map editor controller state, pan/zoom, timeline, palette handling, country filling, and WYSIWYG cropped export.
+- `app/_tools/image/map-generator/MainInterface.tsx` — map editor markup and controls.
 - `app/globals.css` — map workspace, crop mask, label scaling, layer visibility, and controls.
-- `app/_tools/image/shared/code/figure.ts` — deterministic map SVG renderer and named SVG hierarchy.
+- `app/_tools/image/map-generator/code/map.ts` — deterministic map SVG renderer and named SVG hierarchy.
 - `app/api/maps/timeline/route.ts` — year-based map endpoint, valid from 3400 BCE through 2026 CE.
 - `app/_tools/image/map-generator/code/map-catalog.ts` — current, licensed CShapes, and Cliopatria adapters plus label positioning.
 - `app/_tools/image/map-generator/code/historical-boundaries.ts` — historical-boundary helpers.
-- `app/_tools/image/shared/code/ase.ts` — Adobe Swatch Exchange parser.
-- `app/_tools/image/shared/tests/figure.test.mts` — renderer and historical-map regression tests.
+- `app/_tools/image/map-generator/code/ase.ts` — Adobe Swatch Exchange parser.
+- `app/_tools/image/map-generator/tests/map.test.mts` — renderer and historical-map regression tests.
 - `map-test-results/prompts.md` and the adjacent result folders — earlier model-evaluation prompts/results.
 - `scripts/import-*.mjs` — reproducible data-import pipelines.
 
@@ -36,11 +37,11 @@ Licensing:
 
 The large local datasets are intentional:
 
-- `public/data/cliopatria-timeline.json` (~27 MB), the single local Cliopatria dataset used directly by the timeline API.
-- `app/data/cshapes-timeline.json`.
-- `app/data/natural-earth-water.json`.
-- `app/data/koppen-climate.json`.
-- `app/data/natural-earth-geography.json`.
+- `app/_tools/image/map-generator/code/data/cliopatria-timeline.json` (~27 MB), the single local Cliopatria dataset used directly by the timeline API.
+- `app/_tools/image/map-generator/code/data/cshapes-timeline.json`.
+- `app/_tools/image/map-generator/code/data/natural-earth-water.json`.
+- `app/_tools/image/map-generator/code/data/koppen-climate.json`.
+- `app/_tools/image/map-generator/code/data/natural-earth-geography.json`.
 
 ## Current map UI behavior
 
@@ -80,7 +81,7 @@ The source grid is 0.5°. A subtle SVG Gaussian blur softens its block edges wit
 
 ## Geography overlays
 
-Natural Earth public-domain vectors are locally processed into `app/data/natural-earth-geography.json`:
+Natural Earth public-domain vectors are locally processed into `app/_tools/image/map-generator/code/data/natural-earth-geography.json`:
 
 - National capitals (200 records)
 - Mountain-range polygons (222)
@@ -176,7 +177,7 @@ To start live preview:
 npm run dev
 ```
 
-Vinext usually serves at `http://localhost:3000/`; earlier runs sometimes used port 3001.
+Next.js usually serves at `http://localhost:3000/`; it will select another port if that one is unavailable.
 
 ## Recommended next checks
 

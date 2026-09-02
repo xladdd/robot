@@ -1,4 +1,4 @@
-import { barcodeUi } from "../../../content/ui";
+import { barcodeUi } from "./copy";
 import { eanModules, type EanResult } from "./code/ean13";
 
 type BarcodeCopy = (typeof barcodeUi)["en"] | (typeof barcodeUi)["cs"];

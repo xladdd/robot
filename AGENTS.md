@@ -13,7 +13,7 @@ README is not enough for an agent. It explains the product to a person, but it d
 - Put app-specific code, data, downloads, scripts, tests, and info copy under `app/_tools/<sidebar-category>/<app>/`.
 - Keep `app/api/**/route.ts` thin. Put the handler implementation in the owning app folder.
 - Declare Next.js route settings such as `dynamic`, `runtime`, and `revalidate` directly in `route.ts` as literal values. Next.js cannot statically read them through a re-export.
-- Put code in `app/_tools/image/shared/` only when at least two image apps use it.
+- Do not create an image-wide shared module by default. Keep Graph, Diagram, and Map code in their owning app folders. Extract a small shared image utility only after at least two apps have identical, tested behavior and the dependency will not pull unrelated data or model logic into either app.
 - Do not add app-specific prose to `app/content/ui.ts` when it belongs in an info drawer.
 - `info.en.md` and `info.cs.md` are live application content, not duplicate documentation.
 - `app/_tools/design-manual/manual.en.md` and `manual.cs.md` are the live Design Manual sources. Keep their image paths relative to `design-manual/images/`.

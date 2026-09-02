@@ -1,4 +1,4 @@
-import type { MapSpec } from "../../shared/code/figure";
+import type { MapSpec } from "./map";
 import { geoArea, geoCentroid } from "d3-geo";
 import timelineData from "./data/cshapes-timeline.json" with { type: "json" };
 import { boundariesAt, type HistoricalBoundaryRecord, type HistoricalTimeline } from "./historical-boundaries.ts";

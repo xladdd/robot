@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChangeEvent, RefObject } from "react";
-import { localizedCoverUi } from "../../../content/ui";
+import { localizedCoverUi } from "./copy";
 import type { Language } from "../../registry";
 
 export type CoverReference = { name: string; data: string; artData: string };
