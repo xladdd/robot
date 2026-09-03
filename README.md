@@ -42,7 +42,7 @@ Turns plain Find and Change instructions into strings for Adobe InDesign's GREP 
 
 ### Solutions Importer
 
-Combines a clean PDF, an annotated manuscript PDF, and matching IDML into one reviewed `indesign-solutions-v2` JSON file. The Simple InDesign script places text directly at its PDF coordinates. The Advanced script also maps answers into table cells and aligns answer frames. If Advanced fails, Simple is the more failsafe fallback. [English info drawer](app/_tools/design/solutions-importer/info.en.md)
+Combines a clean PDF, an annotated manuscript PDF, and matching IDML into one reviewed `indesign-solutions-v2` JSON file. One canonical InDesign script, downloaded from `/solutions/import_solutions.jsx`, validates that JSON and then offers a ScriptUI choice between Advanced layout-aware placement and Simple direct PDF-coordinate placement. Advanced is recommended for tables and answer boxes; if it fails, Simple is the more failsafe fallback. [English info drawer](app/_tools/design/solutions-importer/info.en.md)
 
 ### Script Buffet
 

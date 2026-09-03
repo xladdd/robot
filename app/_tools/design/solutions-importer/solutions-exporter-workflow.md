@@ -1,6 +1,6 @@
 # Solutions Exporter and InDesign Import Workflow
 
-Last updated: 2026-08-30 (Europe/Prague)
+Last updated: 2026-09-03 (Europe/Prague)
 
 This is an operational handoff for an agent that will generate a Solutions Importer manifest, import it into Adobe InDesign, inspect the result visually, and make controlled corrections.
 
@@ -21,7 +21,7 @@ The automation is intended to produce a strong first pass. It is not a substitut
 
 Application repository:
 
-`/Users/vladfrolov/Library/Mobile Documents/com~apple~CloudDocs/Documents/automat`
+`/Users/vladfrolov/Library/Mobile Documents/com~apple~CloudDocs/Documents/robot`
 
 Web module:
 
@@ -30,16 +30,20 @@ Web module:
 - `public/solutions/extract_solution_operations.py`
 - `public/solutions/pyodide-worker.js`
 
-InDesign importers distributed by the app:
+Canonical InDesign importer distributed by the app:
 
-- `public/solutions/import_solutions_simple.jsx`
-- `public/solutions/import_solutions_advanced.jsx`
+- `/solutions/import_solutions.jsx`
 
-Installed InDesign copy:
+Deprecated compatibility URLs remain available for existing links and installations, but are not advertised in the UI:
 
-`/Users/vladfrolov/Library/Preferences/Adobe InDesign/Version 21.0/en_US/Scripts/Scripts Panel/import_solutions_advanced.jsx`
+- `/solutions/import_solutions_simple.jsx`
+- `/solutions/import_solutions_advanced.jsx`
 
-Install one or both scripts. The distributed and installed JSX files should remain identical. Compare the selected script before testing after any script change.
+Recommended InDesign installation path:
+
+`/Users/vladfrolov/Library/Preferences/Adobe InDesign/Version 21.0/en_US/Scripts/Scripts Panel/import_solutions.jsx`
+
+Install the canonical script for new work. The distributed and installed JSX files should remain identical. Compare them before testing after any script change.
 
 ## Required Inputs
 
@@ -61,7 +65,7 @@ Always work on a duplicate of the chapter. Never use the production master as th
 
 ## Start the Local App
 
-From the Automat repository:
+From the Robot repository:
 
 ```sh
 npm run dev
@@ -104,18 +108,15 @@ The JSON is an operation manifest, not a finished layout. It records page-relati
 
 ## Install or Verify the InDesign Importer
 
-In InDesign, open **Window > Utilities > Scripts**. Reveal the User scripts folder and confirm that one or both files are present:
+In InDesign, open **Window > Utilities > Scripts**. Reveal the User scripts folder and confirm that `import_solutions.jsx` is present.
 
-- `import_solutions_simple.jsx`
-- `import_solutions_advanced.jsx`
-
-The authoritative installed path is listed in **Current Files** above. The app also offers the JSX as a download on the Solutions page.
+The authoritative installed path is listed in **Current Files** above. The Solutions page offers this canonical JSX as its only importer download. The old mode-specific files remain reachable only through their deprecated compatibility URLs.
 
 Before a production test, compare the installed file with the repository copy:
 
 ```sh
-cmp public/solutions/import_solutions_advanced.jsx \
-  "/Users/vladfrolov/Library/Preferences/Adobe InDesign/Version 21.0/en_US/Scripts/Scripts Panel/import_solutions_advanced.jsx"
+cmp public/solutions/import_solutions.jsx \
+  "/Users/vladfrolov/Library/Preferences/Adobe InDesign/Version 21.0/en_US/Scripts/Scripts Panel/import_solutions.jsx"
 ```
 
 No output and exit status 0 means the files match.
@@ -125,15 +126,16 @@ No output and exit status 0 means the files match.
 1. Duplicate the clean chapter file and give the working copy a versioned name.
 2. Open only the working copy in InDesign.
 3. Confirm the document page count matches the JSON.
-4. Run `import_solutions_advanced.jsx` when the chapter contains answer boxes or tables. Run `import_solutions_simple.jsx` for direct coordinate placement or when Advanced has failed.
-5. Choose the reviewed `_Solutions.json` file.
-6. For Advanced, read the completion alert and record:
+4. Run `import_solutions.jsx`.
+5. Choose the reviewed `_Solutions.json` file. The script validates that it uses the shared `indesign-solutions-v2` format.
+6. In the ScriptUI choice, select **Advanced** for layout-aware placement or **Simple** for direct PDF-coordinate placement. Advanced is recommended when the chapter contains answer boxes or tables. If Advanced has failed, undo it and rerun the canonical script in Simple mode.
+7. When using Advanced, read the completion alert and record:
    - Characters placed in cells.
    - Word continuations.
    - Ordinary text frames.
    - Grid-like operations left loose.
    - Non-text annotations needing review.
-7. Save a new version immediately after a successful import.
+8. Save a new version immediately after a successful import.
 
 The importer creates or updates:
 
@@ -141,13 +143,15 @@ The importer creates or updates:
 - Paragraph style: `Solutions`.
 - Paragraph style: `Cell Solutions`.
 - Process swatch: `SOLUTIONS`, currently C100 M73 Y0 K0.
-- Generated item labels beginning with `Solutions Advanced:`.
+- In Advanced mode, generated item labels beginning with `Solutions Advanced:`.
 
-All imported solution text receives character style `[None]`.
+Advanced mode explicitly applies character style `[None]` to imported solution text.
 
-The importer temporarily unlocks document layers and restores their prior lock states. It leaves the `SOLUTIONS` layer visible and unlocked.
+Advanced mode temporarily unlocks document layers and restores their prior lock states. Both modes leave the `SOLUTIONS` layer visible and unlocked.
 
-## What the Two Importers Do
+## What the Two Modes Do
+
+The canonical `import_solutions.jsx` script offers both modes after it selects and validates the reviewed JSON.
 
 Simple:
 
@@ -177,11 +181,11 @@ For compact tables and mathematical grids:
 - Applies `Cell Solutions`, `[None]`, zero cell insets, and vertical centring.
 - Keeps one imported character per destination cell when the operation is parsed as a grid sequence.
 
-Supported grid characters currently include digits and these symbols:
+Supported grid characters currently include digits and common arithmetic, comparison, punctuation, percentage, multiplication, and division symbols, including:
 
-`0-9 , . ; : + - – − < > =`
+`0-9 , . ; : % + - – − < > = / ± · × ÷ ≠ ≤ ≥`
 
-A single isolated Latin letter can also be treated as a grid token. Adjacent letters are treated as prose.
+A single Latin letter can also be treated as a grid token. Touching letters are treated as prose, while spatially separated letters can remain individual grid tokens.
 
 For mixed grid and prose answers:
 
@@ -193,7 +197,7 @@ If a grid-looking operation cannot be matched confidently, it remains an ordinar
 
 ## Destructive Rerun Behavior
 
-After a successful Advanced import, Advanced removes **every pre-existing page item on the `SOLUTIONS` layer** and replaces it with the newly generated result. Simple removes only frames created by an earlier Simple run. If Advanced produced a bad partial result, use Undo before running Simple so the two results do not overlap.
+After a successful import in Advanced mode, the script removes **every pre-existing page item on the `SOLUTIONS` layer** and replaces it with the newly generated result. In Simple mode, it removes only frames created by an earlier Simple run. If Advanced produced a bad partial result, use Undo before rerunning the canonical script in Simple mode so the two results do not overlap.
 
 This means:
 
@@ -206,7 +210,7 @@ If an import fails, newly created objects are removed and the previous `SOLUTION
 
 ## Current Limitations
 
-The current importers automatically execute text operations. They do not yet create the non-text operations emitted by the manifest.
+The canonical importer automatically executes text operations in either mode. It does not create the non-text operations emitted by the manifest.
 
 Manually review and reproduce when necessary:
 
@@ -323,7 +327,7 @@ The following can be adapted for a new chapter:
 
 ```text
 Use the Solutions Importer workflow documented in:
-/Users/vladfrolov/Library/Mobile Documents/com~apple~CloudDocs/Documents/automat/app/_tools/design/solutions-importer/solutions-exporter-workflow.md
+/Users/vladfrolov/Library/Mobile Documents/com~apple~CloudDocs/Documents/robot/app/_tools/design/solutions-importer/solutions-exporter-workflow.md
 
 Inputs:
 - Clean PDF: <path>
@@ -331,16 +335,16 @@ Inputs:
 - Clean IDML: <path>
 - Reviewed JSON, if already generated: <path>
 
-Work only on a versioned copy. Start with import_solutions_advanced.jsx when the document structure is suitable. If it fails, undo the import and try import_solutions_simple.jsx. Save versioned INDD and IDML outputs, export a proof PDF, compare every page visually against the solutions PDF, and report any remaining manual artwork or non-text exceptions. Do not overwrite the source files.
+Work only on a versioned copy. Run import_solutions.jsx, select and validate the reviewed indesign-solutions-v2 JSON, and choose Advanced for suitable structured documents. If Advanced fails, undo the import, rerun import_solutions.jsx, and choose Simple as the more failsafe fallback. Save versioned INDD and IDML outputs, export a proof PDF, compare every page visually against the solutions PDF, and report any remaining manual artwork or non-text exceptions. Do not overwrite the source files.
 ```
 
 ## Validation After Code Changes
 
-From the Automat repository:
+From the Robot repository:
 
 ```sh
 npm run build
 npm test
 ```
 
-Also verify that the repository and installed importer copies are identical, then perform at least one real InDesign import and visual proof comparison. Automated application tests do not validate final InDesign layout.
+Also verify that the repository and installed canonical importer copies are identical, then perform at least one real InDesign import in each mode and visually compare the proof. Automated application tests do not validate final InDesign layout.

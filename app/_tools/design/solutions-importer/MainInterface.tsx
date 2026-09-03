@@ -63,6 +63,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   const [manifest, setManifest] = useState<SolutionsManifest | null>(null);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<ReviewFilter>("all");
+  const [reviewExpanded, setReviewExpanded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -88,6 +89,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   function resetResult() {
     setManifest(null);
     setExcluded(new Set());
+    setReviewExpanded(false);
     setProgress(0);
     setLog([]);
     setError("");
@@ -126,6 +128,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
     setProcessing(true);
     setManifest(null);
     setExcluded(new Set());
+    setReviewExpanded(false);
     setError("");
     setLog([]);
     setProgress(1);
@@ -216,7 +219,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
     for (const page of output.pages) {
       for (const operation of page.operations) operation.enabled = !excluded.has(operation.id);
     }
-    const sourceName = manifest.manuscript_pdf.replace(/\.pdf$/i, "") || "chapter-solutions";
+    const sourceName = (files.manuscript?.name || manifest.manuscript_pdf).replace(/\.[^.]+$/, "") || "chapter";
     downloadText(`${JSON.stringify(output, null, 2)}\n`, `${sourceName}_Solutions.json`, "application/json");
   }
 
@@ -240,6 +243,8 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   }
 
   const hasAllFiles = Boolean(files.clean && files.manuscript && files.idml);
+  const solutionPreviewFont = solutionFont === "Times New Roman" ? solutionFont : "Arial";
+  const analysisComplete = Boolean(manifest && !processing);
 
   return (
     <div className="solutions-module solutions-detail-module">
@@ -274,7 +279,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
         <div className="solutions-detail-options-row">
           <section className="solutions-detail-type-settings" aria-label={t.solutionTypography}>
             <div className="solutions-detail-type-intro">
-              <i style={{ fontFamily: solutionFont }}>Aa</i>
+              <i style={{ fontFamily: solutionPreviewFont }}>Aa</i>
               <span><b>{t.solutionTypography}</b><small>{solutionFont} · {solutionSize} pt</small></span>
             </div>
             <label>
@@ -306,12 +311,12 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
           </label>
         </div>
         {error && <p className="extraction-error" role="alert">{error}</p>}
-        <button className="solutions-create" onClick={() => void analyse()} disabled={!hasAllFiles || processing}>
+        <button className={`solutions-create${analysisComplete ? " is-complete" : ""}`} onClick={() => void analyse()} disabled={!hasAllFiles || processing}>
           <span>{processing ? `${t.analysing} ${progress}%` : manifest ? t.analyseAgain : t.analyse}</span>
           <b>{processing ? "…" : "→"}</b>
         </button>
         {(processing || log.length > 0) && (
-          <div className="solutions-progress" aria-live="polite">
+          <div className={`solutions-progress${analysisComplete ? " is-complete" : ""}`} aria-live="polite">
             <div className="solutions-progress-head"><span>{t.processLog}</span><b>{progress}%</b></div>
             <div className="solutions-progress-track"><i style={{ width: `${progress}%` }} /></div>
             <div className="solutions-console">{log.map((line, index) => <code key={`${index}-${line}`}>{line}</code>)}</div>
@@ -323,8 +328,24 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
       {manifest && (
         <section className="solutions-detail-review" aria-label={t.reviewHeading}>
           <div className="solutions-detail-review-head">
-            <div><span>{t.reviewKicker}</span><h2>{t.reviewHeading}</h2></div>
-            <button onClick={downloadManifest}><span>{t.downloadJson}</span><b>↓</b></button>
+            <h2 className="solutions-detail-review-heading">
+              <button
+                type="button"
+                className="solutions-detail-review-toggle"
+                onClick={() => setReviewExpanded((current) => !current)}
+                aria-expanded={reviewExpanded}
+                aria-controls="solutions-report-details"
+              >
+                <span className="solutions-detail-review-title">
+                  <span>{t.reviewKicker}</span>
+                  <span className="solutions-detail-review-name">{t.reviewHeading}</span>
+                </span>
+                <b aria-hidden="true">{reviewExpanded ? "−" : "+"}</b>
+              </button>
+            </h2>
+            <button type="button" className="solutions-detail-download" onClick={downloadManifest}>
+              <span>{t.downloadJson}</span><b>↓</b>
+            </button>
           </div>
           <dl className="solutions-detail-stats">
             <div><dt>{t.pages}</dt><dd>{manifest.summary.pages}</dd></div>
@@ -334,37 +355,41 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
             <div><dt>{t.needsReview}</dt><dd>{manifest.summary.review}</dd></div>
             <div><dt>{t.excluded}</dt><dd>{excluded.size}</dd></div>
           </dl>
-          <div className="solutions-detail-filter" role="tablist" aria-label={t.reviewFilter}>
-            {(["all", "ready", "review"] as ReviewFilter[]).map((value) => (
-              <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)} role="tab" aria-selected={filter === value}>{t.filters[value]}</button>
-            ))}
-          </div>
-          <div className="solutions-detail-pages">
-            {filteredPages.map((page) => {
-              const reviewCount = page.operations.filter((operation) => operation.status === "review").length;
-              return (
-                <details key={page.page}>
-                  <summary>
-                    <span>{t.pdfPage} {page.page}</span>
-                    <strong>{t.bookPage} {page.document_page}</strong>
-                    <small>{page.operations.length} {t.operations}{reviewCount ? ` · ${reviewCount} ${t.reviewShort}` : ""}</small>
-                    <i>+</i>
-                  </summary>
-                  <div className="solutions-detail-operation-list">
-                    {page.operations.map((operation) => (
-                      <label key={operation.id} className={excluded.has(operation.id) ? "excluded" : ""}>
-                        <input type="checkbox" checked={!excluded.has(operation.id)} onChange={() => toggleOperation(operation.id)} />
-                        <span className={`solutions-detail-kind ${operation.status}`}>{operationTitle(operation)}</span>
-                        <strong>{operationDetail(operation)}</strong>
-                        <small>{Math.round(operation.confidence * 100)}%</small>
-                      </label>
-                    ))}
-                  </div>
-                </details>
-              );
-            })}
-          </div>
-          <p className="solutions-detail-review-note">{t.reviewNote}</p>
+          {reviewExpanded && (
+            <div id="solutions-report-details" className="solutions-detail-review-body">
+              <div className="solutions-detail-filter" role="tablist" aria-label={t.reviewFilter}>
+                {(["all", "ready", "review"] as ReviewFilter[]).map((value) => (
+                  <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)} role="tab" aria-selected={filter === value}>{t.filters[value]}</button>
+                ))}
+              </div>
+              <div className="solutions-detail-pages">
+                {filteredPages.map((page) => {
+                  const reviewCount = page.operations.filter((operation) => operation.status === "review").length;
+                  return (
+                    <details key={page.page}>
+                      <summary>
+                        <span>{t.pdfPage} {page.page}</span>
+                        <strong>{t.bookPage} {page.document_page}</strong>
+                        <small>{page.operations.length} {t.operations}{reviewCount ? ` · ${reviewCount} ${t.reviewShort}` : ""}</small>
+                        <i>+</i>
+                      </summary>
+                      <div className="solutions-detail-operation-list">
+                        {page.operations.map((operation) => (
+                          <label key={operation.id} className={excluded.has(operation.id) ? "excluded" : ""}>
+                            <input type="checkbox" checked={!excluded.has(operation.id)} onChange={() => toggleOperation(operation.id)} />
+                            <span className={`solutions-detail-kind ${operation.status}`}>{operationTitle(operation)}</span>
+                            <strong>{operationDetail(operation)}</strong>
+                            <small>{Math.round(operation.confidence * 100)}%</small>
+                          </label>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+              <p className="solutions-detail-review-note">{t.reviewNote}</p>
+            </div>
+          )}
         </section>
       )}
 
@@ -372,11 +397,8 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
         <aside className="solutions-summary">
           <span>{t.download}</span>
           <div className="solutions-downloads">
-            <a href="/solutions/import_solutions_simple.jsx" download>
-              <b>JSX</b><span><strong>{t.simpleImporter}</strong><small>import_solutions_simple.jsx</small></span><i>↓</i>
-            </a>
-            <a href="/solutions/import_solutions_advanced.jsx" download>
-              <b>JSX</b><span><strong>{t.advancedImporter}</strong><small>import_solutions_advanced.jsx</small></span><i>↓</i>
+            <a href="/solutions/import_solutions.jsx" download>
+              <b>JSX</b><span><strong>{t.importer}</strong><small>import_solutions.jsx</small></span><i>↓</i>
             </a>
           </div>
           <p className="solutions-script-help">{t.scriptChoice}</p>

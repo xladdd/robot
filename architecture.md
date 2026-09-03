@@ -158,9 +158,9 @@ Design apps:
 - `app/_tools/design/solutions-importer/copy.ts`: bilingual Solutions Importer UI copy.
 - `app/_tools/design/solutions-importer/code/pdf.ts`: extracts positioned PDF text before local Python comparison.
 - `app/_tools/design/solutions-importer/public/extract_solution_operations.py`: creates the shared `indesign-solutions-v2` operation manifest.
-- `app/_tools/design/solutions-importer/public/import_solutions_simple.jsx`: places enabled text directly at PDF coordinates.
-- `app/_tools/design/solutions-importer/public/import_solutions_advanced.jsx`: also recognises answer boxes and tables, copies tables, fills cells, and aligns continuation frames.
-- `app/_tools/design/solutions-importer/tests/`: protects the one-format/two-script contract.
+- `app/_tools/design/solutions-importer/public/import_solutions.jsx`: canonical InDesign importer. After validating an `indesign-solutions-v2` JSON file, its ScriptUI choice runs either Advanced layout-aware placement or Simple direct PDF-coordinate placement.
+- `app/_tools/design/solutions-importer/public/import_solutions_simple.jsx` and `import_solutions_advanced.jsx`: deprecated compatibility files retained at their existing URLs; the UI advertises only the canonical importer.
+- `app/_tools/design/solutions-importer/tests/`: protects the one-format/single-script contract and compatibility URLs.
 - `app/_tools/design/script-buffet/MainInterface.tsx`: filterable Adobe script catalog, installation guide, and local download counters.
 - `app/_tools/design/script-buffet/public/preview-placeholder.svg`: temporary preview artwork for cards until individual GIF previews exist.
 - `app/_tools/design/typesetter/`: reserved for the unavailable sidebar app.
@@ -179,7 +179,7 @@ Design Manual:
 
 The icon and PDF.js worker files live directly in `public/`. Solutions, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
 
-- `/solutions/*`: the shared worker, extractor, and both InDesign scripts.
+- `/solutions/*`: the shared worker, extractor, canonical `/solutions/import_solutions.jsx` importer, and deprecated `import_solutions_simple.jsx` and `import_solutions_advanced.jsx` compatibility URLs.
 - `/solutions-beta/*`: temporary compatibility link to the same Solutions files; new code does not use it.
 - `/script-buffet/*`: Script Buffet preview media.
 - `/design-manual/media/*`: manual images.
@@ -306,9 +306,9 @@ The following completes the folder map by naming every source-file role. Repeate
 - `code/pdf.ts`: positioned text extraction from PDFs for the worker.
 - `public/pyodide-worker.js`: browser worker that runs the local Python extractor.
 - `public/extract_solution_operations.py`: PDF/IDML comparison that writes the `indesign-solutions-v2` manifest.
-- `public/import_solutions_simple.jsx`: direct coordinate-based InDesign placement, the robust fallback.
-- `public/import_solutions_advanced.jsx`: answer-box/table matching, table copying, cell filling, and continuation alignment.
-- `solutions-exporter-workflow.md`: human maintenance guide for the v2 format and scripts.
+- `public/import_solutions.jsx`: canonical InDesign importer with a post-validation ScriptUI choice between Advanced answer-box/table-aware placement and Simple direct coordinate placement.
+- `public/import_solutions_simple.jsx`, `public/import_solutions_advanced.jsx`: deprecated compatibility files retained for their stable URLs and not advertised in the UI.
+- `solutions-exporter-workflow.md`: human maintenance guide for the v2 format and canonical importer.
 - `tests/solutions-importer.test.mjs`: format and script-contract tests.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
@@ -573,18 +573,20 @@ indesign-solutions-v2 operations
 ↓
 User reviews and enables operations
 ↓
-Reviewed JSON download
+Reviewed JSON download plus canonical import_solutions.jsx
 ↓
-User chooses Simple or Advanced JSX
+Importer selects and validates the shared JSON
 ↓
-Simple places text at PDF coordinates
-or
+ScriptUI offers Advanced or Simple
+↓
 Advanced maps text into answer boxes and table cells
+or
+Simple places text directly at PDF coordinates
 ```
 
-**Output:** one v2 JSON file and two downloadable JSX importers. Simple is the fallback when Advanced fails.
+**Output:** one v2 JSON file and one canonical downloadable JSX importer. Advanced is recommended for tables and answer boxes; Simple is the more failsafe fallback when Advanced fails. The old mode-specific JSX files remain available only at deprecated compatibility URLs.
 
-**Dependencies:** PDF.js, Pyodide/pdfplumber, ZIP/XML parsing in Python, and Adobe InDesign. It calls no LLM and no OpenRouter model. Both scripts accept only `indesign-solutions-v2`.
+**Dependencies:** PDF.js, Pyodide/pdfplumber, ZIP/XML parsing in Python, and Adobe InDesign. It calls no LLM and no OpenRouter model. The canonical script and deprecated compatibility scripts accept only `indesign-solutions-v2`.
 
 ### Script Buffet
 

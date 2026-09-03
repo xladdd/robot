@@ -6,11 +6,11 @@ Kontrolní obrazovka oddělí spolehlivé operace od nejednoznačných anotací.
 
 Pokud některé PDF obsahuje spadávku nebo tiskové značky, zapněte příslušnou volbu. Souřadnice strany InDesignu se pak určí podle vloženého TrimBoxu.
 
-Stejný zkontrolovaný JSON funguje se dvěma skripty InDesignu. **Jednoduchý** vloží každou nalezenou textovou operaci na její souřadnice z PDF. **Pokročilý** navíc rozpoznává pole odpovědí a buňky tabulek, kopíruje odpovídající struktury tabulek a zarovnává pokračování textu.
+Zkontrolovaný JSON ve formátu `indesign-solutions-v2` se importuje jedním hlavním skriptem InDesignu. Po výběru a ověření JSON zobrazí skript dialog ScriptUI s volbou mezi **pokročilým** režimem, který zohledňuje rozvržení, a **jednoduchým** režimem, který vkládá text přímo podle souřadnic z PDF.
 
-Pokročilý skript použijte pro kapitoly s tabulkami nebo strukturovanými poli odpovědí. Pokud selže nebo vytvoří špatný výsledek, vraťte import zpět a zkuste jednoduchý; má méně předpokladů a je spolehlivější.
+Pokročilý režim je doporučený pro kapitoly s tabulkami nebo strukturovanými poli odpovědí. Pokud selže nebo vytvoří špatný výsledek, vraťte import zpět a spusťte hlavní skript znovu v jednoduchém režimu; ten má méně předpokladů a je spolehlivější.
 
-Propojená grafika Illustratoru, Photoshopu a rastrové obrázky záměrně zůstávají k ruční úpravě.
+Netextové anotace, propojená grafika Illustratoru a Photoshopu a rastrové obrázky záměrně zůstávají k ruční úpravě.
 
 ### Jak to funguje?
 
