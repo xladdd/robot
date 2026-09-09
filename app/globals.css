@@ -2874,7 +2874,6 @@ button {
     justify-content: space-between;
     gap: 18px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--line);
 }
 .figure-header h1 {
     margin: 15px 0 10px;
@@ -5582,7 +5581,6 @@ button {
     justify-content: space-between;
     gap: 18px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--line);
 }
 .tool-header h1 {
     margin: 15px 0 10px;
