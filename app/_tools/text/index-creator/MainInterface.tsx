@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
+import { ProcessingBadge, ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import { indexCreatorCopy } from "./copy";
 
@@ -74,7 +75,7 @@ export function IndexCreatorMainInterface({
       />
       {!file ? (
         <div className="index-head">
-          <div className="module-code">{section} / INDEX</div>
+          <ToolMeta code={`${section} / INDEX`} mode="ai" />
           <h1>{t.heading}</h1>
           <button
             className="start-button upload-button"
@@ -92,7 +93,7 @@ export function IndexCreatorMainInterface({
             placeholder={t.wordList}
             rows={7}
           />
-          <span className="local-note">● {t.localExtraction}</span>
+          <span className="data-note">{t.localExtraction}</span>
           {error && (
             <p className="extraction-error" role="alert">
               {error}
@@ -118,7 +119,10 @@ export function IndexCreatorMainInterface({
           </section>
           <div className="index-side-column">
             <div className="index-active-head">
-              <h1>{t.heading}</h1>
+              <div>
+                <ProcessingBadge mode="ai" />
+                <h1>{t.heading}</h1>
+              </div>
               <button
                 className="start-button upload-button"
                 onClick={() => inputRef.current?.click()}
@@ -151,7 +155,7 @@ export function IndexCreatorMainInterface({
                 <span>{t.createIndex}</span>
                 <b>{isIndexing ? `${progress}%` : "→"}</b>
               </button>
-              <span className="local-note">● {t.localExtraction}</span>
+              <span className="data-note">{t.localExtraction}</span>
             </div>
             <section className="text-pane index-output-pane">
               <div className="pane-label index-output-label">

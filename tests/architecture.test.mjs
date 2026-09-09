@@ -291,7 +291,58 @@ test("ships Script Buffet and repeatable Design Manual PDF exports", async () =>
   assert.match(workspace, /<ScriptBuffetMainInterface language=\{language\}/);
   assert.match(buffet, /className="buffet-grid"/);
   assert.match(buffet, /indesign|illustrator|photoshop/);
+  assert.match(buffet, /Make Silhouette Fill/);
+  assert.match(buffet, /Opacity Set/);
+  assert.match(buffet, /Split Text Frames into Characters/);
+  assert.doesNotMatch(buffet, /Solutions Importer: (Simple|Advanced)/);
+  await Promise.all([
+    "Make Silhouette Fill.jsx",
+    "Opacity Set.jsx",
+    "Split Text Frames into Characters.jsx",
+  ].map((name) => access(new URL(`app/_tools/design/script-buffet/public/${name}`, root))));
   assert.match(packageJson, /manual:pdf/);
   assert.match(exporter, /changelog\.md/);
   assert.match(changelog, /^# Changelog/m);
+});
+
+test("uses one explicit processing badge across tool interfaces", async () => {
+  const chrome = await readFile(
+    new URL("app/_components/ToolChrome.tsx", root),
+    "utf8",
+  );
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  assert.match(chrome, /AI ENABLED/);
+  assert.match(chrome, /PROCESSED LOCALLY/);
+  assert.match(chrome, /processing-badge-\$\{mode\}/);
+  assert.match(chrome, /export function ToolMeta/);
+  assert.match(css, /\.processing-badge\s*\{[^}]*font-weight:\s*400/s);
+
+  const classifications = {
+    ai: [
+      "text/text-extractor",
+      "text/index-creator",
+      "image/diagram-generator",
+      "image/graph-generator",
+      "image/cover-generator",
+      "design/grep-builder",
+      "design/prompt-extractor",
+    ],
+    local: [
+      "image/map-generator",
+      "design/cover-splitter",
+      "design/solutions-importer",
+      "design/script-buffet",
+      "design/barcode-generator",
+    ],
+  };
+
+  for (const [mode, apps] of Object.entries(classifications)) {
+    for (const app of apps) {
+      const source = await readFile(
+        new URL(`app/_tools/${app}/MainInterface.tsx`, root),
+        "utf8",
+      );
+      assert.match(source, new RegExp(`mode=["']${mode}["']`), app);
+    }
+  }
 });

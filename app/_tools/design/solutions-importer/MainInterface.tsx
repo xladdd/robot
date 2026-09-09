@@ -3,6 +3,7 @@
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
 import { extractPositionedPdfText } from "./code/pdf";
 import { solutionsImporterUi } from "./copy";
+import { ToolHeader } from "../../../_components/ToolChrome";
 
 type Language = "en" | "cs";
 type SolutionOperation = {
@@ -248,14 +249,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
 
   return (
     <div className="solutions-module solutions-detail-module">
-      <header className="solutions-header">
-        <div>
-          <div className="module-code">{language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"}</div>
-          <h1>{t.heading}</h1>
-          <p>{t.subtitle}</p>
-        </div>
-        <span className="solutions-local-badge"><i />{t.local}</span>
-      </header>
+      <ToolHeader className="solutions-header" code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"} title={t.heading} subtitle={t.subtitle} mode="local" />
 
       <section className="solutions-generator">
         <input ref={cleanInput} type="file" accept="application/pdf,.pdf" onChange={(event) => handleInput("clean", event)} hidden />
@@ -393,7 +387,12 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
         </section>
       )}
 
-      <div className="solutions-content">
+      <details className="solutions-guide">
+        <summary>
+          <span>{language === "cs" ? "Návod k instalaci a použití" : "Installation and usage guide"}</span>
+          <b aria-hidden="true">＋</b>
+        </summary>
+        <div className="solutions-content">
         <aside className="solutions-summary">
           <span>{t.download}</span>
           <div className="solutions-downloads">
@@ -422,7 +421,8 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
             <dl>{t.troubles.map(([title, body]) => <div key={title}><dt>{title}</dt><dd>{body}</dd></div>)}</dl>
           </section>
         </div>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

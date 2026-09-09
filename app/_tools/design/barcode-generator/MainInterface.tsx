@@ -1,5 +1,6 @@
 import { barcodeUi } from "./copy";
 import { eanModules, type EanResult } from "./code/ean13";
+import { ToolHeader } from "../../../_components/ToolChrome";
 
 type BarcodeCopy = (typeof barcodeUi)["en"] | (typeof barcodeUi)["cs"];
 
@@ -24,10 +25,7 @@ export function BarcodeMainInterface({
 }: BarcodeMainInterfaceProps) {
   return (
     <div className="barcode-module">
-      <header className="barcode-header">
-        <div><div className="module-code">DESIGN / EAN-13</div><h1>{copy.heading}</h1><p>{copy.subtitle}</p></div>
-        <span className="solutions-local-badge"><i />{copy.local}</span>
-      </header>
+      <ToolHeader className="barcode-header" code="DESIGN / EAN-13" title={copy.heading} subtitle={copy.subtitle} mode="local" />
       <div className="barcode-workbench">
         <section className="barcode-controls">
           <label htmlFor="barcode-isbn">{copy.label}</label>

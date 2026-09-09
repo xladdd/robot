@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ProcessingBadge, ToolMeta } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
@@ -457,11 +458,8 @@ export function CoverSplitterMainInterface({
       />
 
       {!hasFiles && (
-        <header className="cover-splitter-head">
-          <div className="module-code">
-            {section ? `${section} / ` : ""}
-            {t.moduleCode}
-          </div>
+      <header className="cover-splitter-head">
+          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" />
           <h1>{t.heading}</h1>
           <p>{t.intro}</p>
           <button
@@ -492,6 +490,7 @@ export function CoverSplitterMainInterface({
       {hasFiles && (
         <main className="cover-splitter-workbench">
           <aside className="cover-splitter-controls" aria-label={t.controls}>
+            <ProcessingBadge mode="local" />
             <button
               type="button"
               className="start-button upload-button cover-splitter-add"
@@ -606,6 +605,7 @@ export function CoverSplitterMainInterface({
 
           <section className="cover-splitter-preview-column">
             <header className="cover-splitter-active-head">
+              <ProcessingBadge mode="local" />
               <div className="module-code">
                 {section ? `${section} / ` : ""}
                 {t.moduleCode}

@@ -170,6 +170,7 @@ Design apps:
 - `app/_tools/design/solutions-importer/tests/`: protects the one-format/single-script contract and compatibility URLs.
 - `app/_tools/design/script-buffet/MainInterface.tsx`: filterable Adobe script catalog, installation guide, and local download counters.
 - `app/_tools/design/script-buffet/public/preview-placeholder.svg`: temporary preview artwork for cards until individual GIF previews exist.
+- `app/_tools/design/script-buffet/public/Make Silhouette Fill.jsx`, `Opacity Set.jsx`, and `Split Text Frames into Characters.jsx`: the three downloadable InDesign utilities listed in Script Buffet.
 - `app/_tools/design/typesetter/`: reserved for the unavailable sidebar app.
 
 Design Manual:

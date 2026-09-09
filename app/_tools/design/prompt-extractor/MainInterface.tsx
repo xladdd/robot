@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
+import { ProcessingBadge, ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import { promptExtractorCopy } from "./copy";
 
@@ -50,7 +51,7 @@ export function PromptExtractorMainInterface({
       />
       {!file ? (
         <div className="index-head">
-          <div className="module-code">{section} / PROMPT</div>
+          <ToolMeta code={`${section} / PROMPT`} mode="ai" />
           <h1>{t.heading}</h1>
           <p>
             {language === "cs"
@@ -86,6 +87,7 @@ export function PromptExtractorMainInterface({
           <div className="prompt-side-column">
             <div className="prompt-active-head">
               <div>
+                <ProcessingBadge mode="ai" />
                 <h1>{t.heading}</h1>
                 <span>{isExtracting ? `${progress}%` : "PDF → TXT"}</span>
               </div>

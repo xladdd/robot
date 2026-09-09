@@ -5540,6 +5540,312 @@ button {
     color: var(--teal) !important;
     font-weight: 700 !important;
 }
+
+/* Unified tool interfaces */
+.processing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink);
+    font-size: 8px;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    white-space: nowrap;
+}
+.processing-badge i {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+}
+.processing-badge-ai i {
+    background: var(--orange);
+}
+.processing-badge-local i {
+    background: var(--teal);
+}
+.tool-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 28px;
+    border-bottom: 1px solid var(--ink);
+}
+.tool-header-copy {
+    width: 100%;
+    max-width: 720px;
+}
+.tool-header-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+.tool-header h1 {
+    margin: 15px 0 10px;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1;
+    letter-spacing: -0.055em;
+    font-weight: 400;
+}
+.tool-header p {
+    max-width: 640px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.document-title > .processing-badge,
+.index-head > .processing-badge,
+.cover-splitter-head > .processing-badge {
+    margin-bottom: 13px;
+}
+.document-title h1 {
+    margin-top: 14px;
+}
+.has-source .extraction-head .document-title {
+    min-width: 0;
+}
+.has-source .extraction-head .document-title h1 {
+    margin: 7px 0 0;
+}
+.index-active-head > div:first-child,
+.prompt-active-head > div:first-child {
+    display: grid;
+    gap: 7px;
+}
+.index-active-head > div:first-child h1,
+.prompt-active-head > div:first-child h1 {
+    margin: 0;
+}
+.data-note {
+    display: block;
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.5;
+    text-align: left;
+}
+.figure-header.tool-header {
+    display: flex;
+    padding: 0 2px 22px;
+    border-bottom: 0;
+}
+.figure-header .tool-header-copy {
+    max-width: none;
+}
+.grep-module {
+    overflow-y: auto;
+}
+.grep-module > .tool-header-meta {
+    width: min(720px, 100%);
+}
+.grep-module h1 {
+    margin-bottom: 28px;
+    font-size: clamp(32px, 4vw, 52px);
+}
+.grep-results {
+    width: min(720px, 100%);
+    margin-top: 24px;
+    border: 1px solid var(--ink);
+    background: var(--panel-2);
+    box-shadow: 5px 5px 0 var(--teal);
+}
+.grep-result-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 44px;
+    min-height: 52px;
+    align-items: stretch;
+}
+.grep-result-row + .grep-result-row {
+    border-top: 1px solid var(--ink);
+}
+.grep-result-row > span,
+.grep-result-row > code,
+.grep-result-row > button {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+}
+.grep-result-row > span {
+    border-right: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.grep-result-row > code {
+    min-width: 0;
+    overflow-x: auto;
+    font: 11px/1.45 var(--font-mono);
+}
+.grep-result-row > button {
+    justify-content: center;
+    border: 0;
+    border-left: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--orange);
+    cursor: pointer;
+}
+.barcode-module {
+    padding-right: max(24px, calc((100% - 860px) / 2));
+    padding-left: max(24px, calc((100% - 860px) / 2));
+}
+.barcode-header.tool-header,
+.solutions-header.tool-header {
+    padding-top: 42px;
+    padding-bottom: 26px;
+}
+.barcode-header.tool-header > div,
+.solutions-header.tool-header > div {
+    max-width: none;
+}
+.barcode-workbench {
+    grid-template-columns: minmax(250px, 0.8fr) minmax(360px, 1.2fr);
+}
+.solutions-guide {
+    margin: 30px 0 0;
+    border: 1px solid var(--ink);
+    background: var(--panel);
+    box-shadow: 4px 4px 0 var(--ink);
+}
+.solutions-guide > summary {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 9px;
+}
+.solutions-guide > summary::-webkit-details-marker {
+    display: none;
+}
+.solutions-guide > summary b {
+    color: var(--orange);
+    font-size: 20px;
+    font-weight: 400;
+    transition: transform 0.15s ease;
+}
+.solutions-guide[open] > summary {
+    border-bottom: 1px solid var(--ink);
+}
+.solutions-guide[open] > summary b {
+    transform: rotate(45deg);
+}
+.solutions-guide .solutions-content {
+    margin: 0;
+    padding: 28px;
+}
+.buffet-header .tool-header-meta {
+    width: 100%;
+    margin-bottom: 0;
+}
+.buffet-header > div {
+    width: 100%;
+}
+.cover-stage-head > .tool-header-meta {
+    grid-column: 1 / -1;
+    padding-bottom: 9px;
+}
+.cover-stage-head-initial,
+.cover-stage-head-compact {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+.cover-stage-head-compact > p {
+    align-self: center;
+}
+.cover-generate-group {
+    grid-template-columns: 86px minmax(0, 1fr);
+}
+.cover-generate-group > label {
+    display: grid;
+    gap: 5px;
+}
+.cover-generate-group > label span {
+    color: var(--orange);
+    font-size: 6px;
+    letter-spacing: 0.08em;
+}
+.cover-generate-group select {
+    min-width: 0;
+    height: 42px;
+    padding: 0 8px;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+}
+.cover-splitter-active-head > .processing-badge,
+.cover-splitter-controls > .processing-badge {
+    margin-bottom: 2px;
+}
+
+@media (max-width: 1100px) {
+    .cover-stage-head-initial,
+    .cover-stage-head-compact {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .cover-export-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .cover-export {
+        flex: 1 1 150px;
+    }
+}
+
+@media (max-width: 700px) {
+    .tool-header,
+    .barcode-header.tool-header,
+    .solutions-header.tool-header {
+        display: block;
+        padding-top: 28px;
+    }
+    .tool-header-meta {
+        gap: 10px;
+    }
+    .processing-badge {
+        font-size: 7px;
+    }
+    .grep-result-row {
+        grid-template-columns: 92px minmax(0, 1fr) 42px;
+    }
+    .map-module .figure-controls {
+        top: auto;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        width: auto;
+        max-height: 58%;
+    }
+    .cover-module {
+        display: flex;
+        overflow-y: auto;
+        flex-direction: column;
+    }
+    .cover-toolbar {
+        order: -1;
+        width: auto;
+        min-height: auto;
+        overflow: visible;
+        border-left: 0;
+        border-bottom: 1px solid var(--ink);
+    }
+    .cover-stage,
+    .cover-stage.initial {
+        display: block;
+        overflow: visible;
+        padding: 18px 14px 70px;
+    }
+    .cover-stage.initial .cover-grid {
+        min-height: 300px;
+    }
+}
 .map-year-slider input {
     width: 100%;
     accent-color: var(--orange);

@@ -10,6 +10,7 @@ import type {
   WheelEventHandler,
 } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
+import { ProcessingBadge } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
 import type { MapCheck } from "./code/map";
@@ -54,7 +55,6 @@ export function MapMainInterface({
   mapFillMode,
   mapZoom,
   mapPan,
-  mapEditPrompt,
   paletteInputRef,
   onTimelineStep,
   onTimelineInput,
@@ -65,7 +65,6 @@ export function MapMainInterface({
   onMapFillMode,
   onMapZoom,
   onMapPan,
-  onMapEditPrompt,
   onPaletteInput,
   onApplyPalette,
   onDownloadCroppedMap,
@@ -88,7 +87,6 @@ export function MapMainInterface({
   mapFillMode: boolean;
   mapZoom: number;
   mapPan: { x: number; y: number };
-  mapEditPrompt: string;
   paletteInputRef: RefObject<HTMLInputElement | null>;
   onTimelineStep: (delta: number) => void;
   onTimelineInput: (value: string) => void;
@@ -99,7 +97,6 @@ export function MapMainInterface({
   onMapFillMode: Dispatch<SetStateAction<boolean>>;
   onMapZoom: (zoom: number | ((current: number) => number)) => void;
   onMapPan: (pan: { x: number; y: number }) => void;
-  onMapEditPrompt: (prompt: string) => void;
   onPaletteInput: (event: ChangeEvent<HTMLInputElement>) => void;
   onApplyPalette: (shuffle: boolean) => void;
   onDownloadCroppedMap: () => void;
@@ -299,15 +296,6 @@ export function MapMainInterface({
                 </button>
               )}
             </div>
-            <label className="map-prompt-field">
-              <span>{t.editMap}</span>
-              <textarea
-                value={mapEditPrompt}
-                onChange={(event) => onMapEditPrompt(event.target.value)}
-                placeholder={t.mapPrompt}
-                rows={4}
-              />
-            </label>
             {output && (
               <div className="map-export-actions">
                 <button type="button" onClick={onDownloadCroppedMap}>
@@ -336,10 +324,7 @@ export function MapMainInterface({
             <div>
               <div className="figure-meta">
                 <span className="module-code">{section} / MAP / SVG V1</span>
-                <span className="figure-badge">
-                  <i />
-                  {t.badge}
-                </span>
+                <ProcessingBadge mode="local" />
               </div>
               <h1>{label}</h1>
               <p>{t.subtitle}</p>

@@ -199,7 +199,6 @@ export default function Workspace({
   const [mapFillMode, setMapFillMode] = useState(false);
   const [mapZoom, setMapZoom] = useState(1);
   const [mapPan, setMapPan] = useState({ x: 0, y: 0 });
-  const [mapEditPrompt, setMapEditPrompt] = useState("");
   const mapDragRef = useRef<{
     x: number;
     y: number;
@@ -2229,7 +2228,6 @@ export default function Workspace({
             mapFillMode={mapFillMode}
             mapZoom={mapZoom}
             mapPan={mapPan}
-            mapEditPrompt={mapEditPrompt}
             paletteInputRef={figurePaletteInputRef}
             onTimelineStep={stepTimelineYear}
             onTimelineInput={changeTimelineYearInput}
@@ -2262,7 +2260,6 @@ export default function Workspace({
             onMapFillMode={setMapFillMode}
             onMapZoom={setMapZoom}
             onMapPan={setMapPan}
-            onMapEditPrompt={setMapEditPrompt}
             onPaletteInput={(event) => void addFigurePalette(event)}
             onApplyPalette={applyMapPalette}
             onDownloadCroppedMap={downloadCroppedMap}
@@ -2285,7 +2282,6 @@ export default function Workspace({
             onReplacePrompt={setGrepReplacePrompt}
             onCopy={(value, field) => void copyGrep(value, field)}
             onGenerate={() => void generateGrep()}
-            onReset={() => setGrepResult(null)}
           />
         ) : (
           <div className={`welcome ${selectedLabel ? "has-selection" : ""}`}>

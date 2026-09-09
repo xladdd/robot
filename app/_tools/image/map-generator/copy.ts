@@ -32,7 +32,6 @@ export const mapUi = {
   en: {
     subtitle:
       "Create source-backed SVG charts, diagrams, and factual maps. Specifications are validated and coordinates are rendered by code.",
-    badge: "VERIFIED PIPELINE",
     preview: "SVG PREVIEW",
     empty: "Nothing scarier than an empty page.",
     timeline: "HISTORICAL BOUNDARY TIMELINE",
@@ -80,7 +79,6 @@ export const mapUi = {
   cs: {
     subtitle:
       "Vytváří zdrojované SVG grafy, schémata a faktické mapy. Specifikace ověří a souřadnice vykreslí kód.",
-    badge: "OVĚŘOVANÝ POSTUP",
     preview: "NÁHLED SVG",
     empty: "Není nic děsivějšího než prázdná stránka.",
     timeline: "ČASOVÁ OSA HISTORICKÝCH HRANIC",

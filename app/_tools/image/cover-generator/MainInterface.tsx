@@ -1,8 +1,9 @@
 "use client";
 
-import type { ChangeEvent, RefObject } from "react";
+import { useState, type ChangeEvent, type RefObject } from "react";
 import { localizedCoverUi } from "./copy";
 import type { Language } from "../../registry";
+import { ToolMeta } from "../../../_components/ToolChrome";
 
 export type CoverReference = { name: string; data: string; artData: string };
 export type CoverUsage = { cost: number | null; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null };
@@ -63,12 +64,13 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
 }) {
   const t = localizedCoverUi[language];
   const activeSketches = sketches.filter((item) => item.status !== "rejected");
+  const [requestedCount, setRequestedCount] = useState<2 | 4>(2);
 
   return <div className="cover-module">
     <section className={`cover-stage ${!sketches.length && !isGenerating ? "initial" : ""}`}>
       {!sketches.length && !isGenerating
-        ? <header className="cover-stage-head"><div><span className="module-code">{t.code}</span><h1>{t.heading}</h1><p>0 / 16 {t.active}</p></div><div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div></header>
-        : <header className="cover-stage-head cover-stage-head-compact"><p>{activeSketches.length} / 16 {t.active}{selectedId ? ` · ${t.selected}` : ""}</p><div className="cover-export-actions"><button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button><button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button></div></header>}
+        ? <header className="cover-stage-head cover-stage-head-initial"><ToolMeta code={t.code} mode="ai" /><div><h1>{t.heading}</h1><p>0 / 16 {t.active}</p></div><div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div></header>
+        : <header className="cover-stage-head cover-stage-head-compact"><ToolMeta code={t.code} mode="ai" /><p>{activeSketches.length} / 16 {t.active}{selectedId ? ` · ${t.selected}` : ""}</p><div className="cover-export-actions"><button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button><button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button></div></header>}
       <div className={`cover-grid ${sketches.length || isGenerating ? "has-results" : ""}`} aria-live="polite">
         {activeSketches.map((item, index) => <article className={`cover-card ${item.status === "selected" ? "selected" : ""}`} data-cover-id={item.id} key={item.id}>
           <button className="cover-image" onClick={() => onZoom(item)} aria-label={`${t.zoom} ${index + 1}`}><img src={item.data} alt={`${t.sketch} ${index + 1}`} /></button>
@@ -105,8 +107,8 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
       </section>
       {error && <p className="extraction-error" role="alert">{error}</p>}
       <div className="cover-generate-group">
-        <button className="cover-generate" onClick={() => onGenerateSketches(2)} disabled={references.length < 2 || !brief.trim() || isGenerating || activeSketches.length + 2 > 16}><span>{isGenerating && generationCount === 2 ? `${t.generatingCount} 2…` : selectedId ? t.generateSelectedTwo : t.generateTwo}</span><b>→</b></button>
-        <button className="cover-generate" onClick={() => onGenerateSketches(4)} disabled={references.length < 2 || !brief.trim() || isGenerating || activeSketches.length + 4 > 16}><span>{isGenerating && generationCount === 4 ? `${t.generatingCount} 4…` : selectedId ? t.generateSelectedFour : t.generateFour}</span><b>→</b></button>
+        <label><span>{language === "cs" ? "POČET NÁVRHŮ" : "NUMBER OF CONCEPTS"}</span><select value={requestedCount} onChange={(event) => setRequestedCount(Number(event.target.value) as 2 | 4)}><option value={2}>2</option><option value={4}>4</option></select></label>
+        <button className="cover-generate" onClick={() => onGenerateSketches(requestedCount)} disabled={references.length < 2 || !brief.trim() || isGenerating || activeSketches.length + requestedCount > 16}><span>{isGenerating ? `${t.generatingCount} ${generationCount}…` : selectedId ? (requestedCount === 2 ? t.generateSelectedTwo : t.generateSelectedFour) : (requestedCount === 2 ? t.generateTwo : t.generateFour)}</span><b>→</b></button>
       </div>
       <p className="cover-note">{t.note}</p>
       {sketches.length > 0 && <section className="cover-assets-control"><label>{t.manifest}</label><p>{t.manifestNote}</p><div className={`cover-production-selection ${selectedId ? "ready" : ""}`}>{selectedId ? `✓ ${t.sketch} ${String(activeSketches.findIndex((item) => item.id === selectedId) + 1).padStart(2, "0")} · black-forest-labs/flux.2-pro · 2K` : language === "cs" ? "Nejprve nahoře vyberte koncept." : "Select a concept above first."}</div>{detectedAssets.length > 0 && <div className="cover-detected-assets"><b>{language === "cs" ? "ROZPOZNANÉ PODKLADY" : "DETECTED STEMS"}</b><ol>{detectedAssets.map((asset) => <li key={asset.name}><span>{asset.name}</span><small>{asset.description}</small></li>)}</ol></div>}<button className="cover-production" onClick={onGenerateLayers} disabled={!selectedId || isGeneratingLayers}><span>{isGeneratingLayers ? t.generatingAssets : t.generateAssets}</span><b>→</b></button></section>}

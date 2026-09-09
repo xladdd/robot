@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, DragEvent, RefObject } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
+import { ProcessingBadge, ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import { textExtractorCopy } from "./copy";
 
@@ -52,10 +53,14 @@ export function TextExtractorMainInterface({
   return (
     <div className={`extraction-module ${sourceKind ? "has-source" : ""}`}>
       <div className="extraction-head">
-        {!sourceKind && (
-          <div className="module-code">{section} / EXTRACTION</div>
-        )}
-        <h1>{t.heading}</h1>
+        <div className="document-title">
+          {!sourceKind ? (
+            <ToolMeta code={`${section} / EXTRACTION`} mode="ai" />
+          ) : (
+            <ProcessingBadge mode="ai" />
+          )}
+          <h1>{t.heading}</h1>
+        </div>
         <input
           ref={inputRef}
           type="file"

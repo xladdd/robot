@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, RefObject } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
+import { ToolHeader } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
 import { graphProcessing, graphUi } from "./copy";
@@ -49,7 +50,7 @@ export function GraphMainInterface({ language, section, label, request, palette,
         {output && <div className="figure-checks"><span>{t.checks}</span>{output.checks.map((check, index) => <p className={check.level} key={`${check.message}-${index}`}><b>{check.level === "pass" ? "✓" : "!"}</b>{check.message}</p>)}</div>}
       </section>
       <div className="figure-preview-column">
-        <header className="figure-header"><div><div className="figure-meta"><span className="module-code">{section} / CHART / SVG V1</span><span className="figure-badge"><i />{t.badge}</span></div><h1>{label}</h1><p>{t.subtitle}</p></div></header>
+        <ToolHeader className="figure-header" code={`${section} / CHART`} title={label || "Graph Generator"} subtitle={t.subtitle} mode="ai" />
         <section className="figure-result">
           <div className="pane-label"><span>{t.preview}</span><span>1000 × 680 / SVG 1.1</span></div>
           <div className="figure-paper">{isGenerating ? <LoadingText items={graphProcessing[language]} /> : output ? <div dangerouslySetInnerHTML={{ __html: output.svg }} /> : <p>{t.empty}</p>}</div>

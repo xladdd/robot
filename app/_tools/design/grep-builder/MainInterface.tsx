@@ -1,5 +1,6 @@
 import type { Language } from "../../registry";
 import { grepBuilderCopy } from "./copy";
+import { ToolMeta } from "../../../_components/ToolChrome";
 
 type GrepResult = { findWhat: string; replaceWith: string };
 
@@ -16,7 +17,6 @@ type GrepMainInterfaceProps = {
   onReplacePrompt: (value: string) => void;
   onCopy: (value: string, field: "find" | "replace") => void;
   onGenerate: () => void;
-  onReset: () => void;
 };
 
 export function GrepMainInterface(props: GrepMainInterfaceProps) {
@@ -24,40 +24,22 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
   const t = grepBuilderCopy[props.language];
   return (
     <div className="grep-module">
-      <div className="module-code">{props.section} / GREP</div>
+      <ToolMeta code={`${props.section} / GREP`} mode="ai" />
       <h1>{t.heading}</h1>
       <div className="grep-fields">
-        <label className={`grep-field ${result ? "has-result" : ""}`}>
+        <label className="grep-field">
           <span>{t.findLabel}</span>
           <input
-            value={result?.findWhat ?? props.findPrompt}
+            value={props.findPrompt}
             onChange={(event) => props.onFindPrompt(event.target.value)}
-            readOnly={Boolean(result)}
           />
-          {result && (
-            <button
-              onClick={() => props.onCopy(result.findWhat, "find")}
-              aria-label={t.copyLabel}
-            >
-              {props.copied === "find" ? "✓" : "▣"}
-            </button>
-          )}
         </label>
-        <label className={`grep-field ${result ? "has-result" : ""}`}>
+        <label className="grep-field">
           <span>{t.replaceLabel}</span>
           <input
-            value={result?.replaceWith ?? props.replacePrompt}
+            value={props.replacePrompt}
             onChange={(event) => props.onReplacePrompt(event.target.value)}
-            readOnly={Boolean(result)}
           />
-          {result && (
-            <button
-              onClick={() => props.onCopy(result.replaceWith, "replace")}
-              aria-label={t.copyLabel}
-            >
-              {props.copied === "replace" ? "✓" : "▣"}
-            </button>
-          )}
         </label>
       </div>
       {props.error && (
@@ -67,9 +49,8 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
       )}
       <button
         className="grep-generate"
-        onClick={result ? props.onReset : props.onGenerate}
+        onClick={props.onGenerate}
         disabled={
-          !result &&
           (!props.findPrompt.trim() ||
             !props.replacePrompt.trim() ||
             props.isGenerating)
@@ -78,6 +59,13 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
         <span>{result ? t.tryAgainLabel : t.generateLabel}</span>
         <b>{props.isGenerating ? "…" : "→"}</b>
       </button>
+      {result && (
+        <section className="grep-results" aria-label={t.copyLabel}>
+          <div className="pane-label"><span>{t.heading}</span><span>GREP</span></div>
+          <div className="grep-result-row"><span>{t.findLabel}</span><code>{result.findWhat}</code><button onClick={() => props.onCopy(result.findWhat, "find")} aria-label={t.copyLabel}>{props.copied === "find" ? "✓" : "▣"}</button></div>
+          <div className="grep-result-row"><span>{t.replaceLabel}</span><code>{result.replaceWith}</code><button onClick={() => props.onCopy(result.replaceWith, "replace")} aria-label={t.copyLabel}>{props.copied === "replace" ? "✓" : "▣"}</button></div>
+        </section>
+      )}
     </div>
   );
 }

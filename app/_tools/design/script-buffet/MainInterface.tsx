@@ -2,26 +2,35 @@
 
 import { useEffect, useState } from "react";
 import type { Language } from "../../registry";
+import { ToolMeta } from "../../../_components/ToolChrome";
 
 type AdobeApp = "indesign" | "illustrator" | "photoshop";
 type Filter = "all" | AdobeApp;
 
 const scripts = [
   {
-    id: "solutions-simple",
-    name: "Solutions Importer: Simple",
-    description: "Places reviewed solution text directly at the matching PDF coordinates.",
-    descriptionCs: "Vloží zkontrolovaný text řešení přímo na odpovídající souřadnice z PDF.",
+    id: "make-silhouette-fill",
+    name: "Make Silhouette Fill",
+    description: "Creates a filled silhouette from selected vector page items while preserving the originals.",
+    descriptionCs: "Vytvoří vyplněnou siluetu z vybraných vektorových objektů a zachová originály.",
     apps: ["indesign"] as AdobeApp[],
-    href: "/solutions/import_solutions_simple.jsx",
+    href: "/script-buffet/Make Silhouette Fill.jsx",
   },
   {
-    id: "solutions-advanced",
-    name: "Solutions Importer: Advanced",
-    description: "Places solutions into table cells and aligns answer frames when the layout can be recognised.",
-    descriptionCs: "Vkládá řešení do buněk tabulek a zarovnává pole odpovědí, pokud rozpozná layout.",
+    id: "opacity-set",
+    name: "Opacity Set",
+    description: "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
+    descriptionCs: "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
     apps: ["indesign"] as AdobeApp[],
-    href: "/solutions/import_solutions_advanced.jsx",
+    href: "/script-buffet/Opacity Set.jsx",
+  },
+  {
+    id: "split-text-frames-characters",
+    name: "Split Text Frames into Characters",
+    description: "Splits selected text frames into individually positioned character frames in one undoable action.",
+    descriptionCs: "Rozdělí vybrané textové rámečky na samostatně umístěné rámečky znaků v jednom vratném kroku.",
+    apps: ["indesign"] as AdobeApp[],
+    href: "/script-buffet/Split Text Frames into Characters.jsx",
   },
 ] as const;
 
@@ -58,7 +67,7 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
     <div className="buffet-module">
       <header className="buffet-header">
         <div>
-          <span className="module-code">{cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"}</span>
+          <ToolMeta code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"} mode="local" />
           <h1>Script Buffet</h1>
           <p>{cs ? "Užitečné produkční skripty pro aplikace Adobe na jednom místě." : "Useful production scripts for Adobe applications, kept in one place."}</p>
         </div>
