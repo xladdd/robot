@@ -356,17 +356,32 @@ test("keeps one app-title scale and inline GREP results", async () => {
   assert.match(grep, /onClick=\{result \? props\.onReset : props\.onGenerate\}/);
 });
 
-test("shares editor chrome and keeps the barcode preview on the left", async () => {
-  const [cover, splitter, map, barcode] = await Promise.all([
+test("keeps the documented document and visual workspace families", async () => {
+  const [cover, splitter, map, barcode, graph, diagram, index, prompt, css] = await Promise.all([
     readFile(new URL("app/_tools/image/cover-generator/MainInterface.tsx", root), "utf8"),
     readFile(new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root), "utf8"),
     readFile(new URL("app/_tools/image/map-generator/MainInterface.tsx", root), "utf8"),
     readFile(new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/image/graph-generator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/image/diagram-generator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/text/index-creator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/design/prompt-extractor/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/globals.css", root), "utf8"),
   ]);
 
+  assert.match(splitter, /editor-header/);
   for (const source of [cover, splitter, map]) {
-    assert.match(source, /editor-header/);
     assert.match(source, /editor-sidebar/);
   }
+  assert.doesNotMatch(map, /ToolHeader/);
+  assert.match(cover, /cover-toolbar-exports/);
+  for (const source of [graph, diagram]) {
+    assert.ok(source.indexOf("figure-header") < source.indexOf("figure-workbench"));
+  }
+  for (const source of [index, prompt]) {
+    assert.match(source, /document-active-workspace/);
+  }
   assert.ok(barcode.indexOf("barcode-preview-card") < barcode.indexOf("barcode-controls"));
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(300px, 1fr\)/);
+  assert.match(css, /\.figure-result,[\s\S]{0,240}\.solutions-detail-review\s*\{\s*box-shadow:\s*none/s);
 });

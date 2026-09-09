@@ -3,7 +3,7 @@
 import { useState, type ChangeEvent, type RefObject } from "react";
 import { localizedCoverUi } from "./copy";
 import type { Language } from "../../registry";
-import { ToolHeader } from "../../../_components/ToolChrome";
+import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 
 export type CoverReference = { name: string; data: string; artData: string };
 export type CoverUsage = { cost: number | null; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null };
@@ -68,15 +68,22 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
 
   return <div className="cover-module">
     <section className={`cover-stage ${!sketches.length && !isGenerating ? "initial" : ""}`}>
-      {!sketches.length && !isGenerating
-        ? <ToolHeader className="editor-header cover-stage-head" code={t.code} title={t.heading} subtitle={`0 / 16 ${t.active}`} mode="ai" actions={<div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div>} />
-        : <ToolHeader className="editor-header cover-stage-head" code={t.code} title={t.heading} subtitle={`${activeSketches.length} / 16 ${t.active}${selectedId ? ` · ${t.selected}` : ""}`} mode="ai" actions={<div className="cover-export-actions"><button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button><button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button></div>} />}
+      <header className="cover-stage-head">
+        <ToolMeta code={t.code} mode="ai" />
+        <div className="cover-title-row">
+          <h1>{t.heading}</h1>
+          <span className="cover-active-count" tabIndex={0}>
+            {activeSketches.length} / 16
+            <span role="tooltip">{language === "cs" ? "Počet aktivních návrhů z maximálních 16" : "Number of active sketches out of maximum 16"}</span>
+          </span>
+        </div>
+      </header>
       <div className={`cover-grid ${sketches.length || isGenerating ? "has-results" : ""}`} aria-live="polite">
         {activeSketches.map((item, index) => <article className={`cover-card ${item.status === "selected" ? "selected" : ""}`} data-cover-id={item.id} key={item.id}>
           <button className="cover-image" onClick={() => onZoom(item)} aria-label={`${t.zoom} ${index + 1}`}><img src={item.data} alt={`${t.sketch} ${index + 1}`} /></button>
           <footer><span>{t.sketch} {String(index + 1).padStart(2, "0")}</span><small>seed {item.seed} · {item.usage.cost === null ? "—" : `${item.usage.cost.toFixed(4)} cr`}</small><button className="cover-upvote" onClick={() => onSelectSketch(item.id)} aria-pressed={item.status === "selected"}>{item.status === "selected" ? t.choose : t.upvote}</button><button className="cover-reject" onClick={() => onRejectSketch(item.id)} aria-label={t.reject}>×</button></footer>
         </article>)}
-        {!activeSketches.length && !isGenerating && <div className="cover-empty"><div className="crosshair" aria-hidden="true"><span /><span /></div><p>{t.empty}</p></div>}
+        {!activeSketches.length && !isGenerating && <EmptyViewportState className="cover-empty">{t.empty}</EmptyViewportState>}
         {isGenerating && Array.from({ length: generationCount }, (_, index) => <div className="cover-card cover-loading" key={`loading-${index}`}><span>{t.generating}<br />{String(index + 1).padStart(2, "0")}</span></div>)}
       </div>
       {(layers.length > 0 || isGeneratingLayers) && <section className="cover-layers"><header><span>{t.assets}</span><small>{t.assetsNote}</small></header><div>{layers.map((item, index) => <article key={item.id}><button onClick={() => onZoom(item)}><img src={item.data} alt={item.name || `${t.asset} ${index + 1}`} /></button><span>{item.name || `${t.asset} ${index + 1}`} · {item.usage.cost === null ? "—" : `${item.usage.cost.toFixed(4)} cr`}</span></article>)}{isGeneratingLayers && <div className="cover-layer-loading">{t.generating}<br />…</div>}</div></section>}
@@ -93,7 +100,7 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
         })}</div>
         <label className="cover-checkbox cover-ignore-text"><input type="checkbox" checked={artOnlyReferences} onChange={(event) => onArtOnlyReferences(event.target.checked)} /><span><b>{t.artOnly}</b><small>{t.artOnlyHelp}</small></span></label>
       </section>
-      <section className="cover-control"><label htmlFor="cover-brief">{t.brief}</label><textarea id="cover-brief" value={brief} onChange={(event) => onBrief(event.target.value)} placeholder={t.placeholder} rows={8} /></section>
+      <section className="cover-control"><label htmlFor="cover-brief">{t.brief}</label><textarea id="cover-brief" value={brief} onChange={(event) => onBrief(event.target.value)} placeholder={t.placeholder} rows={4} /></section>
       <section className="cover-control cover-render-controls">
         <label htmlFor="cover-medium">{t.medium}</label>
         <select id="cover-medium" value={medium} onChange={(event) => onMedium(event.target.value as CoverMedium)}><option value="match">{t.mediumMatch}</option><option value="photo">{t.mediumPhoto}</option><option value="illustration">{t.mediumIllustration}</option><option value="3d">{t.medium3d}</option></select>
@@ -113,6 +120,10 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
       <p className="cover-note">{t.note}</p>
       {sketches.length > 0 && <section className="cover-assets-control"><label>{t.manifest}</label><p>{t.manifestNote}</p><div className={`cover-production-selection ${selectedId ? "ready" : ""}`}>{selectedId ? `✓ ${t.sketch} ${String(activeSketches.findIndex((item) => item.id === selectedId) + 1).padStart(2, "0")} · black-forest-labs/flux.2-pro · 2K` : language === "cs" ? "Nejprve nahoře vyberte koncept." : "Select a concept above first."}</div>{detectedAssets.length > 0 && <div className="cover-detected-assets"><b>{language === "cs" ? "ROZPOZNANÉ PODKLADY" : "DETECTED STEMS"}</b><ol>{detectedAssets.map((asset) => <li key={asset.name}><span>{asset.name}</span><small>{asset.description}</small></li>)}</ol></div>}<button className="cover-production" onClick={onGenerateLayers} disabled={!selectedId || isGeneratingLayers}><span>{isGeneratingLayers ? t.generatingAssets : t.generateAssets}</span><b>→</b></button></section>}
       {productionStage && <div className={`cover-production-progress ${productionStage === "complete" ? "complete" : ""}`} role="status" aria-live="polite"><i /><span>{productionStage === "analyzing" ? language === "cs" ? "1/3 · Rozpoznávání jednotlivých objektů · mistralai/mistral-small-2603" : "1/3 · Detecting individual objects · mistralai/mistral-small-2603" : productionStage === "master" ? language === "cs" ? "2/3 · Vytváření hlavní obálky ve 2K · black-forest-labs/flux.2-pro" : "2/3 · Recreating the 2K cover master · black-forest-labs/flux.2-pro" : productionStage === "assets" ? language === "cs" ? "3/3 · Izolování, regenerování a zvětšování podkladů · black-forest-labs/flux.2-pro" : "3/3 · Isolating, regenerating and upscaling stems · black-forest-labs/flux.2-pro" : language === "cs" ? "Hotovo · 2K obálka a samostatné podklady jsou připravené" : "Complete · 2K master and separate stems are ready"}</span></div>}
+      <div className="cover-export-actions cover-toolbar-exports">
+        <button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button>
+        <button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button>
+      </div>
     </aside>
   </div>;
 }

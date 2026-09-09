@@ -2215,8 +2215,6 @@ export default function Workspace({
         ) : selected === "map" ? (
           <MapMainInterface
             language={language}
-            section={selectedSection}
-            label={selectedLabel}
             palette={figurePalette}
             output={figureOutput as MapOutput | null}
             error={figureError}
@@ -2308,7 +2306,7 @@ export default function Workspace({
             )}
           </div>
         )}
-        <div className="workspace-status">
+        {!(["extraction", "index", "prompt", "cover"] as Array<string | null>).includes(selected) && <div className="workspace-status">
           <span className="live-clock">
             {clockHours}
             <i className={now && now.getSeconds() % 2 === 0 ? "visible" : ""}>
@@ -2320,7 +2318,7 @@ export default function Workspace({
           <span className="nameday" title={nameday}>
             {nameday.toLocaleUpperCase("cs-CZ")}
           </span>
-        </div>
+        </div>}
       </section>
 
       {infoOpen && (

@@ -1,6 +1,6 @@
 import { barcodeUi } from "./copy";
 import { eanModules, type EanResult } from "./code/ean13";
-import { ToolHeader } from "../../../_components/ToolChrome";
+import { EmptyViewportState, ToolHeader } from "../../../_components/ToolChrome";
 
 type BarcodeCopy = (typeof barcodeUi)["en"] | (typeof barcodeUi)["cs"];
 
@@ -33,7 +33,7 @@ export function BarcodeMainInterface({
             {result ? <svg viewBox="0 0 113 78.6" role="img" aria-label={`EAN-13 ${result.digits}`}>
               <g fill="#000">{[...eanModules(result.digits)].map((bit, index) => bit === "1" ? <rect key={index} x={11 + index} y="2" width="1" height={index < 3 || (index >= 45 && index < 50) || index >= 92 ? 68 : 64} /> : null)}</g>
               <g className="barcode-preview-digits"><text x="2" y="77">{result.digits[0]}</text><text x="34" y="77" textAnchor="middle">{result.digits.slice(1, 7)}</text><text x="81" y="77" textAnchor="middle">{result.digits.slice(7)}</text></g>
-            </svg> : <p>{copy.empty}</p>}
+            </svg> : <EmptyViewportState>{copy.empty}</EmptyViewportState>}
           </div>
           <dl className="barcode-specs"><div><dt>{copy.format}</dt><dd>{result?.digits || "—"}</dd></div><div><dt>{copy.size}</dt><dd>100%</dd></div><div><dt>{copy.colour}</dt><dd>K100</dd></div><div><dt>{copy.type}</dt><dd>{language === "cs" ? "VEKTOR" : "VECTOR"}</dd></div></dl>
         </section>

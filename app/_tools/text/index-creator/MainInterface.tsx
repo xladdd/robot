@@ -101,7 +101,28 @@ export function IndexCreatorMainInterface({
           )}
         </div>
       ) : (
-        <div className="index-split">
+        <div className="document-active-workspace index-active-workspace">
+          <div className="index-active-head document-active-head">
+            <div>
+              <ProcessingBadge mode="ai" />
+              <h1>{t.heading}</h1>
+            </div>
+            <button
+              className="start-button upload-button"
+              onClick={() => inputRef.current?.click()}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={onDrop}
+            >
+              <span>{t.another}</span>
+              <b>＋</b>
+            </button>
+            {error && (
+              <p className="extraction-error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <div className="index-split">
           <section className="source-pane index-pdf-column">
             <div className="pane-label">
               <span>{t.source}</span>
@@ -118,26 +139,6 @@ export function IndexCreatorMainInterface({
             </div>
           </section>
           <div className="index-side-column">
-            <div className="index-active-head">
-              <div>
-                <ProcessingBadge mode="ai" />
-                <h1>{t.heading}</h1>
-              </div>
-              <button
-                className="start-button upload-button"
-                onClick={() => inputRef.current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={onDrop}
-              >
-                <span>{t.another}</span>
-                <b>＋</b>
-              </button>
-              {error && (
-                <p className="extraction-error" role="alert">
-                  {error}
-                </p>
-              )}
-            </div>
             <div className="index-controls">
               <div className="index-words-block">
                 <label>{t.wordList}</label>
@@ -267,6 +268,7 @@ export function IndexCreatorMainInterface({
                 />
               </label>
             </div>
+          </div>
           </div>
         </div>
       )}

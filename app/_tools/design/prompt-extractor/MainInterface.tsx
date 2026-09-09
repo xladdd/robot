@@ -53,11 +53,6 @@ export function PromptExtractorMainInterface({
         <div className="index-head">
           <ToolMeta code={`${section} / PROMPT`} mode="ai" />
           <h1>{t.heading}</h1>
-          <p>
-            {language === "cs"
-              ? "Z obrázků v rukopisu vytvoří jednoduché prompty bez textu a stylu."
-              : "Turn manuscript illustrations into simple prompts without text or styling."}
-          </p>
           <button
             className="start-button upload-button"
             onClick={() => inputRef.current?.click()}
@@ -74,7 +69,30 @@ export function PromptExtractorMainInterface({
           )}
         </div>
       ) : (
-        <div className="prompt-split">
+        <div className="document-active-workspace prompt-active-workspace">
+          <div className="prompt-active-head document-active-head">
+            <div>
+              <ProcessingBadge mode="ai" />
+              <h1>{t.heading}</h1>
+              <span>{isExtracting ? `${progress}%` : "PDF → TXT"}</span>
+            </div>
+            <button
+              className="start-button upload-button"
+              onClick={() => inputRef.current?.click()}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={onDrop}
+              disabled={isExtracting}
+            >
+              <span>{t.another}</span>
+              <b>＋</b>
+            </button>
+            {error && (
+              <p className="extraction-error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <div className="prompt-split">
           <section className="source-pane prompt-pdf-column">
             <div className="pane-label">
               <span>{t.source}</span>
@@ -85,28 +103,6 @@ export function PromptExtractorMainInterface({
             </div>
           </section>
           <div className="prompt-side-column">
-            <div className="prompt-active-head">
-              <div>
-                <ProcessingBadge mode="ai" />
-                <h1>{t.heading}</h1>
-                <span>{isExtracting ? `${progress}%` : "PDF → TXT"}</span>
-              </div>
-              <button
-                className="start-button upload-button"
-                onClick={() => inputRef.current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={onDrop}
-                disabled={isExtracting}
-              >
-                <span>{t.another}</span>
-                <b>＋</b>
-              </button>
-              {error && (
-                <p className="extraction-error" role="alert">
-                  {error}
-                </p>
-              )}
-            </div>
             <section className="text-pane prompt-output-pane">
               <div className="pane-label">
                 <span>{t.extractedPrompts}</span>
@@ -160,6 +156,7 @@ export function PromptExtractorMainInterface({
                 />
               )}
             </section>
+          </div>
           </div>
         </div>
       )}

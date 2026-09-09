@@ -10,7 +10,7 @@ import type {
   WheelEventHandler,
 } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
-import { ToolHeader } from "../../../_components/ToolChrome";
+import { ProcessingBadge } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
 import type { MapCheck } from "./code/map";
@@ -42,8 +42,6 @@ export type MapLayers = {
 
 export function MapMainInterface({
   language,
-  section,
-  label,
   palette,
   output,
   error,
@@ -74,8 +72,6 @@ export function MapMainInterface({
   onWheel,
 }: {
   language: Language;
-  section: string | null;
-  label: string | null;
   palette: AseSwatch[];
   output: MapOutput | null;
   error: string;
@@ -110,6 +106,7 @@ export function MapMainInterface({
     <div className="figure-module map-module">
       <div className="figure-workbench map-workbench">
         <section className="figure-controls editor-sidebar">
+          <ProcessingBadge mode="local" />
           <div className="map-editor-controls">
             <div className="map-year-field">
               <span>
@@ -320,7 +317,6 @@ export function MapMainInterface({
           </div>
         </section>
         <div className="figure-preview-column">
-          <ToolHeader className="figure-header editor-header" code={`${section} / MAP / SVG V1`} title={label || "Map Generator"} subtitle={t.subtitle} mode="local" />
           <section className="figure-result">
             <div className="pane-label">
               <span>{t.preview}</span>

@@ -43,3 +43,15 @@ export function ToolHeader({ code, title, subtitle, mode, actions, className = "
     </header>
   );
 }
+
+export function EmptyViewportState({ children, className = "" }: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`empty-viewport-state ${className}`.trim()}>
+      <div className="crosshair" aria-hidden="true"><span /><span /></div>
+      <p>{children}</p>
+    </div>
+  );
+}

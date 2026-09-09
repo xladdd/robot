@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ProcessingBadge, ToolHeader } from "../../../_components/ToolChrome";
+import { ProcessingBadge, ToolHeader, ToolMeta } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
@@ -459,7 +459,8 @@ export function CoverSplitterMainInterface({
 
       {!hasFiles && (
       <div className="cover-splitter-head">
-          <ToolHeader className="editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" />
+          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" />
+          <h1>{t.heading}</h1>
           <button
             type="button"
             className="start-button upload-button"

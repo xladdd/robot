@@ -2,7 +2,7 @@
 
 import type { ChangeEvent, RefObject } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
-import { ToolHeader } from "../../../_components/ToolChrome";
+import { EmptyViewportState, ToolHeader } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
 import type { DiagramCheck, DiagramSpec } from "./code/diagram";
@@ -44,6 +44,7 @@ export function DiagramMainInterface({ language, section, label, request, refere
   const example = language === "cs" ? "Popsané biologické schéma měňavky pro žáky 2. stupně. Zobraz buněčnou membránu, cytoplazmu, jádro, potravní vakuolu, stažitelnou vakuolu a panožky." : "A labelled biological diagram of an amoeba for lower-secondary students. Show the cell membrane, cytoplasm, nucleus, food vacuole, contractile vacuole, and pseudopodia.";
 
   return <div className="figure-module">
+    <ToolHeader className="figure-header" code={`${section} / DIAGRAM`} title={label || "Diagram Generator"} subtitle={t.subtitle} mode="ai" />
     <div className="figure-workbench">
       <section className="figure-controls">
         <div className="figure-label-row"><label htmlFor="diagram-request">{t.label}</label><button type="button" onClick={() => onRequest(example)}>{t.example}</button></div>
@@ -56,10 +57,9 @@ export function DiagramMainInterface({ language, section, label, request, refere
         {output && <div className="figure-checks"><span>{t.checks}</span>{output.checks.map((check, index) => <p className={check.level} key={`${check.message}-${index}`}><b>{check.level === "pass" ? "✓" : "!"}</b>{check.message}</p>)}</div>}
       </section>
       <div className="figure-preview-column">
-        <ToolHeader className="figure-header" code={`${section} / DIAGRAM`} title={label || "Diagram Generator"} subtitle={t.subtitle} mode="ai" />
         <section className="figure-result">
           <div className="pane-label"><span>{t.preview}</span><span>1000 × 680 / SVG 1.1</span></div>
-          <div className="figure-paper">{isGenerating ? <LoadingText items={diagramProcessing[language]} /> : output ? <div dangerouslySetInnerHTML={{ __html: output.svg }} /> : <p>{t.empty}</p>}</div>
+          <div className="figure-paper">{isGenerating ? <LoadingText items={diagramProcessing[language]} /> : output ? <div dangerouslySetInnerHTML={{ __html: output.svg }} /> : <EmptyViewportState>{t.empty}</EmptyViewportState>}</div>
           {output && <div className="figure-actions"><button onClick={() => onDownload(output.svg, `${output.spec.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "figure"}.svg`, "image/svg+xml")}>{t.downloadSvg}<b>↓</b></button><button onClick={() => onDownload(onVerificationMarkdown(output.report), "figure-verification.md", "text/markdown")}>{t.downloadReport}<b>↓</b></button></div>}
         </section>
       </div>

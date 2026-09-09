@@ -6,6 +6,7 @@ import { ToolMeta } from "../../../_components/ToolChrome";
 
 type AdobeApp = "indesign" | "illustrator" | "photoshop";
 type Filter = "all" | AdobeApp;
+type Platform = "macos" | "windows";
 
 const scripts = [
   {
@@ -39,9 +40,27 @@ const appNames: Record<Language, Record<AdobeApp, string>> = {
   cs: { indesign: "InDesign", illustrator: "Illustrator", photoshop: "Photoshop" },
 };
 
+const installPaths: Record<AdobeApp, Record<Platform, string>> = {
+  indesign: {
+    macos: "~/Library/Preferences/Adobe InDesign/Version [version]/[language]/Scripts/Scripts Panel",
+    windows: "%APPDATA%\\Adobe\\InDesign\\Version [version]\\[language]\\Scripts\\Scripts Panel",
+  },
+  illustrator: {
+    macos: "/Applications/Adobe Illustrator [version]/Presets/[language]/Scripts",
+    windows: "C:\\Program Files\\Adobe\\Adobe Illustrator [version]\\Presets\\[language]\\Scripts",
+  },
+  photoshop: {
+    macos: "/Applications/Adobe Photoshop [version]/Presets/Scripts",
+    windows: "C:\\Program Files\\Adobe\\Adobe Photoshop [version]\\Presets\\Scripts",
+  },
+};
+
 export function ScriptBuffetMainInterface({ language }: { language: Language }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [installApp, setInstallApp] = useState<AdobeApp>("indesign");
+  const [installPlatform, setInstallPlatform] = useState<Platform>("macos");
+  const [copiedInstallPath, setCopiedInstallPath] = useState(false);
   const cs = language === "cs";
 
   useEffect(() => {
@@ -60,6 +79,12 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
     });
   }
 
+  async function copyInstallPath() {
+    await navigator.clipboard.writeText(installPaths[installApp][installPlatform]);
+    setCopiedInstallPath(true);
+    window.setTimeout(() => setCopiedInstallPath(false), 1800);
+  }
+
   const visible = scripts.filter((script) => filter === "all" || script.apps.includes(filter));
   const filters: Filter[] = ["all", "indesign", "illustrator", "photoshop"];
 
@@ -75,22 +100,21 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
 
       <details className="buffet-installation">
         <summary><span>{cs ? "Kam skripty nainstalovat" : "Where to install scripts"}</span><i>+</i></summary>
-        <div className="buffet-install-grid">
-          <section>
-            <span>InDesign</span>
-            <p><b>macOS</b><code>~/Library/Preferences/Adobe InDesign/Version [version]/[language]/Scripts/Scripts Panel</code></p>
-            <p><b>Windows</b><code>%APPDATA%\Adobe\InDesign\Version [version]\[language]\Scripts\Scripts Panel</code></p>
-          </section>
-          <section>
-            <span>Illustrator</span>
-            <p><b>macOS</b><code>/Applications/Adobe Illustrator [version]/Presets/[language]/Scripts</code></p>
-            <p><b>Windows</b><code>C:\Program Files\Adobe\Adobe Illustrator [version]\Presets\[language]\Scripts</code></p>
-          </section>
-          <section>
-            <span>Photoshop</span>
-            <p><b>macOS</b><code>/Applications/Adobe Photoshop [version]/Presets/Scripts</code></p>
-            <p><b>Windows</b><code>C:\Program Files\Adobe\Adobe Photoshop [version]\Presets\Scripts</code></p>
-          </section>
+        <div className="buffet-install-picker">
+          <div className="buffet-install-row" aria-label={cs ? "Aplikace Adobe" : "Adobe application"}>
+            {(["indesign", "illustrator", "photoshop"] as AdobeApp[]).map((app) => (
+              <button className={`${app} ${installApp === app ? "active" : ""}`} type="button" key={app} onClick={() => { setInstallApp(app); setCopiedInstallPath(false); }}>{appNames[language][app]}</button>
+            ))}
+          </div>
+          <div className="buffet-install-row platforms" aria-label={cs ? "Operační systém" : "Operating system"}>
+            {(["macos", "windows"] as Platform[]).map((platform) => (
+              <button className={installPlatform === platform ? "active" : ""} type="button" key={platform} onClick={() => { setInstallPlatform(platform); setCopiedInstallPath(false); }}>{platform === "macos" ? "macOS" : "Windows"}</button>
+            ))}
+          </div>
+          <div className="buffet-install-path">
+            <code>{installPaths[installApp][installPlatform]}</code>
+            <button type="button" onClick={() => void copyInstallPath()}><span>{copiedInstallPath ? (cs ? "Zkopírováno" : "Copied") : (cs ? "Kopírovat cestu" : "Copy path")}</span><b>{copiedInstallPath ? "✓" : "▣"}</b></button>
+          </div>
         </div>
       </details>
 
