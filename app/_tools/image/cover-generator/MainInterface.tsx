@@ -3,7 +3,7 @@
 import { useState, type ChangeEvent, type RefObject } from "react";
 import { localizedCoverUi } from "./copy";
 import type { Language } from "../../registry";
-import { ToolMeta } from "../../../_components/ToolChrome";
+import { ToolHeader } from "../../../_components/ToolChrome";
 
 export type CoverReference = { name: string; data: string; artData: string };
 export type CoverUsage = { cost: number | null; promptTokens: number | null; completionTokens: number | null; totalTokens: number | null };
@@ -69,8 +69,8 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
   return <div className="cover-module">
     <section className={`cover-stage ${!sketches.length && !isGenerating ? "initial" : ""}`}>
       {!sketches.length && !isGenerating
-        ? <header className="cover-stage-head cover-stage-head-initial"><ToolMeta code={t.code} mode="ai" /><div><h1>{t.heading}</h1><p>0 / 16 {t.active}</p></div><div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div></header>
-        : <header className="cover-stage-head cover-stage-head-compact"><ToolMeta code={t.code} mode="ai" /><p>{activeSketches.length} / 16 {t.active}{selectedId ? ` · ${t.selected}` : ""}</p><div className="cover-export-actions"><button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button><button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button></div></header>}
+        ? <ToolHeader className="editor-header cover-stage-head" code={t.code} title={t.heading} subtitle={`0 / 16 ${t.active}`} mode="ai" actions={<div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div>} />
+        : <ToolHeader className="editor-header cover-stage-head" code={t.code} title={t.heading} subtitle={`${activeSketches.length} / 16 ${t.active}${selectedId ? ` · ${t.selected}` : ""}`} mode="ai" actions={<div className="cover-export-actions"><button className="cover-export cover-artboard-export" onClick={onExportArtboard} disabled={!activeSketches.length}>{t.exportArtboard}</button><button className="cover-export" onClick={onDownload} disabled={!sketches.length && !layers.length}>{t.download}</button></div>} />}
       <div className={`cover-grid ${sketches.length || isGenerating ? "has-results" : ""}`} aria-live="polite">
         {activeSketches.map((item, index) => <article className={`cover-card ${item.status === "selected" ? "selected" : ""}`} data-cover-id={item.id} key={item.id}>
           <button className="cover-image" onClick={() => onZoom(item)} aria-label={`${t.zoom} ${index + 1}`}><img src={item.data} alt={`${t.sketch} ${index + 1}`} /></button>
@@ -81,7 +81,7 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
       </div>
       {(layers.length > 0 || isGeneratingLayers) && <section className="cover-layers"><header><span>{t.assets}</span><small>{t.assetsNote}</small></header><div>{layers.map((item, index) => <article key={item.id}><button onClick={() => onZoom(item)}><img src={item.data} alt={item.name || `${t.asset} ${index + 1}`} /></button><span>{item.name || `${t.asset} ${index + 1}`} · {item.usage.cost === null ? "—" : `${item.usage.cost.toFixed(4)} cr`}</span></article>)}{isGeneratingLayers && <div className="cover-layer-loading">{t.generating}<br />…</div>}</div></section>}
     </section>
-    <aside className="cover-toolbar">
+    <aside className="cover-toolbar editor-sidebar">
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={onReferenceInput} hidden />
       <section className="cover-control cover-reference-control">
         <label>{t.references} <b>{references.length}/3 · {t.minimum}</b></label>

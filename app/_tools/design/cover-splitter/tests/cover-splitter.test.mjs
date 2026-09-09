@@ -72,7 +72,10 @@ test("registers browser-local multi-file processing and the stable public path",
   assert.match(component, /size: entry\.sizeChoice/);
   assert.match(component, /includeInside: splitInside/);
   assert.match(component, /type="checkbox"/);
-  assert.match(component, /className="cover-splitter-controls"/);
+  assert.match(
+    component,
+    /className="cover-splitter-controls[^"\n]*editor-sidebar"/,
+  );
   assert.match(component, /className="cover-splitter-console"/);
   assert.match(component, /className="cover-splitter-preview-column"/);
   assert.match(component, /className="cover-splitter-remove"/);

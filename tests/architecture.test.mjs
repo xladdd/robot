@@ -355,3 +355,18 @@ test("keeps one app-title scale and inline GREP results", async () => {
   assert.match(grep, /result\?\.findWhat \?\? props\.findPrompt/);
   assert.match(grep, /onClick=\{result \? props\.onReset : props\.onGenerate\}/);
 });
+
+test("shares editor chrome and keeps the barcode preview on the left", async () => {
+  const [cover, splitter, map, barcode] = await Promise.all([
+    readFile(new URL("app/_tools/image/cover-generator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/image/map-generator/MainInterface.tsx", root), "utf8"),
+    readFile(new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root), "utf8"),
+  ]);
+
+  for (const source of [cover, splitter, map]) {
+    assert.match(source, /editor-header/);
+    assert.match(source, /editor-sidebar/);
+  }
+  assert.ok(barcode.indexOf("barcode-preview-card") < barcode.indexOf("barcode-controls"));
+});

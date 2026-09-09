@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ProcessingBadge, ToolMeta } from "../../../_components/ToolChrome";
+import { ProcessingBadge, ToolHeader } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
@@ -458,10 +458,8 @@ export function CoverSplitterMainInterface({
       />
 
       {!hasFiles && (
-      <header className="cover-splitter-head">
-          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" />
-          <h1>{t.heading}</h1>
-          <p>{t.intro}</p>
+      <div className="cover-splitter-head">
+          <ToolHeader className="editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" />
           <button
             type="button"
             className="start-button upload-button"
@@ -484,12 +482,12 @@ export function CoverSplitterMainInterface({
               {error}
             </p>
           )}
-        </header>
+        </div>
       )}
 
       {hasFiles && (
         <main className="cover-splitter-workbench">
-          <aside className="cover-splitter-controls" aria-label={t.controls}>
+          <aside className="cover-splitter-controls editor-sidebar" aria-label={t.controls}>
             <ProcessingBadge mode="local" />
             <button
               type="button"
@@ -604,15 +602,7 @@ export function CoverSplitterMainInterface({
           </aside>
 
           <section className="cover-splitter-preview-column">
-            <header className="cover-splitter-active-head">
-              <ProcessingBadge mode="local" />
-              <div className="module-code">
-                {section ? `${section} / ` : ""}
-                {t.moduleCode}
-              </div>
-              <h1>{t.heading}</h1>
-              <p>{t.intro}</p>
-            </header>
+            <ToolHeader className="cover-splitter-active-head editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" />
 
             <div className="cover-splitter-grid">
               {files.map((entry) => (

@@ -35,6 +35,8 @@ Use for generated or edited visual material. Give the preview or gallery most of
 
 Current tools: Graph Generator, Diagram Generator, Map Generator, and Cover Generator. The reserved Image Generator should use this family.
 
+Interactive editors with a canvas use `editor-header` for the title card and `editor-sidebar` for the inspector. The inspector is 330 px wide on desktop, scrolls internally when needed, and moves into the document flow at narrow widths. Cover Generator, Cover Splitter, and Map Generator share this treatment.
+
 ### Library and reference
 
 Use for browsing reusable assets or reading structured documentation. Provide navigation or filters before the content and keep each download attached to its item.

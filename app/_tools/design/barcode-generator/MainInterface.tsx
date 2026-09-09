@@ -27,13 +27,6 @@ export function BarcodeMainInterface({
     <div className="barcode-module">
       <ToolHeader className="barcode-header" code="DESIGN / EAN-13" title={copy.heading} subtitle={copy.subtitle} mode="local" />
       <div className="barcode-workbench">
-        <section className="barcode-controls">
-          <label htmlFor="barcode-isbn">{copy.label}</label>
-          <input id="barcode-isbn" inputMode="text" autoComplete="off" spellCheck={false} value={input} onChange={(event) => onInput(event.target.value)} placeholder={copy.placeholder} />
-          {error && <p className="extraction-error" role="alert">{error}</p>}
-          <button className="solutions-create" onClick={onDownload} disabled={!result}><span>{copy.generate}</span><b>↓</b></button>
-          <p className="solutions-privacy">{copy.privacy}</p>
-        </section>
         <section className={`barcode-preview-card ${result ? "is-ready" : ""}`}>
           <div className="barcode-preview-head"><span>{result ? copy.ready : "PREVIEW"}</span>{result && <b>✓ {result.source === "ISBN-10" ? copy.converted : copy.valid}</b>}</div>
           <div className="barcode-paper">
@@ -43,6 +36,13 @@ export function BarcodeMainInterface({
             </svg> : <p>{copy.empty}</p>}
           </div>
           <dl className="barcode-specs"><div><dt>{copy.format}</dt><dd>{result?.digits || "—"}</dd></div><div><dt>{copy.size}</dt><dd>100%</dd></div><div><dt>{copy.colour}</dt><dd>K100</dd></div><div><dt>{copy.type}</dt><dd>{language === "cs" ? "VEKTOR" : "VECTOR"}</dd></div></dl>
+        </section>
+        <section className="barcode-controls">
+          <label htmlFor="barcode-isbn">{copy.label}</label>
+          <input id="barcode-isbn" inputMode="text" autoComplete="off" spellCheck={false} value={input} onChange={(event) => onInput(event.target.value)} placeholder={copy.placeholder} />
+          {error && <p className="extraction-error" role="alert">{error}</p>}
+          <button className="solutions-create" onClick={onDownload} disabled={!result}><span>{copy.generate}</span><b>↓</b></button>
+          <p className="solutions-privacy">{copy.privacy}</p>
         </section>
       </div>
     </div>
