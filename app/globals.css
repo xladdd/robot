@@ -5681,6 +5681,13 @@ button {
     margin-bottom: 24px;
     text-align: left;
 }
+.cover-splitter-module .editor-header,
+.map-module .editor-header {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+}
 .cover-splitter-head > .upload-button {
     margin-top: 0;
 }
