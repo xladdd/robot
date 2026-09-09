@@ -146,6 +146,10 @@ Design apps:
 - `app/_tools/design/grep-builder/copy.ts`: bilingual GREP Builder UI copy.
 - `app/_tools/design/grep-builder/MainInterface.tsx: GREP fields, result controls, and copy buttons.
 - `app/_tools/design/grep-builder/prompts/system.md`: the GREP conversion rules sent to OpenRouter.
+- `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, and a Graph-style sidebar containing file actions, optional inside-cover splitting, the local console, progress, and ZIP download.
+- `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders only the outside-cover page locally with PDF.js.
+- `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python and package separate back/front PDFs into a ZIP.
+- `app/_tools/design/cover-splitter/tests/`: protects panel dimensions, per-file presets, first-page-only processing, output names, and vector output.
 - `app/_tools/design/prompt-extractor/copy.ts`: bilingual Prompt Extractor UI copy.
 - `app/_tools/design/prompt-extractor/code/pdf-images.ts`: renders PDF pages to browser images with PDF.js.
 - `app/_tools/design/prompt-extractor/code/server.ts`: asks the vision model to describe illustration needs on those page images.
@@ -177,8 +181,9 @@ Design Manual:
 
 ### `public/`: stable browser URLs
 
-The icon and PDF.js worker files live directly in `public/`. Solutions, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
+The icon and PDF.js worker files live directly in `public/`. Cover Splitter, Solutions, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
 
+- `/cover-splitter/*`: the app-owned Pyodide worker and Python splitter used for local cover processing.
 - `/solutions/*`: the shared worker, extractor, canonical `/solutions/import_solutions.jsx` importer, and deprecated `import_solutions_simple.jsx` and `import_solutions_advanced.jsx` compatibility URLs.
 - `/solutions-beta/*`: temporary compatibility link to the same Solutions files; new code does not use it.
 - `/script-buffet/*`: Script Buffet preview media.
@@ -281,6 +286,16 @@ The following completes the folder map by naming every source-file role. Repeate
 - `copy.ts`: bilingual in-app UI copy.
 - `server.ts`: private GREP model request.
 - `prompts/system.md`: stable conversion rules.
+- `info.en.md`, `info.cs.md`: live drawer content.
+
+#### Cover Splitter: `app/_tools/design/cover-splitter/`
+
+- `MainInterface.tsx`: multi-PDF upload and first-page preview grid with independent A5/A4/B5/half controls, plus a right sidebar for file actions, optional inside-cover splitting, local console, progress, and ZIP download.
+- `copy.ts`: bilingual in-app UI copy and validation messages.
+- `code/pdf-preview.ts`: local first-page rendering and page-dimension reading with PDF.js.
+- `public/pyodide-worker.js`: browser worker that downloads Pyodide and `pypdf`, then processes all PDFs locally.
+- `public/split_cover.py`: vector-preserving panel extraction and ZIP packaging. Fixed sizes retain the outer trim-width panels and omit the middle spine; half mode divides at the midpoint. Page 2 is ignored by default or optionally mapped left to `FRONT-inside` and right to `BACK-inside`.
+- `tests/cover-splitter.test.mjs`: preset geometry, mixed per-file settings, first-page-only behavior, vector output, and archive-name regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Prompt Extractor: `app/_tools/design/prompt-extractor/`
@@ -529,6 +544,34 @@ Copy buttons
 **Output:** InDesign GREP Find What and Change To strings.
 
 **Dependencies:** OpenRouter model `mistralai/ministral-3b-2512`. No document is uploaded.
+
+### Cover Splitter
+
+**Input:** one or more cover PDFs, up to 30 MB per file. Source page 1 is always processed. Source page 2 is ignored by default and can optionally be split as the inside cover.
+
+**Flow:**
+
+```text
+PDF.js renders each first-page preview locally
+↓
+User selects A5, A4, B5, or Split in half per PDF
+↓
+Optional checkbox enables page-2 inside-cover output
+↓
+Pyodide worker loads local Python and pypdf
+↓
+Python extracts the left back panel and right front panel
+↓
+Fixed presets omit any middle spine
+↓
+Outside _BACK.pdf and _FRONT.pdf files are packaged as a ZIP
+↓
+When enabled, page 2 left becomes _FRONT-inside.pdf and right becomes _BACK-inside.pdf
+```
+
+**Output:** a ZIP containing one vector back PDF and one vector front PDF for every source file, plus matching front-inside and back-inside PDFs when the checkbox is enabled.
+
+**Dependencies:** PDF.js for previews and browser-local Pyodide/`pypdf` for PDF output. The source PDFs are not sent to the server; the browser downloads the Python runtime and PDF package on first use.
 
 ### Prompt Extractor
 

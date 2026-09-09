@@ -21,6 +21,7 @@ import {
 } from "./_tools/design/barcode-generator/code/ean13";
 import { barcodeUi } from "./_tools/design/barcode-generator/copy";
 import { BarcodeMainInterface } from "./_tools/design/barcode-generator/MainInterface";
+import { CoverSplitterMainInterface } from "./_tools/design/cover-splitter/MainInterface";
 import { GrepMainInterface } from "./_tools/design/grep-builder/MainInterface";
 import { promptExtractorCopy } from "./_tools/design/prompt-extractor/copy";
 import { PromptExtractorMainInterface } from "./_tools/design/prompt-extractor/MainInterface";
@@ -1843,6 +1844,7 @@ export default function Workspace({
     selected === "extraction" ||
     selected === "index" ||
     selected === "grep" ||
+    selected === "coverSplitter" ||
     selected === "prompt" ||
     selected === "solutions" ||
     selected === "scriptBuffet" ||
@@ -2080,6 +2082,11 @@ export default function Workspace({
             result={barcodeResult}
             onInput={setBarcodeInput}
             onDownload={downloadBarcode}
+          />
+        ) : selected === "coverSplitter" ? (
+          <CoverSplitterMainInterface
+            language={language}
+            section={selectedSection}
           />
         ) : selected === "solutions" ? (
           <SolutionsImporterMainInterface language={language} />

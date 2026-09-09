@@ -40,6 +40,10 @@ Creates new textbook cover directions from reference covers and a brief. A selec
 
 Turns plain Find and Change instructions into strings for Adobe InDesign's GREP tab. [English info drawer](app/_tools/design/grep-builder/info.en.md)
 
+### Cover Splitter
+
+Splits the first outside-cover page of one or more local PDFs into separate vector `_BACK.pdf` and `_FRONT.pdf` files. A5, A4, and B5 presets omit any middle spine; Split in half divides the spread at its midpoint. The second inside-cover page is ignored by default, or an optional checkbox adds matching `_FRONT-inside.pdf` and `_BACK-inside.pdf` files. Results download together as a ZIP. [English info drawer](app/_tools/design/cover-splitter/info.en.md)
+
 ### Solutions Importer
 
 Combines a clean PDF, an annotated manuscript PDF, and matching IDML into one reviewed `indesign-solutions-v2` JSON file. One canonical InDesign script, downloaded from `/solutions/import_solutions.jsx`, validates that JSON and then offers a ScriptUI choice between Advanced layout-aware placement and Simple direct PDF-coordinate placement. Advanced is recommended for tables and answer boxes; if it fails, Simple is the more failsafe fallback. [English info drawer](app/_tools/design/solutions-importer/info.en.md)
