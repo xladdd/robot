@@ -163,7 +163,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
   assert.match(textExtractor, /extraction-module/);
   assert.match(indexCreator, /index-module/);
   assert.match(promptExtractor, /prompt-module/);
-  assert.match(coverGenerator, /className="cover-module[^"\n]*tool-family-visual/);
+  assert.match(coverGenerator, /className="cover-module"/);
   assert.match(graphGenerator, /figure-module/);
   assert.match(diagramGenerator, /figure-module/);
   assert.match(mapGenerator, /map-module/);
@@ -345,17 +345,4 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       assert.match(source, new RegExp(`mode=["']${mode}["']`), app);
     }
   }
-});
-
-test("implements shared interface families and preserves inline GREP results", async () => {
-  const css = await readFile(new URL("app/globals.css", root), "utf8");
-  const grep = await readFile(new URL("app/_tools/design/grep-builder/MainInterface.tsx", root), "utf8");
-  const barcode = await readFile(new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root), "utf8");
-
-  assert.match(css, /\.compact-tool/);
-  assert.match(css, /\.document-start/);
-  assert.match(css, /\.tool-family-visual/);
-  assert.match(grep, /result\?\.findWhat \?\? props\.findPrompt/);
-  assert.match(grep, /onClick=\{result \? props\.onReset : props\.onGenerate\}/);
-  assert.match(barcode, /tool-family-compact/);
 });

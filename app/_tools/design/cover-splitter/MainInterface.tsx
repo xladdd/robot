@@ -447,7 +447,7 @@ export function CoverSplitterMainInterface({
   const uploadDisabled = isPreparing || isProcessing;
 
   return (
-    <div className={`cover-splitter-module tool-family tool-family-document ${hasFiles ? "has-files" : ""}`}>
+    <div className={`cover-splitter-module ${hasFiles ? "has-files" : ""}`}>
       <input
         ref={inputRef}
         type="file"
@@ -458,7 +458,7 @@ export function CoverSplitterMainInterface({
       />
 
       {!hasFiles && (
-      <header className="cover-splitter-head document-start">
+      <header className="cover-splitter-head">
           <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" />
           <h1>{t.heading}</h1>
           <p>{t.intro}</p>

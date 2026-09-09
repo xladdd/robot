@@ -65,7 +65,7 @@ export function IndexCreatorMainInterface({
 }) {
   const t = indexCreatorCopy[language];
   return (
-    <div className={`index-module tool-family tool-family-document ${file ? "has-file" : ""}`}>
+    <div className={`index-module ${file ? "has-file" : ""}`}>
       <input
         ref={inputRef}
         type="file"
@@ -74,7 +74,7 @@ export function IndexCreatorMainInterface({
         hidden
       />
       {!file ? (
-        <div className="index-head document-start">
+        <div className="index-head">
           <ToolMeta code={`${section} / INDEX`} mode="ai" />
           <h1>{t.heading}</h1>
           <button

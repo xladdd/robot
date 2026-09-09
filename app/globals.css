@@ -5541,11 +5541,6 @@ button {
 }
 
 /* Unified tool interfaces */
-.tool-family {
-    --family-compact-width: 720px;
-    --family-document-width: 620px;
-    --family-workbench-width: 1160px;
-}
 .processing-badge {
     display: inline-flex;
     align-items: center;
@@ -5601,184 +5596,6 @@ button {
     font-size: 11px;
     line-height: 1.6;
 }
-
-/* Compact utility family */
-.compact-tool > .tool-header-meta,
-.compact-tool > .compact-fields,
-.compact-tool > .compact-action,
-.compact-tool > .extraction-error,
-.compact-tool > .compact-subtitle,
-.compact-tool > .compact-privacy,
-.compact-tool > .barcode-preview-card {
-    width: min(var(--family-compact-width), 100%);
-}
-.compact-tool > h1 {
-    margin: 14px 0 32px;
-    font-size: clamp(32px, 4vw, 52px);
-    font-weight: 400;
-    letter-spacing: -0.055em;
-    line-height: 1;
-    text-align: center;
-}
-.compact-tool > .compact-subtitle {
-    margin: -20px 0 30px;
-    color: var(--muted);
-    font-size: 10px;
-    line-height: 1.6;
-    text-align: center;
-}
-.compact-fields {
-    display: grid;
-    border: 1px solid var(--ink);
-    box-shadow: 5px 5px 0 var(--ink);
-}
-.compact-field {
-    position: relative;
-    display: grid;
-    grid-template-columns: 120px minmax(0, 1fr);
-    min-height: 58px;
-    background: var(--bg);
-}
-.compact-field + .compact-field {
-    border-top: 1px solid var(--ink);
-}
-.compact-field > span {
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-    border-right: 1px solid var(--ink);
-    background: var(--panel);
-    color: var(--muted);
-    font-size: 8px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-.compact-field input {
-    min-width: 0;
-    padding: 0 52px 0 16px;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--ink);
-    font: 13px/1.4 Verdana, Geneva, sans-serif;
-}
-.compact-field input:focus {
-    box-shadow: inset 0 0 0 2px var(--teal);
-}
-.compact-action {
-    display: flex;
-    min-height: 52px;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding: 0 16px;
-    border: 1px solid var(--ink);
-    background: var(--panel);
-    color: var(--ink);
-    cursor: pointer;
-    font-size: 10px;
-    box-shadow: 5px 5px 0 var(--ink);
-}
-.compact-action:hover:not(:disabled) {
-    background: var(--teal);
-    color: #111;
-    transform: translate(2px, 2px);
-    box-shadow: 3px 3px 0 var(--ink);
-}
-.compact-action:disabled {
-    cursor: default;
-    opacity: 0.45;
-}
-.compact-action b {
-    font-size: 20px;
-    font-weight: 400;
-}
-.compact-privacy {
-    margin: 14px 0 0;
-    color: var(--muted);
-    font-size: 8px;
-    line-height: 1.5;
-    text-align: left;
-}
-.barcode-module.compact-tool {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: clamp(48px, 8vh, 90px) clamp(28px, 6vw, 88px) 80px;
-}
-.barcode-field.has-result,
-.barcode-field.has-result > span {
-    background: var(--teal);
-    color: #111;
-}
-.compact-tool > .barcode-preview-card {
-    margin-top: 28px;
-}
-.compact-tool .barcode-paper {
-    min-height: 220px;
-}
-
-/* Document workspace family */
-.document-start {
-    width: min(var(--family-document-width), 100%);
-    text-align: center;
-}
-.document-start > .tool-header-meta,
-.document-start .document-title > .tool-header-meta {
-    width: 100%;
-}
-.document-start h1,
-.document-start .document-title h1 {
-    margin: 14px 0 0;
-    font-size: clamp(30px, 4vw, 58px);
-    font-weight: 400;
-    letter-spacing: -0.055em;
-    line-height: 1.02;
-}
-.document-start > p:not(.extraction-error) {
-    margin: 15px 0 28px;
-    color: var(--muted);
-    font-size: 11px;
-    line-height: 1.55;
-}
-.document-start > .upload-button {
-    width: 100%;
-    margin-top: 38px;
-}
-.document-start > p:not(.extraction-error) + .upload-button {
-    margin-top: 0;
-}
-
-/* Visual workbench family */
-.tool-family-visual .figure-header h1,
-.tool-family-visual .cover-stage-head h1 {
-    font-size: clamp(34px, 4vw, 56px);
-}
-.tool-family-visual .figure-controls,
-.tool-family-visual .cover-toolbar {
-    background: var(--panel-2);
-}
-.map-module.tool-family-visual .figure-header {
-    position: absolute;
-    z-index: 7;
-    top: 24px;
-    left: 24px;
-    display: flex;
-    width: min(560px, calc(100% - var(--map-stage-right) - 48px));
-    padding: 14px;
-    border: 1px solid var(--ink);
-    background: color-mix(in srgb, var(--panel-2) 92%, transparent);
-    box-shadow: 5px 5px 0 var(--ink);
-    backdrop-filter: blur(10px);
-}
-.map-module.tool-family-visual .figure-header h1 {
-    margin: 12px 0 8px;
-    font-size: clamp(32px, 3vw, 42px);
-}
-.map-module.tool-family-visual .figure-header p {
-    font-size: 9px;
-    line-height: 1.5;
-}
 .document-title > .processing-badge,
 .index-head > .processing-badge,
 .cover-splitter-head > .processing-badge {
@@ -5827,6 +5644,49 @@ button {
 .grep-module h1 {
     margin-bottom: 28px;
     font-size: clamp(32px, 4vw, 52px);
+}
+.grep-results {
+    width: min(720px, 100%);
+    margin-top: 24px;
+    border: 1px solid var(--ink);
+    background: var(--panel-2);
+    box-shadow: 5px 5px 0 var(--teal);
+}
+.grep-result-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr) 44px;
+    min-height: 52px;
+    align-items: stretch;
+}
+.grep-result-row + .grep-result-row {
+    border-top: 1px solid var(--ink);
+}
+.grep-result-row > span,
+.grep-result-row > code,
+.grep-result-row > button {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+}
+.grep-result-row > span {
+    border-right: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.grep-result-row > code {
+    min-width: 0;
+    overflow-x: auto;
+    font: 11px/1.45 var(--font-mono);
+}
+.grep-result-row > button {
+    justify-content: center;
+    border: 0;
+    border-left: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--orange);
+    cursor: pointer;
 }
 .barcode-module {
     padding-right: max(24px, calc((100% - 860px) / 2));
@@ -5950,12 +5810,8 @@ button {
     .processing-badge {
         font-size: 7px;
     }
-    .compact-tool {
-        padding-right: 18px;
-        padding-left: 18px;
-    }
-    .compact-field {
-        grid-template-columns: 92px minmax(0, 1fr);
+    .grep-result-row {
+        grid-template-columns: 92px minmax(0, 1fr) 42px;
     }
     .map-module .figure-controls {
         top: auto;
@@ -5964,12 +5820,6 @@ button {
         left: 12px;
         width: auto;
         max-height: 58%;
-    }
-    .map-module.tool-family-visual .figure-header {
-        top: 12px;
-        left: 12px;
-        width: calc(100% - 24px);
-        padding: 14px;
     }
     .cover-module {
         display: flex;

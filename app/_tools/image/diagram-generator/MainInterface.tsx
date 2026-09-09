@@ -43,7 +43,7 @@ export function DiagramMainInterface({ language, section, label, request, refere
   const t = diagramUi[language];
   const example = language === "cs" ? "Popsané biologické schéma měňavky pro žáky 2. stupně. Zobraz buněčnou membránu, cytoplazmu, jádro, potravní vakuolu, stažitelnou vakuolu a panožky." : "A labelled biological diagram of an amoeba for lower-secondary students. Show the cell membrane, cytoplasm, nucleus, food vacuole, contractile vacuole, and pseudopodia.";
 
-  return <div className="figure-module tool-family tool-family-visual">
+  return <div className="figure-module">
     <div className="figure-workbench">
       <section className="figure-controls">
         <div className="figure-label-row"><label htmlFor="diagram-request">{t.label}</label><button type="button" onClick={() => onRequest(example)}>{t.example}</button></div>

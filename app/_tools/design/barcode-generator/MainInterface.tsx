@@ -1,6 +1,6 @@
 import { barcodeUi } from "./copy";
 import { eanModules, type EanResult } from "./code/ean13";
-import { ToolMeta } from "../../../_components/ToolChrome";
+import { ToolHeader } from "../../../_components/ToolChrome";
 
 type BarcodeCopy = (typeof barcodeUi)["en"] | (typeof barcodeUi)["cs"];
 
@@ -24,21 +24,17 @@ export function BarcodeMainInterface({
   onDownload,
 }: BarcodeMainInterfaceProps) {
   return (
-    <div className="barcode-module compact-tool tool-family tool-family-compact">
-      <ToolMeta code="DESIGN / EAN-13" mode="local" />
-      <h1>{copy.heading}</h1>
-      <p className="compact-subtitle">{copy.subtitle}</p>
-      <div className="compact-fields barcode-fields">
-        <label className={`compact-field barcode-field ${result ? "has-result" : ""}`} htmlFor="barcode-isbn">
-          <span>{copy.label}</span>
+    <div className="barcode-module">
+      <ToolHeader className="barcode-header" code="DESIGN / EAN-13" title={copy.heading} subtitle={copy.subtitle} mode="local" />
+      <div className="barcode-workbench">
+        <section className="barcode-controls">
+          <label htmlFor="barcode-isbn">{copy.label}</label>
           <input id="barcode-isbn" inputMode="text" autoComplete="off" spellCheck={false} value={input} onChange={(event) => onInput(event.target.value)} placeholder={copy.placeholder} />
-        </label>
-      </div>
-      {error && <p className="extraction-error" role="alert">{error}</p>}
-      <button className="compact-action" onClick={onDownload} disabled={!result}><span>{copy.generate}</span><b>↓</b></button>
-      <p className="compact-privacy">{copy.privacy}</p>
-      {result && (
-        <section className="barcode-preview-card is-ready">
+          {error && <p className="extraction-error" role="alert">{error}</p>}
+          <button className="solutions-create" onClick={onDownload} disabled={!result}><span>{copy.generate}</span><b>↓</b></button>
+          <p className="solutions-privacy">{copy.privacy}</p>
+        </section>
+        <section className={`barcode-preview-card ${result ? "is-ready" : ""}`}>
           <div className="barcode-preview-head"><span>{result ? copy.ready : "PREVIEW"}</span>{result && <b>✓ {result.source === "ISBN-10" ? copy.converted : copy.valid}</b>}</div>
           <div className="barcode-paper">
             {result ? <svg viewBox="0 0 113 78.6" role="img" aria-label={`EAN-13 ${result.digits}`}>
@@ -48,7 +44,7 @@ export function BarcodeMainInterface({
           </div>
           <dl className="barcode-specs"><div><dt>{copy.format}</dt><dd>{result?.digits || "—"}</dd></div><div><dt>{copy.size}</dt><dd>100%</dd></div><div><dt>{copy.colour}</dt><dd>K100</dd></div><div><dt>{copy.type}</dt><dd>{language === "cs" ? "VEKTOR" : "VECTOR"}</dd></div></dl>
         </section>
-      )}
+      </div>
     </div>
   );
 }
