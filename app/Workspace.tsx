@@ -1884,9 +1884,7 @@ export default function Workspace({
             aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             aria-expanded={sidebarOpen}
           >
-            {Array.from({ length: 9 }, (_, index) => (
-              <i key={index} />
-            ))}
+            <span className="brand-logo" aria-hidden="true" />
           </button>
           <button
             className="brand-name"

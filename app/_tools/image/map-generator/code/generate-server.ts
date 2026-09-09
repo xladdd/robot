@@ -10,8 +10,11 @@ import {
   type RenderSwatch,
 } from "./map";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+import {
+  getOpenRouterContext,
+  openRouterConfigurationError,
+  requestOpenRouter,
+} from "../../../openrouter/server";
 const MAX_INPUT_LENGTH = 20_000;
 const MAX_REFERENCES = 3;
 const MAX_REFERENCE_LENGTH = 7_000_000;
@@ -223,10 +226,10 @@ const mapSchema = {
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey)
+    const openRouter = await getOpenRouterContext(request, "map");
+    if (!openRouter)
       return NextResponse.json(
-        { error: "OPENROUTER_API_KEY is not configured." },
+        { error: openRouterConfigurationError("map") },
         { status: 503 },
       );
     const body = (await request.json()) as {
@@ -304,15 +307,13 @@ export async function POST(request: Request) {
       evaluationModels.has(body.evaluationModel)
         ? body.evaluationModel
         : configuredModel;
-    const researchResponse = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-        "X-Title": "Taktik Robot",
-      },
-      body: JSON.stringify({
+    const { response: researchResponse, result: researchResult } =
+      await requestOpenRouter<{
+        choices?: Array<{
+          message?: { content?: string; annotations?: CitationAnnotation[] };
+        }>;
+        error?: { message?: string };
+      }>(openRouter, "chat/completions", "research-map", {
         model: configuredModel,
         temperature: 0,
         messages: [
@@ -330,14 +331,7 @@ export async function POST(request: Request) {
             parameters: { max_results: 5, max_total_results: 10, max_uses: 3 },
           },
         ],
-      }),
-    });
-    const researchResult = (await researchResponse.json()) as {
-      choices?: Array<{
-        message?: { content?: string; annotations?: CitationAnnotation[] };
-      }>;
-      error?: { message?: string };
-    };
+      });
     const researchMessage = researchResult.choices?.[0]?.message;
     const researchedUrls = new Set(
       (researchMessage?.annotations ?? [])
@@ -359,43 +353,33 @@ export async function POST(request: Request) {
         { status: 422 },
       );
     const prompt = `${mapPrompt}\nToday is ${new Date().toISOString().slice(0, 10)}.\n\n${mapResearchContextPrompt}\n\n${researchMessage.content}\n\nAllowed source URLs:\n${[...researchedUrls].join("\n")}`;
-    const response = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
-        "X-Title": "Taktik Robot",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        ...(model.startsWith("qwen/") ? { reasoning: { enabled: false } } : {}),
-        messages: [
-          { role: "system", content: prompt },
-          {
-            role: "user",
-            content: references.length
-              ? [
-                  { type: "text", text: userRequest },
-                  ...references.map((url) => ({
-                    type: "image_url",
-                    image_url: { url },
-                  })),
-                ]
-              : userRequest,
-          },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "factual_map", strict: true, schema: mapSchema },
-        },
-      }),
-    });
-    const result = (await response.json()) as {
+    const { response, result } = await requestOpenRouter<{
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
-    };
+    }>(openRouter, "chat/completions", "generate-map", {
+      model,
+      temperature: 0,
+      ...(model.startsWith("qwen/") ? { reasoning: { enabled: false } } : {}),
+      messages: [
+        { role: "system", content: prompt },
+        {
+          role: "user",
+          content: references.length
+            ? [
+                { type: "text", text: userRequest },
+                ...references.map((url) => ({
+                  type: "image_url",
+                  image_url: { url },
+                })),
+              ]
+            : userRequest,
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "factual_map", strict: true, schema: mapSchema },
+      },
+    });
     const raw = result.choices?.[0]?.message?.content;
     if (!response.ok || !raw)
       return NextResponse.json(

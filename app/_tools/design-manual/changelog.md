@@ -1,6 +1,10 @@
 # Changelog
 
-## 2026-08-30
+### v0.1 2026-5-27
 
-- The Design Manual Markdown became the single editable source for both the website and PDF export.
-- Added a repeatable PDF export command and this changelog appendix.
+- Sloučení a vytvoření manuálu
+
+### v0.2 2026-9-7
+
+- Zapracování zpětné vazby grafiků
+- Převod do formátu Markdown

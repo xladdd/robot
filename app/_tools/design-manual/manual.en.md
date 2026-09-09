@@ -299,47 +299,31 @@ For a PDF to be read correctly by screen readers and other assistive technologie
 
 - Follow a consistent naming system for folders and files:
 
-- PRIMARY SCHOOLS – school level – Folder names without diacritics, with spaces.
+<!-- dropbox-tree -->
 
-- 📂 MATHEMATICS Stage 1 – subject/stage
+- **PRIMARY SCHOOLS – school level – Folder names without diacritics, with spaces.**
+  - 📂 MATHEMATICS Stage 1 – subject/stage
+    - 📂 Playful MATHEMATICS – series
+      - 📂 Playful MATHEMATICS Year 1 – year
+        - 📂 HM1 WORKBOOK 1st part – publication type/part
+          - **📂 HM1 WORKBOOK 1st part – print**
+            - 📄 HM1_PU-1dil_obalka_TISK_(20-6-2026).pdf
+            - – File names without spaces, with underscores.
+            - 📄 HM1_PU-1dil_vnitrek_TISK_(20-6-2026).pdf
+            - 📂 archive
+              - 📄 HM1_PU-1dil_vnitrek_TISK_(15-1-2025).pdf
+          - **📂 HM1 WORKBOOK 1st part – sources**
+            - 📂 HM1 PU 1st part cover indd (20-6-2026)
+              - 📂 Document fonts
+              - 📂 Links
+              - 📄 HM1_PU-1dil_obalka.indd
+              - 📄 HM1_PU-1dil_obalka.idml
+            - 📂 HM1 PU 1st part interior indd (20-6-2026)
+              - 📂 (…)
+              - 📂 archive
+              - 📂 HM1 PU 1st part interior indd (15-1-2025)
 
-- 📂 Playful MATHEMATICS – series
-
-- 📂 Playful MATHEMATICS Year 1 – year
-
-- 📂 HM1 WORKBOOK 1st part – publication type/part
-
-- 📂 HM1 WORKBOOK 1st part – print
-
-- HM1_PU-1dil_obalka_TISK_(20-6-2026).pdf
-
-- – File names without spaces, with underscores.
-
-- 📄 HM1_PU-1dil_vnitrek_TISK_(20-6-2026).pdf
-
-- 📂 archive
-
-- 📄 HM1_PU-1dil_vnitrek_TISK_(15-1-2025).pdf
-
-- 📂 HM1 WORKBOOK 1st part – sources
-
-- 📂 HM1 PU 1st part cover indd (20-6-2026)
-
-- 📂 Document fonts
-
-- 📂 Links
-
-- 📄 HM1_PU-1dil_obalka.indd
-
-- 📄 HM1_PU-1dil_obalka.idml
-
-- 📂 HM1 PU 1st part interior indd (20-6-2026)
-
-- 📂 (…)
-
-- 📂 archive
-
-- 📂 HM1 PU 1st part interior indd (15-1-2025)
+<!-- /dropbox-tree -->
 
 - Maintain separate folders for print and source data for every publication.
 

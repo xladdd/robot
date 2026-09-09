@@ -104,6 +104,9 @@ The individual route files are deliberately small:
 - `app/_tools/registry.ts`: the one ordered list behind the sidebar. It records each app key, category, folder, and availability.
 - `app/_tools/info.ts`: server-side Markdown loader for the info drawer.
 - `app/_tools/load-prompt.ts`: reads an app's prompt Markdown and fills named values in prompt templates.
+- `app/_tools/openrouter/config.ts`: maps each model-backed app to its dedicated server-only inference-key environment variable.
+- `app/_tools/openrouter/server.ts`: selects the app key, derives a pseudonymous end-user identifier from the signed session, adds OpenRouter attribution, and emits structured usage records without logging request or response content. It temporarily accepts the legacy shared key as a migration fallback.
+- `app/_tools/openrouter/scripts/provision-keys.mts`: idempotently creates missing app keys through OpenRouter's Management API and saves each plaintext key immediately to the ignored `.env.local` file.
 - `app/_tools/info.en.md`, `app/_tools/info.cs.md`: home-screen drawer copy.
 
 Text apps:
@@ -360,6 +363,20 @@ The output is written to `design-manual/public/design-manual.en.pdf` and `design
 - `tests/translations.test.mjs`: discovers every app-owned `copy.ts` module and verifies matching English/Czech dictionary paths.
 
 - App-specific scripts, tests, and handoff notes live with their app.
+
+## OpenRouter provisioning and usage attribution
+
+Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the eight app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
+
+Provision the eight app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
+
+```bash
+npm run openrouter:provision
+```
+
+The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the eight generated inference variables copied into its secret environment.
+
+`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all eight variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
 
 ## Main execution flow
 

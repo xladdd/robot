@@ -124,7 +124,10 @@ test("keeps the completed Solutions report compact by default", async () => {
     readFile(new URL("app/globals.css", root), "utf8"),
   ]);
 
-  assert.match(component, /\[reviewExpanded, setReviewExpanded\] = useState\(false\)/);
+  assert.match(
+    component,
+    /\[reviewExpanded, setReviewExpanded\] = useState\(false\)/,
+  );
   assert.match(component, /aria-expanded=\{reviewExpanded\}/);
   assert.match(component, /aria-controls="solutions-report-details"/);
   assert.match(component, /<h2 className="solutions-detail-review-heading">/);
@@ -137,17 +140,35 @@ test("keeps the completed Solutions report compact by default", async () => {
   assert.ok(reportStart < statsStart && statsStart < detailsStart);
   assert.ok(detailsStart < filterStart && detailsStart < pagesStart);
 
-  assert.match(component, /solutionPreviewFont = solutionFont === "Times New Roman" \? solutionFont : "Arial"/);
+  assert.match(
+    component,
+    /solutionPreviewFont = solutionFont === "Times New Roman" \? solutionFont : "Arial"/,
+  );
   assert.match(component, /`\$\{sourceName\}_Solutions\.json`/);
-  assert.match(component, /solutions-create\$\{analysisComplete \? " is-complete"/);
-  assert.match(component, /solutions-progress\$\{analysisComplete \? " is-complete"/);
+  assert.match(
+    component,
+    /solutions-create\$\{analysisComplete \? " is-complete"/,
+  );
+  assert.match(
+    component,
+    /solutions-progress\$\{analysisComplete \? " is-complete"/,
+  );
   assert.match(copy, /reviewHeading: "Solutions Report"/);
   assert.match(copy, /downloadJson: "Download JSON"/);
   assert.match(copy, /reviewHeading: "Přehled řešení"/);
   assert.match(copy, /downloadJson: "Stáhnout JSON"/);
-  assert.match(styles, /solutions-console \{ display: flex; max-height: 190px/);
-  assert.match(styles, /solutions-create\.is-complete \{ background: var\(--teal\)/);
-  assert.match(styles, /solutions-progress\.is-complete \.solutions-console \{ max-height: 95px/);
+  assert.match(
+    styles,
+    /solutions-console\s*\{\s*display:\s*flex;\s*max-height:\s*190px/,
+  );
+  assert.match(
+    styles,
+    /solutions-create\.is-complete\s*\{\s*background:\s*var\(--teal\)/,
+  );
+  assert.match(
+    styles,
+    /solutions-progress\.is-complete \.solutions-console\s*\{\s*max-height:\s*95px/,
+  );
 });
 
 test("Advanced importer expands grouped PDF text into grid-cell tokens", async () => {

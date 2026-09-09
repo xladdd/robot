@@ -65,7 +65,7 @@ test("keeps static content outside the main page component", async () => {
     /solutions-importer-alpha|solutions-importer-beta|solutionsBeta/,
   );
   assert.match(englishManual, /^# Introduction/m);
-  assert.match(czechManual, /^# Úvod/m);
+  assert.match(czechManual, /^# Základy/m);
 });
 
 test("keeps figure handlers and compatibility dispatch in their owning apps", async () => {
@@ -261,7 +261,7 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
   assert.match(loader, /readFileSync/);
   assert.match(
     ocrServer,
-    /loadPrompt\("text\/text-extractor\/prompts\/transcription\.md"\)/,
+    /loadPrompt\(\s*"text\/text-extractor\/prompts\/transcription\.md"\s*,?\s*\)/,
   );
   assert.match(ocrPrompt, /literal OCR transcription engine/);
   assert.match(coverServer, /cover-generator\/prompts\/sketch\.md/);
