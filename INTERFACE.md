@@ -21,17 +21,23 @@ Place the tool type at the left edge of the metadata row and the processing badg
 
 Use for short tasks with one small input and an immediate result. Keep the form and result in one modest-width workspace. Inputs remain visible after generation so the user can compare or revise them.
 
+Implement this family with `tool-family-compact` and `compact-tool`. Use the shared 720 px metadata, field, and action widths. When a generated value directly replaces a user instruction, as in GREP Builder, show it in the original field with an immediate copy action.
+
 Current tools: GREP Builder and Barcode Generator.
 
 ### Document workspace
 
 Use for workflows based on source documents, extraction, comparison, review, and export. Start with the shared upload state. After files are selected, show source material and output together when comparison is useful. Group file-level settings with the files they affect and place export actions with the result.
 
+Implement this family with `tool-family-document`; empty upload screens use `document-start` so their title, description, upload control, and 620 px alignment remain consistent.
+
 Current tools: Text Extractor, Index Creator, Prompt Extractor, Cover Splitter, and Solutions Importer.
 
 ### Visual workbench
 
 Use for generated or edited visual material. Give the preview or gallery most of the width and keep controls in a consistent inspector. Organize controls in workflow order and keep export actions adjacent to the visual result.
+
+Implement this family with `tool-family-visual`. The visual result stays on the left and the inspector stays on the right. Graph, Diagram, and Map use the same shared workbench header; Map overlays it on the editable canvas.
 
 Current tools: Graph Generator, Diagram Generator, Map Generator, and Cover Generator. The reserved Image Generator should use this family.
 

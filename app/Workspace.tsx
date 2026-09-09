@@ -2282,6 +2282,7 @@ export default function Workspace({
             onReplacePrompt={setGrepReplacePrompt}
             onCopy={(value, field) => void copyGrep(value, field)}
             onGenerate={() => void generateGrep()}
+            onReset={() => setGrepResult(null)}
           />
         ) : (
           <div className={`welcome ${selectedLabel ? "has-selection" : ""}`}>

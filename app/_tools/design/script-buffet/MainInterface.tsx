@@ -64,7 +64,7 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
   const filters: Filter[] = ["all", "indesign", "illustrator", "photoshop"];
 
   return (
-    <div className="buffet-module">
+    <div className="buffet-module tool-family tool-family-library">
       <header className="buffet-header">
         <div>
           <ToolMeta code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"} mode="local" />

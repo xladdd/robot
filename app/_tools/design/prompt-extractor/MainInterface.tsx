@@ -41,7 +41,7 @@ export function PromptExtractorMainInterface({
 }) {
   const t = promptExtractorCopy[language];
   return (
-    <div className={`prompt-module ${file ? "has-file" : ""}`}>
+    <div className={`prompt-module tool-family tool-family-document ${file ? "has-file" : ""}`}>
       <input
         ref={inputRef}
         type="file"
@@ -50,7 +50,7 @@ export function PromptExtractorMainInterface({
         hidden
       />
       {!file ? (
-        <div className="index-head">
+        <div className="index-head document-start">
           <ToolMeta code={`${section} / PROMPT`} mode="ai" />
           <h1>{t.heading}</h1>
           <p>

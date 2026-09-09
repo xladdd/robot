@@ -248,7 +248,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   const analysisComplete = Boolean(manifest && !processing);
 
   return (
-    <div className="solutions-module solutions-detail-module">
+    <div className="solutions-module solutions-detail-module tool-family tool-family-document">
       <ToolHeader className="solutions-header" code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"} title={t.heading} subtitle={t.subtitle} mode="local" />
 
       <section className="solutions-generator">

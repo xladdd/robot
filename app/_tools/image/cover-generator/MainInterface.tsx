@@ -66,7 +66,7 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
   const activeSketches = sketches.filter((item) => item.status !== "rejected");
   const [requestedCount, setRequestedCount] = useState<2 | 4>(2);
 
-  return <div className="cover-module">
+  return <div className="cover-module tool-family tool-family-visual">
     <section className={`cover-stage ${!sketches.length && !isGenerating ? "initial" : ""}`}>
       {!sketches.length && !isGenerating
         ? <header className="cover-stage-head cover-stage-head-initial"><ToolMeta code={t.code} mode="ai" /><div><h1>{t.heading}</h1><p>0 / 16 {t.active}</p></div><div className="cover-export-actions"><button className="cover-export cover-artboard-export" disabled>{t.exportArtboard}</button><button className="cover-export" disabled>{t.download}</button></div></header>

@@ -10,7 +10,7 @@ import type {
   WheelEventHandler,
 } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
-import { ProcessingBadge } from "../../../_components/ToolChrome";
+import { ToolHeader } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
 import type { MapCheck } from "./code/map";
@@ -107,7 +107,7 @@ export function MapMainInterface({
 }) {
   const t = mapUi[language];
   return (
-    <div className="figure-module map-module">
+    <div className="figure-module map-module tool-family tool-family-visual">
       <div className="figure-workbench map-workbench">
         <section className="figure-controls">
           <div className="map-editor-controls">
@@ -320,16 +320,7 @@ export function MapMainInterface({
           </div>
         </section>
         <div className="figure-preview-column">
-          <header className="figure-header">
-            <div>
-              <div className="figure-meta">
-                <span className="module-code">{section} / MAP / SVG V1</span>
-                <ProcessingBadge mode="local" />
-              </div>
-              <h1>{label}</h1>
-              <p>{t.subtitle}</p>
-            </div>
-          </header>
+          <ToolHeader className="figure-header" code={`${section} / MAP / SVG V1`} title={label || "Map Generator"} subtitle={t.subtitle} mode="local" />
           <section className="figure-result">
             <div className="pane-label">
               <span>{t.preview}</span>

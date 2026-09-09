@@ -51,8 +51,8 @@ export function TextExtractorMainInterface({
 }) {
   const t = textExtractorCopy[language];
   return (
-    <div className={`extraction-module ${sourceKind ? "has-source" : ""}`}>
-      <div className="extraction-head">
+    <div className={`extraction-module tool-family tool-family-document ${sourceKind ? "has-source" : ""}`}>
+      <div className={`extraction-head ${!sourceKind ? "document-start" : ""}`}>
         <div className="document-title">
           {!sourceKind ? (
             <ToolMeta code={`${section} / EXTRACTION`} mode="ai" />
