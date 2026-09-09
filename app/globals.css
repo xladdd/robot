@@ -5596,6 +5596,18 @@ button {
     font-size: 11px;
     line-height: 1.6;
 }
+.extraction-module:not(.has-source) .document-title h1,
+.index-module:not(.has-file) .index-head h1,
+.prompt-module:not(.has-file) .index-head h1,
+.grep-module h1,
+.figure-header h1,
+.barcode-header h1,
+.cover-splitter-module:not(.has-files) .cover-splitter-head h1,
+.solutions-header h1,
+.buffet-header h1,
+.cover-stage-head-initial h1 {
+    font-size: clamp(32px, 4vw, 52px);
+}
 .document-title > .processing-badge,
 .index-head > .processing-badge,
 .cover-splitter-head > .processing-badge {
@@ -5644,49 +5656,6 @@ button {
 .grep-module h1 {
     margin-bottom: 28px;
     font-size: clamp(32px, 4vw, 52px);
-}
-.grep-results {
-    width: min(720px, 100%);
-    margin-top: 24px;
-    border: 1px solid var(--ink);
-    background: var(--panel-2);
-    box-shadow: 5px 5px 0 var(--teal);
-}
-.grep-result-row {
-    display: grid;
-    grid-template-columns: 120px minmax(0, 1fr) 44px;
-    min-height: 52px;
-    align-items: stretch;
-}
-.grep-result-row + .grep-result-row {
-    border-top: 1px solid var(--ink);
-}
-.grep-result-row > span,
-.grep-result-row > code,
-.grep-result-row > button {
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-}
-.grep-result-row > span {
-    border-right: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 8px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-.grep-result-row > code {
-    min-width: 0;
-    overflow-x: auto;
-    font: 11px/1.45 var(--font-mono);
-}
-.grep-result-row > button {
-    justify-content: center;
-    border: 0;
-    border-left: 1px solid var(--ink);
-    background: var(--ink);
-    color: var(--orange);
-    cursor: pointer;
 }
 .barcode-module {
     padding-right: max(24px, calc((100% - 860px) / 2));
@@ -5809,9 +5778,6 @@ button {
     }
     .processing-badge {
         font-size: 7px;
-    }
-    .grep-result-row {
-        grid-template-columns: 92px minmax(0, 1fr) 42px;
     }
     .map-module .figure-controls {
         top: auto;

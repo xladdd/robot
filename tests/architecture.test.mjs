@@ -346,3 +346,12 @@ test("uses one explicit processing badge across tool interfaces", async () => {
     }
   }
 });
+
+test("keeps one app-title scale and inline GREP results", async () => {
+  const css = await readFile(new URL("app/globals.css", root), "utf8");
+  const grep = await readFile(new URL("app/_tools/design/grep-builder/MainInterface.tsx", root), "utf8");
+
+  assert.match(css, /\.buffet-header h1,[\s\S]*font-size:\s*clamp\(32px, 4vw, 52px\)/);
+  assert.match(grep, /result\?\.findWhat \?\? props\.findPrompt/);
+  assert.match(grep, /onClick=\{result \? props\.onReset : props\.onGenerate\}/);
+});
