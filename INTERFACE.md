@@ -43,7 +43,7 @@ Map Generator is a canvas editor rather than a titled workbench. The map fills t
 
 ### Library and reference
 
-Use for browsing reusable assets or reading structured documentation. The standard library width is 1120 px. Provide navigation or filters before the content and keep each download attached to its item. Place installation guidance above the main toolbar. Static guidance panels stay flat; interactive selectors and their action buttons may carry shadows.
+Use for browsing reusable assets or reading structured documentation. Libraries use the same 1160 px widescreen frame as visual workbenches. Provide navigation or filters before the content and keep each download attached to its item. Place installation guidance above the main toolbar. Static guidance panels stay flat; interactive selectors and their action buttons may carry shadows.
 
 Script Buffet and Solutions Importer share the library width and guide placement. Design Manual retains its own reading layout.
 

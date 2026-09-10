@@ -15,6 +15,8 @@
 }
 :root {
     --font-mono: "IBM Plex Mono", "Noto Emoji", monospace;
+    --wide-app-width: 1160px;
+    --wide-app-gutter: 24px;
     color-scheme: light dark;
 }
 * {
@@ -6435,8 +6437,8 @@ button {
 
 .figure-module:not(.map-module),
 .barcode-module {
-    padding-right: max(24px, calc((100% - 1160px) / 2));
-    padding-left: max(24px, calc((100% - 1160px) / 2));
+    padding-right: var(--wide-app-gutter);
+    padding-left: max(var(--wide-app-gutter), calc(100% - var(--wide-app-width) - var(--wide-app-gutter)));
 }
 .figure-header.tool-header,
 .barcode-header.tool-header {
@@ -6475,11 +6477,11 @@ button {
 
 .cover-module {
     position: absolute;
-    inset: 24px 16px auto auto;
+    inset: var(--wide-app-gutter) var(--wide-app-gutter) auto auto;
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
     gap: 28px;
-    width: min(1160px, calc(100% - 40px));
+    width: min(var(--wide-app-width), calc(100% - 48px));
     height: calc(100% - 48px);
     transform: none;
     overflow: hidden;
@@ -6509,9 +6511,11 @@ button {
     inset: auto;
     display: flex;
     width: auto;
-    height: 100%;
+    height: calc(100% - 5px);
+    margin-right: 5px;
     flex-direction: column;
     overflow-y: auto;
+    box-shadow: 5px 5px 0 var(--ink);
 }
 .cover-toolbar-exports {
     display: grid;
@@ -6525,8 +6529,14 @@ button {
 
 .map-module .figure-controls {
     top: 24px;
-    right: 16px;
+    right: var(--wide-app-gutter);
     bottom: 24px;
+}
+
+.solutions-module,
+.buffet-module {
+    padding-right: var(--wide-app-gutter);
+    padding-left: max(var(--wide-app-gutter), calc(100% - var(--wide-app-width) - var(--wide-app-gutter)));
 }
 
 @media (max-width: 900px) {
