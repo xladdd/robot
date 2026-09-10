@@ -25,7 +25,7 @@ export function BarcodeMainInterface({
 }: BarcodeMainInterfaceProps) {
   return (
     <div className="barcode-module">
-      <ToolHeader className="barcode-header" code="DESIGN / EAN-13" title={copy.heading} subtitle={copy.subtitle} mode="local" />
+      <ToolHeader className="barcode-header" code="DESIGN / EAN-13" title={copy.heading} subtitle={copy.subtitle} mode="local" language={language} />
       <div className="barcode-workbench">
         <section className={`barcode-preview-card ${result ? "is-ready" : ""}`}>
           <div className="barcode-preview-head"><span>{result ? copy.ready : "PREVIEW"}</span>{result && <b>✓ {result.source === "ISBN-10" ? copy.converted : copy.valid}</b>}</div>

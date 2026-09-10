@@ -249,7 +249,7 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
 
   return (
     <div className="solutions-module solutions-detail-module">
-      <ToolHeader className="solutions-header" code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"} title={t.heading} subtitle={t.subtitle} mode="local" />
+      <ToolHeader className="solutions-header" code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"} title={t.heading} subtitle={t.subtitle} mode="local" language={language} />
 
       <section className="solutions-generator">
         <input ref={cleanInput} type="file" accept="application/pdf,.pdf" onChange={(event) => handleInput("clean", event)} hidden />

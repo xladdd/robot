@@ -75,7 +75,7 @@ export function IndexCreatorMainInterface({
       />
       {!file ? (
         <div className="index-head">
-          <ToolMeta code={`${section} / INDEX`} mode="ai" />
+          <ToolMeta code={`${section} / INDEX`} mode="ai" language={language} />
           <h1>{t.heading}</h1>
           <button
             className="start-button upload-button"
@@ -104,7 +104,7 @@ export function IndexCreatorMainInterface({
         <div className="document-active-workspace index-active-workspace">
           <div className="index-active-head document-active-head">
             <div>
-              <ProcessingBadge mode="ai" />
+              <ProcessingBadge mode="ai" language={language} />
               <h1>{t.heading}</h1>
             </div>
             <button

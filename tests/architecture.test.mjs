@@ -313,6 +313,8 @@ test("uses one explicit processing badge across tool interfaces", async () => {
   const css = await readFile(new URL("app/globals.css", root), "utf8");
   assert.match(chrome, /AI ENABLED/);
   assert.match(chrome, /PROCESSED LOCALLY/);
+  assert.match(chrome, /AI AKTIVNÍ/);
+  assert.match(chrome, /ZPRACOVÁNO MÍSTNĚ/);
   assert.match(chrome, /processing-badge-\$\{mode\}/);
   assert.match(chrome, /export function ToolMeta/);
   assert.match(css, /\.processing-badge\s*\{[^}]*font-weight:\s*400/s);

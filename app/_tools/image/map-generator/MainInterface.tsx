@@ -106,7 +106,7 @@ export function MapMainInterface({
     <div className="figure-module map-module">
       <div className="figure-workbench map-workbench">
         <section className="figure-controls editor-sidebar">
-          <ProcessingBadge mode="local" />
+          <ProcessingBadge mode="local" language={language} />
           <div className="map-editor-controls">
             <div className="map-year-field">
               <span>

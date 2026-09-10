@@ -92,7 +92,7 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
     <div className="buffet-module">
       <header className="buffet-header">
         <div>
-          <ToolMeta code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"} mode="local" />
+          <ToolMeta code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"} mode="local" language={language} />
           <h1>Script Buffet</h1>
           <p>{cs ? "Užitečné produkční skripty pro aplikace Adobe na jednom místě." : "Useful production scripts for Adobe applications, kept in one place."}</p>
         </div>

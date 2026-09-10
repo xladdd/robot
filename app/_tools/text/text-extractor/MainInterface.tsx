@@ -55,9 +55,9 @@ export function TextExtractorMainInterface({
       <div className="extraction-head">
         <div className="document-title">
           {!sourceKind ? (
-            <ToolMeta code={`${section} / EXTRACTION`} mode="ai" />
+            <ToolMeta code={`${section} / EXTRACTION`} mode="ai" language={language} />
           ) : (
-            <ProcessingBadge mode="ai" />
+            <ProcessingBadge mode="ai" language={language} />
           )}
           <h1>{t.heading}</h1>
         </div>

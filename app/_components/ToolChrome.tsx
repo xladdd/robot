@@ -1,41 +1,44 @@
 import type { ReactNode } from "react";
 
 export type ProcessingMode = "ai" | "local";
+type Language = "en" | "cs";
 
-export function ProcessingBadge({ mode }: { mode: ProcessingMode }) {
+export function ProcessingBadge({ mode, language }: { mode: ProcessingMode; language: Language }) {
   return (
     <span className={`processing-badge processing-badge-${mode}`}>
       <i aria-hidden="true" />
-      {mode === "ai" ? "AI ENABLED" : "PROCESSED LOCALLY"}
+      {language === "cs" ? mode === "ai" ? "AI AKTIVNÍ" : "ZPRACOVÁNO MÍSTNĚ" : mode === "ai" ? "AI ENABLED" : "PROCESSED LOCALLY"}
     </span>
   );
 }
 
-export function ToolMeta({ code, mode, className = "" }: {
+export function ToolMeta({ code, mode, language, className = "" }: {
   code: string;
   mode: ProcessingMode;
+  language: Language;
   className?: string;
 }) {
   return (
     <div className={`tool-header-meta ${className}`.trim()}>
       <span className="module-code">{code}</span>
-      <ProcessingBadge mode={mode} />
+      <ProcessingBadge mode={mode} language={language} />
     </div>
   );
 }
 
-export function ToolHeader({ code, title, subtitle, mode, actions, className = "" }: {
+export function ToolHeader({ code, title, subtitle, mode, language, actions, className = "" }: {
   code: string;
   title: string;
   subtitle?: string;
   mode: ProcessingMode;
+  language: Language;
   actions?: ReactNode;
   className?: string;
 }) {
   return (
     <header className={`tool-header ${className}`.trim()}>
       <div className="tool-header-copy">
-        <ToolMeta code={code} mode={mode} />
+        <ToolMeta code={code} mode={mode} language={language} />
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>

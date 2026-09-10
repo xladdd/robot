@@ -39,7 +39,7 @@ export function GraphMainInterface({ language, section, label, request, palette,
   const example = language === "cs" ? "Vytvoř sloupcový graf s názvem Podíl obnovitelné energie. Česko: 2021 17,7; 2022 18,2; 2023 18,6. Jednotka: %. Zdroj S1: Eurostat, https://ec.europa.eu/eurostat" : "Create a bar chart titled Renewable energy share. Czechia: 2021 17.7; 2022 18.2; 2023 18.6. Unit: %. Source S1: Eurostat, https://ec.europa.eu/eurostat";
 
   return <div className="figure-module">
-    <ToolHeader className="figure-header" code={`${section} / CHART`} title={label || "Graph Generator"} subtitle={t.subtitle} mode="ai" />
+    <ToolHeader className="figure-header" code={`${section} / CHART`} title={label || "Graph Generator"} subtitle={t.subtitle} mode="ai" language={language} />
     <div className="figure-workbench">
       <section className="figure-controls">
         <div className="figure-label-row"><label htmlFor="figure-request">{t.label}</label><button type="button" onClick={() => onRequest(example)}>{t.example}</button></div>

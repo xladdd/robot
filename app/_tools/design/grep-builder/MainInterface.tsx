@@ -25,7 +25,7 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
   const t = grepBuilderCopy[props.language];
   return (
     <div className="grep-module">
-      <ToolMeta code={`${props.section} / GREP`} mode="ai" />
+      <ToolMeta code={`${props.section} / GREP`} mode="ai" language={props.language} />
       <h1>{t.heading}</h1>
       <div className="grep-fields">
         <label className={`grep-field ${result ? "has-result" : ""}`}>

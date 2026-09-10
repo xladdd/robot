@@ -69,7 +69,7 @@ export function CoverGeneratorMainInterface({ language, inputRef, references, br
   return <div className="cover-module">
     <section className={`cover-stage ${!sketches.length && !isGenerating ? "initial" : ""}`}>
       <header className="cover-stage-head">
-        <ToolMeta code={t.code} mode="ai" />
+        <ToolMeta code={t.code} mode="ai" language={language} />
         <div className="cover-title-row">
           <h1>{t.heading}</h1>
           <span className="cover-active-count" tabIndex={0}>

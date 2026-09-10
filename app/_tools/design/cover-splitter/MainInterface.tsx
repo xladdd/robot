@@ -459,7 +459,7 @@ export function CoverSplitterMainInterface({
 
       {!hasFiles && (
       <div className="cover-splitter-head">
-          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" />
+          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" language={language} />
           <h1>{t.heading}</h1>
           <button
             type="button"
@@ -489,7 +489,7 @@ export function CoverSplitterMainInterface({
       {hasFiles && (
         <main className="cover-splitter-workbench">
           <aside className="cover-splitter-controls editor-sidebar" aria-label={t.controls}>
-            <ProcessingBadge mode="local" />
+            <ProcessingBadge mode="local" language={language} />
             <button
               type="button"
               className="start-button upload-button cover-splitter-add"
@@ -603,7 +603,7 @@ export function CoverSplitterMainInterface({
           </aside>
 
           <section className="cover-splitter-preview-column">
-            <ToolHeader className="cover-splitter-active-head editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" />
+            <ToolHeader className="cover-splitter-active-head editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" language={language} />
 
             <div className="cover-splitter-grid">
               {files.map((entry) => (

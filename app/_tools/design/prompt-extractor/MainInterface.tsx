@@ -51,7 +51,7 @@ export function PromptExtractorMainInterface({
       />
       {!file ? (
         <div className="index-head">
-          <ToolMeta code={`${section} / PROMPT`} mode="ai" />
+          <ToolMeta code={`${section} / PROMPT`} mode="ai" language={language} />
           <h1>{t.heading}</h1>
           <button
             className="start-button upload-button"
@@ -72,7 +72,7 @@ export function PromptExtractorMainInterface({
         <div className="document-active-workspace prompt-active-workspace">
           <div className="prompt-active-head document-active-head">
             <div>
-              <ProcessingBadge mode="ai" />
+              <ProcessingBadge mode="ai" language={language} />
               <h1>{t.heading}</h1>
               <span>{isExtracting ? `${progress}%` : "PDF → TXT"}</span>
             </div>
