@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ProcessingBadge, ToolHeader, ToolMeta } from "../../../_components/ToolChrome";
+import { ToolMeta } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
@@ -489,7 +489,6 @@ export function CoverSplitterMainInterface({
       {hasFiles && (
         <main className="cover-splitter-workbench">
           <aside className="cover-splitter-controls editor-sidebar" aria-label={t.controls}>
-            <ProcessingBadge mode="local" language={language} />
             <button
               type="button"
               className="start-button upload-button cover-splitter-add"
@@ -603,7 +602,12 @@ export function CoverSplitterMainInterface({
           </aside>
 
           <section className="cover-splitter-preview-column">
-            <ToolHeader className="cover-splitter-active-head editor-header" code={`${section ? `${section} / ` : ""}${t.moduleCode}`} title={t.heading} subtitle={t.intro} mode="local" language={language} />
+            <header className="cover-stage-head cover-splitter-active-head">
+              <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" language={language} />
+              <div className="cover-title-row">
+                <h1>{t.heading}</h1>
+              </div>
+            </header>
 
             <div className="cover-splitter-grid">
               {files.map((entry) => (

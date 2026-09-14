@@ -6541,6 +6541,47 @@ button {
     width: 100%;
 }
 
+/* Shared Cover Generator and Cover Splitter workbench */
+.cover-splitter-module.has-files {
+    inset: var(--wide-app-gutter) auto auto 50%;
+    width: min(var(--wide-app-width), calc(100% - 48px));
+    height: calc(100% - 48px);
+    padding: 0;
+    transform: translateX(-50%);
+    overflow: hidden;
+}
+.cover-splitter-workbench {
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    gap: 28px;
+    height: 100%;
+    padding: 0;
+}
+.cover-splitter-preview-column {
+    display: block;
+    height: 100%;
+    padding: 0 0 58px;
+    overflow-y: auto;
+}
+.cover-splitter-active-head > .tool-header-meta {
+    width: 100%;
+    padding: 0 0 12px;
+}
+.cover-splitter-grid {
+    padding-top: 24px;
+}
+.cover-splitter-controls.editor-sidebar {
+    position: relative;
+    inset: auto;
+    top: auto;
+    display: flex;
+    width: auto;
+    height: calc(100% - 5px);
+    margin-right: 5px;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: 5px 5px 0 var(--ink);
+}
+
 .map-module .figure-controls {
     top: 24px;
     right: var(--wide-app-gutter);
@@ -6551,6 +6592,15 @@ button {
 .buffet-module {
     padding-right: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
     padding-left: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
+}
+
+@media (max-width: 1100px) {
+    .cover-splitter-workbench {
+        grid-template-areas: "controls preview";
+    }
+    .cover-splitter-controls.editor-sidebar {
+        margin: 18px 5px 0 18px;
+    }
 }
 
 @media (max-width: 900px) {
@@ -6578,6 +6628,31 @@ button {
     }
     .cover-stage,
     .cover-stage.initial {
+        height: auto;
+        overflow: visible;
+    }
+    .cover-splitter-module.has-files {
+        inset: 18px 18px auto;
+        width: auto;
+        height: auto;
+        min-height: calc(100% - 36px);
+        transform: none;
+        overflow-y: auto;
+    }
+    .cover-splitter-workbench {
+        display: flex;
+        height: auto;
+        flex-direction: column;
+    }
+    .cover-splitter-preview-column {
+        order: -1;
+        height: auto;
+        overflow: visible;
+    }
+    .cover-splitter-controls.editor-sidebar {
+        position: relative;
+        top: auto;
+        width: auto;
         height: auto;
         overflow: visible;
     }

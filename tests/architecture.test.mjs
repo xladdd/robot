@@ -371,10 +371,11 @@ test("keeps the documented document and visual workspace families", async () => 
     readFile(new URL("app/globals.css", root), "utf8"),
   ]);
 
-  assert.match(splitter, /editor-header/);
+  assert.match(splitter, /cover-stage-head cover-splitter-active-head/);
   for (const source of [cover, splitter, map]) {
     assert.match(source, /editor-sidebar/);
   }
+  assert.doesNotMatch(splitter, /ToolHeader/);
   assert.doesNotMatch(map, /ToolHeader/);
   assert.match(cover, /cover-toolbar-exports/);
   for (const source of [graph, diagram]) {

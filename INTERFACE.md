@@ -27,7 +27,7 @@ Text Extractor entry, Index Creator entry, GREP Builder, Cover Splitter entry, a
 
 Use for workflows based on source documents, extraction, comparison, review, and export. Start with the shared upload state. After files are selected, place the app title and replacement-file action across the full width, then show source and output as two separate bordered panes with a consistent gap. Source begins below the title rather than occupying the title row. Keep app controls with the output pane and place export actions with the result. Hide the workspace clock, date, and name-day footer in these active editing views.
 
-Text Extractor, Index Creator, and Prompt Extractor use the same active split-view frame. Cover Splitter's active screen is an adapted document workspace: it replaces the two-pane comparison with a multi-file preview and controls, while retaining the document-led hierarchy. Solutions Importer is a unique multi-file workflow rather than a standard document workspace.
+Text Extractor, Index Creator, and Prompt Extractor use the same active split-view frame. Solutions Importer is a unique multi-file workflow rather than a standard document workspace.
 
 ### Visual workbench
 
@@ -43,7 +43,7 @@ Map Generator is a canvas editor rather than a titled workbench. The map fills t
 
 Use when an app has a strong task-specific structure that cannot follow a standard archetype without making the workflow harder to understand. Keep shared vocabulary, widths, title treatment, processing badges, viewport rules, toolbar behavior, and responsive gutters even when the page composition differs.
 
-Map Generator and Cover Generator are adapted visual workbenches. Solutions Importer is a unique multi-file workflow. These classifications describe the overall structure; their parts should still reuse the standard title box, viewport, toolbar, inspector, and action styles wherever those elements occur.
+Cover Generator and Cover Splitter's active state share the same cover-workbench variant: a two-thirds preview stage and one-third inspector, with the inspector aligned to the title bar. Cover Splitter omits the active-sketch counter. Map Generator is another adapted visual workbench, and Solutions Importer is a unique multi-file workflow. These classifications describe the overall structure; their parts should still reuse the standard title box, viewport, toolbar, inspector, and action styles wherever those elements occur.
 
 ### Library and reference
 
@@ -56,9 +56,9 @@ Script Buffet is the current library interface. It shares the 1160 px widescreen
 | Archetype | Entry state | Main state |
 | --- | --- | --- |
 | Compact utility | Text Extractor, Index Creator, Cover Splitter, Prompt Extractor | GREP Builder uses an adapted compact main state |
-| Document workspace | Uses the compact utility entry state | Text Extractor, Index Creator, Prompt Extractor; Cover Splitter is adapted |
+| Document workspace | Uses the compact utility entry state | Text Extractor, Index Creator, Prompt Extractor |
 | Visual workbench | No separate entry state | Diagram Generator, Graph Generator, Barcode Generator |
-| Adapted and unique workspace | No separate entry state | Map Generator, Cover Generator, Solutions Importer |
+| Adapted and unique workspace | Cover Splitter uses the compact utility entry state | Cover Generator, Cover Splitter, Map Generator, Solutions Importer |
 | Library and reference | No separate entry state | Script Buffet; Design Manual keeps its reading layout |
 
 ## Interface vocabulary
