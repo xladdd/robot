@@ -1,6 +1,6 @@
 # Robot interface system
 
-Robot uses one visual language and four interface families. New tools should start from the closest family rather than introduce a new page structure.
+Robot uses one visual language and five interface archetypes. An app may use one archetype for its entry state and another for its active state. New tools should start from the closest archetype rather than introduce a new page structure.
 
 ## Shared shell
 
@@ -15,21 +15,19 @@ The badge describes the whole visible workflow. Supporting local steps do not ma
 
 Place the tool type at the left edge of the metadata row and the processing badge at its right edge. The row follows the width of the primary panel directly below it. Badge labels use regular weight.
 
-## Interface families
+## Interface archetypes
 
 ### Compact utility
 
-Use for short tasks with one small input and an immediate result. Keep the form and result in one modest-width workspace. Inputs remain visible after generation so the user can compare or revise them.
+Use for short tasks with one small input. Keep the form and immediate result in one modest-width workspace. Inputs remain visible after generation when the user needs to compare or revise them.
 
-Current tools: GREP Builder and Barcode Generator.
-
-Text Extractor, Index Creator, GREP Builder, Cover Splitter, and Prompt Extractor share a 720 px centred entry state. Their metadata, centred title, and upload or prompt controls follow the same content width even though their active workspaces belong to different families. This archetype does not place a description between the title and primary input; longer explanations belong in the information drawer.
+Text Extractor entry, Index Creator entry, GREP Builder, Cover Splitter entry, and Prompt Extractor entry share a 720 px centred frame. Their metadata, centred title, and upload or prompt controls follow the same content width even when their active states belong to another archetype. Index Creator adds its term field inside this frame, and GREP Builder adapts it for a persistent input/result pair. Do not place a description between the title and primary input; longer explanations belong in the information drawer.
 
 ### Document workspace
 
 Use for workflows based on source documents, extraction, comparison, review, and export. Start with the shared upload state. After files are selected, place the app title and replacement-file action across the full width, then show source and output as two separate bordered panes with a consistent gap. Source begins below the title rather than occupying the title row. Keep app controls with the output pane and place export actions with the result. Hide the workspace clock, date, and name-day footer in these active editing views.
 
-Text Extractor, Index Creator, and Prompt Extractor use the same active split-view frame. Cover Splitter and Solutions Importer use the same entry-state dimensions but retain task-specific multi-file workspaces.
+Text Extractor, Index Creator, and Prompt Extractor use the same active split-view frame. Cover Splitter's active screen is an adapted document workspace: it replaces the two-pane comparison with a multi-file preview and controls, while retaining the document-led hierarchy. Solutions Importer is a unique multi-file workflow rather than a standard document workspace.
 
 ### Visual workbench
 
@@ -41,11 +39,27 @@ Cover Generator uses the same width and two-to-one body ratio. Its longer inspec
 
 Map Generator is a canvas editor rather than a titled workbench. The map fills the workspace without a title module. Its 330 px inspector uses the same top and right alignment as the Cover Generator inspector, scrolls internally, and moves to the bottom on narrow screens.
 
+### Adapted and unique workspace
+
+Use when an app has a strong task-specific structure that cannot follow a standard archetype without making the workflow harder to understand. Keep shared vocabulary, widths, title treatment, processing badges, viewport rules, toolbar behavior, and responsive gutters even when the page composition differs.
+
+Map Generator and Cover Generator are adapted visual workbenches. Solutions Importer is a unique multi-file workflow. These classifications describe the overall structure; their parts should still reuse the standard title box, viewport, toolbar, inspector, and action styles wherever those elements occur.
+
 ### Library and reference
 
 Use for browsing reusable assets or reading structured documentation. Libraries use the same 1160 px widescreen frame as visual workbenches. Provide navigation or filters before the content and keep each download attached to its item. Place installation guidance above the main toolbar. Static guidance panels stay flat; interactive selectors and their action buttons may carry shadows.
 
-Script Buffet and Solutions Importer share the library width and guide placement. Design Manual retains its own reading layout.
+Script Buffet is the current library interface. It shares the 1160 px widescreen frame with the workbenches and shares guide placement with Solutions Importer, but the two apps remain different archetypes. Design Manual retains its own reading layout.
+
+## Current interface map
+
+| Archetype | Entry state | Main state |
+| --- | --- | --- |
+| Compact utility | Text Extractor, Index Creator, Cover Splitter, Prompt Extractor | GREP Builder uses an adapted compact main state |
+| Document workspace | Uses the compact utility entry state | Text Extractor, Index Creator, Prompt Extractor; Cover Splitter is adapted |
+| Visual workbench | No separate entry state | Diagram Generator, Graph Generator, Barcode Generator |
+| Adapted and unique workspace | No separate entry state | Map Generator, Cover Generator, Solutions Importer |
+| Library and reference | No separate entry state | Script Buffet; Design Manual keeps its reading layout |
 
 ## Interface vocabulary
 
