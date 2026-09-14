@@ -33,7 +33,7 @@ Text Extractor, Index Creator, and Prompt Extractor use the same active split-vi
 
 ### Visual workbench
 
-Use for generated or edited visual material. The standard workbench is 1160 px wide. A full-width title header sits above a two-column body: the preview takes two thirds and the control panel takes one third. Both columns align at the top. The preview has a plain one-pixel border and no shadow; the control panel carries the shadow. Organize controls in workflow order.
+Use for generated or edited visual material. The standard workbench is centred in the available workspace and is 1160 px wide, with a minimum 24 px gutter at narrower sizes. A full-width title header sits above a two-column body: the preview takes two thirds and the control panel takes one third. Both columns align at the top. The preview has a plain one-pixel border and no shadow; the control panel carries the shadow. Organize controls in workflow order.
 
 Barcode Generator, Graph Generator, and Diagram Generator use this standard workbench. The reserved Image Generator should use it as well.
 

@@ -6437,8 +6437,8 @@ button {
 
 .figure-module:not(.map-module),
 .barcode-module {
-    padding-right: var(--wide-app-gutter);
-    padding-left: max(var(--wide-app-gutter), calc(100% - var(--wide-app-width) - var(--wide-app-gutter)));
+    padding-right: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
+    padding-left: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
 }
 .figure-header.tool-header,
 .barcode-header.tool-header {
@@ -6477,13 +6477,13 @@ button {
 
 .cover-module {
     position: absolute;
-    inset: var(--wide-app-gutter) var(--wide-app-gutter) auto auto;
+    inset: var(--wide-app-gutter) auto auto 50%;
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
     gap: 28px;
     width: min(var(--wide-app-width), calc(100% - 48px));
     height: calc(100% - 48px);
-    transform: none;
+    transform: translateX(-50%);
     overflow: hidden;
 }
 .cover-stage,
@@ -6535,8 +6535,8 @@ button {
 
 .solutions-module,
 .buffet-module {
-    padding-right: var(--wide-app-gutter);
-    padding-left: max(var(--wide-app-gutter), calc(100% - var(--wide-app-width) - var(--wide-app-gutter)));
+    padding-right: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
+    padding-left: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
 }
 
 @media (max-width: 900px) {

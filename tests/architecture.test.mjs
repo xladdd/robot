@@ -385,6 +385,7 @@ test("keeps the documented document and visual workspace families", async () => 
   }
   assert.ok(barcode.indexOf("barcode-preview-card") < barcode.indexOf("barcode-controls"));
   assert.match(css, /--wide-app-width:\s*1160px/);
+  assert.match(css, /calc\(\(100% - var\(--wide-app-width\)\) \/ 2\)/);
   assert.match(css, /\.solutions-module,\s*\n\.buffet-module\s*\{[^}]*var\(--wide-app-width\)/s);
   assert.match(css, /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(300px, 1fr\)/);
   assert.match(css, /\.figure-result,[\s\S]{0,240}\.solutions-detail-review\s*\{\s*box-shadow:\s*none/s);
