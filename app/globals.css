@@ -5458,6 +5458,20 @@ button {
     font-size: 13px;
     line-height: 1.65;
 }
+.figure-paper > .empty-viewport-state {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    box-sizing: border-box;
+    place-content: center;
+    justify-items: center;
+}
+.figure-paper > .empty-viewport-state > .crosshair {
+    margin: 0;
+}
 
 /* Cover title counter and inspector alignment */
 .cover-module {
