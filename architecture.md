@@ -63,6 +63,7 @@ Cons:
 - `package.json`: supported Node version, commands, and direct dependencies.
 - `package-lock.json`: exact installed dependency versions. Do not edit it by hand.
 - `next.config.ts`: Next.js settings. It currently keeps the defaults.
+- `scripts/materialize-public-links.mjs`: Vercel-only build preparation. It replaces the tracked `public/` symlinks with disposable copies in Vercel's build workspace, preventing Vercel from attempting to copy an app-owned `public` directory onto itself while retaining app ownership and stable browser URLs in Git.
 - `next-env.d.ts`: generated Next.js TypeScript declarations. Do not edit it by hand.
 - `tsconfig.json`: TypeScript checks and the `@/` path shortcut.
 - `eslint.config.mjs`: lint rules.

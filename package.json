@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/materialize-public-links.mjs",
     "build": "next build --webpack",
     "manual:pdf": "node app/_tools/design-manual/scripts/export-pdf.mjs",
     "openrouter:provision": "node --env-file-if-exists=.env.openrouter-management.local --experimental-strip-types app/_tools/openrouter/scripts/provision-keys.mts",
