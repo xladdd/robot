@@ -58,7 +58,7 @@ export function DiagramMainInterface({ language, section, label, request, refere
       </section>
       <div className="figure-preview-column">
         <section className="figure-result">
-          <div className="pane-label"><span>{t.preview}</span><span>1000 × 680 / SVG 1.1</span></div>
+          <div className="pane-label"><span>{t.preview}</span><span>1000 × 700 / SVG 1.1</span></div>
           <div className="figure-paper">{isGenerating ? <LoadingText items={diagramProcessing[language]} /> : output ? <div dangerouslySetInnerHTML={{ __html: output.svg }} /> : <EmptyViewportState>{t.empty}</EmptyViewportState>}</div>
           {output && <div className="figure-actions"><button onClick={() => onDownload(output.svg, `${output.spec.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "figure"}.svg`, "image/svg+xml")}>{t.downloadSvg}<b>↓</b></button><button onClick={() => onDownload(onVerificationMarkdown(output.report), "figure-verification.md", "text/markdown")}>{t.downloadReport}<b>↓</b></button></div>}
         </section>

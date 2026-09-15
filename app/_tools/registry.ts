@@ -86,7 +86,22 @@ export const appRegistry = [
 ] as const;
 
 export type AppId = (typeof appRegistry)[number]["id"];
+export type SidebarStatus = "tested" | "to-test" | "alpha";
 export type Language = "en" | "cs";
+
+export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
+  extraction: "tested",
+  index: "to-test",
+  map: "alpha",
+  bio: "alpha",
+  graph: "to-test",
+  cover: "to-test",
+  grep: "to-test",
+  coverSplitter: "tested",
+  solutions: "to-test",
+  barcode: "tested",
+  prompt: "to-test",
+};
 export type InfoDrawers = Record<Language, Record<string, string>>;
 
 export const groups = [

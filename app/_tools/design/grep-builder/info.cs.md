@@ -8,4 +8,4 @@ Tlačítkem Zkusit znovu se vrátíte k původním upravitelným pokynům. Výsl
 
 ### Jak to funguje?
 
-Dva krátké pokyny se odešlou chráněnou serverovou cestou do pevně zvoleného modelu Ministral 3 3B 2512 přes OpenRouter. Model vrátí samostatný výraz Najít a výraz Změnit na pro InDesign. Žádný dokument ani jeho text se neodesílá.
+Dva krátké pokyny se odešlou chráněnou serverovou cestou do pevně zvoleného modelu Ministral 3 8B 2512 přes OpenRouter. Model vrátí samostatný výraz Najít a výraz Změnit na pro InDesign. Žádný dokument ani jeho text se neodesílá.

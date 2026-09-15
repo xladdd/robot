@@ -31,7 +31,7 @@
 
 - Všechny soubory musí mít v názvu jasně uvedené datum (viz kapitola „Nahrávání na Dropbox“) a starší verze je nutné přesunout do složky `archiv`.
 
-- U InDesignových balíčků nenahrávejte složku `Links` při každé aktualizaci znovu; aktualizujte pouze její obsah, aby se zbytečně nezabíralo místo na Dropboxu. Archivujte pouze soubory `.indd` a `.idml`.
+- U balíčků InDesignu není nutné při každé aktualizaci znovu nahrávat složku `Links`, protože na Dropboxu zbytečně zabírá místo. Pokud se v ní **určitě nic nezměnilo**, stačí nahrát pouze soubory `.indd` a `.idml`, jejich starší verze archivovat a složky `Links` a `Fonts` ponechat beze změny. Pokud si nejste jistí, raději nahrajte celý balíček.
 
 ## Kompatibilita fontů mezi Windows a macOS
 

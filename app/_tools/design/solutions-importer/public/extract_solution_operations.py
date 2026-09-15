@@ -17,9 +17,8 @@ from xml.etree import ElementTree as ET
 import pdfplumber
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTChar, LTContainer
-from pdfminer.pdftypes import resolve1
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
-
+from pdfminer.pdftypes import resolve1
 
 POSITION_TOLERANCE = 0.9
 LINE_TOLERANCE = 4.0
@@ -34,32 +33,186 @@ def close(a: float, b: float, tolerance: float = POSITION_TOLERANCE) -> bool:
     return abs(a - b) <= tolerance
 
 
+LIGATURE_REPLACEMENTS = str.maketrans(
+    {
+        "ﬁ": "fi",
+        "ﬂ": "fl",
+        "ﬀ": "ff",
+        "ﬃ": "ffi",
+        "ﬄ": "ffl",
+    }
+)
+
+
+def comparison_text(value: object) -> str:
+    return str(value or "").translate(LIGATURE_REPLACEMENTS)
+
+
 def same_character(a: dict, b: dict) -> bool:
+    return comparison_text(a.get("text")) == comparison_text(
+        b.get("text")
+    ) and same_bounds(a, b)
+
+
+def same_bounds(a: dict, b: dict) -> bool:
     return (
-        a.get("text") == b.get("text")
-        and close(float(a["x0"]), float(b["x0"]))
+        close(float(a["x0"]), float(b["x0"]))
         and close(float(a["top"]), float(b["top"]))
         and close(float(a["x1"]), float(b["x1"]))
         and close(float(a["bottom"]), float(b["bottom"]))
     )
 
 
-def page_geometry(page, use_trim_box: bool) -> dict:
-    attrs = page.page_obj.attrs
-    media = [float(value) for value in resolve1(attrs.get("MediaBox"))]
-    box = media
-    if use_trim_box and attrs.get("TrimBox") is not None:
-        box = [float(value) for value in resolve1(attrs.get("TrimBox"))]
+def union_character_bounds(characters: list[dict]) -> dict:
     return {
-        "offset_x": box[0] - media[0],
-        "offset_top": media[3] - box[3],
-        "width": box[2] - box[0],
-        "height": box[3] - box[1],
-        "trimmed": use_trim_box and any(not close(box[index], media[index], 0.05) for index in range(4)),
+        "x0": min(float(character["x0"]) for character in characters),
+        "top": min(float(character["top"]) for character in characters),
+        "x1": max(float(character["x1"]) for character in characters),
+        "bottom": max(float(character["bottom"]) for character in characters),
     }
 
 
-def matching_page_geometries(clean_page, manuscript_page, use_trim_boxes: bool) -> tuple[dict, dict]:
+def grouped_match(
+    blank_chars: list[dict], manuscript: dict, used: set[int]
+) -> list[int] | None:
+    """Match one grouped PDF.js item to adjacent clean text items.
+
+    PDF.js may return a clean title as separate items (``U``, ``1``) but
+    return the identical manuscript title as one item (``U1``). Treating the
+    item strings as glyphs would incorrectly report unchanged text as an
+    addition. Only accept a grouped match when both text and the union bounds
+    agree, so a genuinely added phrase cannot consume nearby source text.
+    """
+    target = comparison_text(manuscript.get("text", ""))
+    if len(target) < 2:
+        return None
+
+    for start, candidate in enumerate(blank_chars):
+        candidate_text = comparison_text(candidate.get("text", ""))
+        if start in used or not target.startswith(candidate_text):
+            continue
+        matched = [start]
+        text = candidate_text
+        if not text or len(text) >= len(target):
+            continue
+        for index in range(start + 1, len(blank_chars)):
+            if index in used:
+                continue
+            next_character = blank_chars[index]
+            next_text = comparison_text(next_character.get("text", ""))
+            if not next_text:
+                continue
+            previous = blank_chars[matched[-1]]
+            if float(next_character["x0"]) < float(previous["x0"]):
+                break
+            top_distance = abs(float(next_character["top"]) - float(previous["top"]))
+            line_tolerance = max(
+                LINE_TOLERANCE,
+                min(
+                    float(next_character.get("size", 0)), float(previous.get("size", 0))
+                )
+                * 0.5,
+            )
+            if top_distance > line_tolerance:
+                break
+            text += next_text
+            matched.append(index)
+            if text == target:
+                union = union_character_bounds([blank_chars[item] for item in matched])
+                if same_bounds(union, manuscript):
+                    return matched
+                break
+            if not target.startswith(text):
+                break
+    return None
+
+
+def _pdf_box(attrs: dict, name: str) -> list[float] | None:
+    value = attrs.get(name)
+    if value is None:
+        return None
+    values = [float(item) for item in resolve1(value)]
+    if len(values) != 4:
+        raise ValueError(f"PDF {name} must contain four coordinates")
+    return [
+        min(values[0], values[2]),
+        min(values[1], values[3]),
+        max(values[0], values[2]),
+        max(values[1], values[3]),
+    ]
+
+
+def _page_rotation(page) -> int:
+    value = getattr(page, "rotation", None)
+    if value is None:
+        value = page.page_obj.attrs.get("Rotate", 0)
+    rotation = int(float(resolve1(value or 0))) % 360
+    if rotation not in (0, 90, 180, 270):
+        raise ValueError(f"Unsupported PDF page rotation: {rotation} degrees")
+    return rotation
+
+
+def _displayed_box_offset(
+    box: list[float], media: list[float], rotation: int
+) -> tuple[float, float]:
+    if rotation == 0:
+        return box[0] - media[0], media[3] - box[3]
+    if rotation == 90:
+        return box[1] - media[1], box[0] - media[0]
+    if rotation == 180:
+        return media[2] - box[2], box[1] - media[1]
+    return media[3] - box[3], media[2] - box[2]
+
+
+def page_geometry(page, use_trim_box: bool) -> dict:
+    attrs = page.page_obj.attrs
+    media = _pdf_box(attrs, "MediaBox")
+    if media is None:
+        raise ValueError("PDF page has no MediaBox")
+    crop = _pdf_box(attrs, "CropBox")
+    if crop is None:
+        view = list(media)
+    else:
+        view = [
+            max(media[0], crop[0]),
+            max(media[1], crop[1]),
+            min(media[2], crop[2]),
+            min(media[3], crop[3]),
+        ]
+        if view[2] <= view[0] or view[3] <= view[1]:
+            raise ValueError("PDF CropBox does not intersect its MediaBox")
+
+    trim = _pdf_box(attrs, "TrimBox") if use_trim_box else None
+    box = trim or list(media)
+    rotation = _page_rotation(page)
+    offset_x, offset_top = _displayed_box_offset(box, media, rotation)
+    view_offset_x, view_offset_top = _displayed_box_offset(view, media, rotation)
+    swaps_dimensions = rotation in (90, 270)
+    raw_width = box[2] - box[0]
+    raw_height = box[3] - box[1]
+    return {
+        # pdfminer coordinates are MediaBox-local in displayed orientation.
+        "offset_x": offset_x,
+        "offset_top": offset_top,
+        # PDF.js coordinates are view-local in displayed orientation.
+        "view_offset_x": view_offset_x,
+        "view_offset_top": view_offset_top,
+        "media_width": media[1] - media[0] if swaps_dimensions else media[2] - media[0],
+        "media_height": media[2] - media[0]
+        if swaps_dimensions
+        else media[3] - media[1],
+        "width": raw_height if swaps_dimensions else raw_width,
+        "height": raw_width if swaps_dimensions else raw_height,
+        "box": box,
+        "rotation": rotation,
+        "trimmed": use_trim_box
+        and any(not close(box[index], media[index], 0.05) for index in range(4)),
+    }
+
+
+def matching_page_geometries(
+    clean_page, manuscript_page, use_trim_boxes: bool
+) -> tuple[dict, dict]:
     clean_geometry = page_geometry(clean_page, use_trim_boxes)
     manuscript_geometry = page_geometry(manuscript_page, use_trim_boxes)
     if close(clean_geometry["width"], manuscript_geometry["width"], 0.1) and close(
@@ -107,7 +260,7 @@ def collect_layout_characters(item, characters: list) -> None:
             collect_layout_characters(child, characters)
 
 
-def text_only_characters(page) -> list[dict]:
+def text_only_characters(page, geometry: dict) -> list[dict]:
     """Extract glyphs without constructing vectors or images from the PDF page."""
     resource_manager = PDFResourceManager()
     device = TextOnlyPageAggregator(resource_manager, laparams=LAParams())
@@ -116,7 +269,7 @@ def text_only_characters(page) -> list[dict]:
 
     layout_characters: list = []
     collect_layout_characters(device.get_result(), layout_characters)
-    page_height = float(page.height)
+    page_height = float(geometry["media_height"])
     return [
         {
             "text": character.get_text(),
@@ -132,7 +285,7 @@ def text_only_characters(page) -> list[dict]:
 
 def normalized_characters(page, geometry: dict) -> list[dict]:
     result = []
-    for source in text_only_characters(page):
+    for source in text_only_characters(page, geometry):
         char = dict(source)
         char["x0"] = float(char["x0"]) - geometry["offset_x"]
         char["x1"] = float(char["x1"]) - geometry["offset_x"]
@@ -148,15 +301,19 @@ def normalized_characters(page, geometry: dict) -> list[dict]:
     return result
 
 
-def normalized_preprocessed_characters(characters: list[dict], geometry: dict) -> list[dict]:
-    """Shift positioned text supplied by PDF.js into the selected page box."""
+def normalized_preprocessed_characters(
+    characters: list[dict], geometry: dict
+) -> list[dict]:
+    """Shift PDF.js view-local text into the selected page box."""
+    preprocessed_offset_x = geometry["offset_x"] - geometry["view_offset_x"]
+    preprocessed_offset_top = geometry["offset_top"] - geometry["view_offset_top"]
     result = []
     for source in characters:
         char = dict(source)
-        char["x0"] = float(char["x0"]) - geometry["offset_x"]
-        char["x1"] = float(char["x1"]) - geometry["offset_x"]
-        char["top"] = float(char["top"]) - geometry["offset_top"]
-        char["bottom"] = float(char["bottom"]) - geometry["offset_top"]
+        char["x0"] = float(char["x0"]) - preprocessed_offset_x
+        char["x1"] = float(char["x1"]) - preprocessed_offset_x
+        char["top"] = float(char["top"]) - preprocessed_offset_top
+        char["bottom"] = float(char["bottom"]) - preprocessed_offset_top
         if (
             char["x1"] >= -1
             and char["x0"] <= geometry["width"] + 1
@@ -167,8 +324,10 @@ def normalized_preprocessed_characters(characters: list[dict], geometry: dict) -
     return result
 
 
-def subtract_characters(blank_chars: list[dict], manuscript_chars: list[dict]) -> list[dict]:
-    """Subtract matching glyphs without scanning every repeated character."""
+def subtract_characters(
+    blank_chars: list[dict], manuscript_chars: list[dict]
+) -> list[dict]:
+    """Subtract matching text items, including safely grouped PDF.js items."""
     buckets: dict[str, dict[tuple[int, int], list[tuple[int, dict]]]] = defaultdict(
         lambda: defaultdict(list)
     )
@@ -177,7 +336,7 @@ def subtract_characters(blank_chars: list[dict], manuscript_chars: list[dict]) -
             int(math.floor(float(char["x0"]) / POSITION_TOLERANCE)),
             int(math.floor(float(char["top"]) / POSITION_TOLERANCE)),
         )
-        buckets[str(char.get("text", ""))][cell].append((index, char))
+        buckets[comparison_text(char.get("text", ""))][cell].append((index, char))
 
     used: set[int] = set()
     additions: list[dict] = []
@@ -186,7 +345,7 @@ def subtract_characters(blank_chars: list[dict], manuscript_chars: list[dict]) -
         y_cell = int(math.floor(float(char["top"]) / POSITION_TOLERANCE))
         match_index = None
         match_distance = math.inf
-        glyph_buckets = buckets.get(str(char.get("text", "")), {})
+        glyph_buckets = buckets.get(comparison_text(char.get("text", "")), {})
         for x_offset in (-1, 0, 1):
             for y_offset in (-1, 0, 1):
                 for index, candidate in glyph_buckets.get(
@@ -200,15 +359,23 @@ def subtract_characters(blank_chars: list[dict], manuscript_chars: list[dict]) -
                     if distance < match_distance:
                         match_index = index
                         match_distance = distance
-        if match_index is None:
-            additions.append(char)
-        else:
+        if match_index is not None:
             used.add(match_index)
+            continue
+
+        grouped = grouped_match(blank_chars, char, used)
+        if grouped is not None:
+            used.update(grouped)
+            continue
+
+        additions.append(char)
     return additions
 
 
 def group_into_lines(chars: list[dict]) -> list[dict]:
-    chars = sorted(chars, key=lambda char: (round(float(char["top"]), 1), float(char["x0"])))
+    chars = sorted(
+        chars, key=lambda char: (round(float(char["top"]), 1), float(char["x0"]))
+    )
     lines: list[list[dict]] = []
     for char in chars:
         for line in lines:
@@ -239,8 +406,10 @@ def group_into_lines(chars: list[dict]) -> list[dict]:
                 if visible and previous_visible is not None
                 else 0
             )
-            if visible and previous_visible is not None and visible_gap > max(
-                typical_size * 0.5, 6.0
+            if (
+                visible
+                and previous_visible is not None
+                and visible_gap > max(typical_size * 0.5, 6.0)
             ):
                 run = make_run(current)
                 if run:
@@ -320,7 +489,9 @@ def parse_idml(path: Path) -> dict:
         try:
             design_map = ET.fromstring(archive.read("designmap.xml"))
         except (KeyError, ET.ParseError) as error:
-            raise ValueError("The selected file is not a readable IDML document") from error
+            raise ValueError(
+                "The selected file is not a readable IDML document"
+            ) from error
 
         layers = []
         spread_sources = []
@@ -347,7 +518,9 @@ def parse_idml(path: Path) -> dict:
             for element in root.iter():
                 name = local_name(element.tag)
                 if name == "Page":
-                    page_names.append(element.attrib.get("Name", str(len(page_names) + 1)))
+                    page_names.append(
+                        element.attrib.get("Name", str(len(page_names) + 1))
+                    )
                 elif name == "Link":
                     uri = element.attrib.get("LinkResourceURI", "")
                     if uri:
@@ -395,7 +568,9 @@ def parse_idml(path: Path) -> dict:
                 root = ET.fromstring(archive.read(name))
             except ET.ParseError:
                 continue
-            table_count += sum(local_name(element.tag) == "Table" for element in root.iter())
+            table_count += sum(
+                local_name(element.tag) == "Table" for element in root.iter()
+            )
 
     return {
         "name": path.name,
@@ -429,7 +604,10 @@ def stroke_metrics(points: list[list[float]]) -> dict:
     left, right = min(xs), max(xs)
     top, bottom = min(ys), max(ys)
     path_length = sum(
-        math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1])
+        math.hypot(
+            points[index][0] - points[index - 1][0],
+            points[index][1] - points[index - 1][1],
+        )
         for index in range(1, len(points))
     )
     endpoint_distance = math.hypot(
@@ -461,7 +639,9 @@ def union_bounds(first: list[float], second: list[float]) -> list[float]:
 def hue_name(color: list[float]) -> str:
     if len(color) < 3:
         return "unknown"
-    hue, saturation, value = colorsys.rgb_to_hsv(*[max(0, min(1, channel)) for channel in color[:3]])
+    hue, saturation, value = colorsys.rgb_to_hsv(
+        *[max(0, min(1, channel)) for channel in color[:3]]
+    )
     degrees = hue * 360
     if saturation < 0.16:
         return "gray" if value < 0.92 else "neutral"
@@ -482,7 +662,40 @@ def hue_name(color: list[float]) -> str:
     return "red"
 
 
-def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[dict], int]:
+def _raw_point_to_selected(
+    point: tuple[float, float], geometry: dict
+) -> tuple[float, float]:
+    """Convert a raw PDF point to selected-box-local displayed (x, top) space."""
+    x, y = point
+    left, bottom, right, top = geometry["box"]
+    rotation = geometry["rotation"]
+    if rotation == 0:
+        return x - left, top - y
+    if rotation == 90:
+        return y - bottom, x - left
+    if rotation == 180:
+        return right - x, y - bottom
+    return top - y, right - x
+
+
+def _raw_rect_to_selected_bounds(rect: list[float], geometry: dict) -> list[float]:
+    left, bottom, right, top = rect
+    corners = [
+        _raw_point_to_selected((x, y), geometry)
+        for x in (left, right)
+        for y in (bottom, top)
+    ]
+    return rounded_bounds(
+        min(point[1] for point in corners),
+        min(point[0] for point in corners),
+        max(point[1] for point in corners),
+        max(point[0] for point in corners),
+    )
+
+
+def extract_annotations(
+    page, page_number: int, geometry: dict
+) -> tuple[list[dict], int]:
     raw_annotations = page.page_obj.attrs.get("Annots")
     annotations = resolve1(raw_annotations) if raw_annotations is not None else []
     operations: list[dict] = []
@@ -506,12 +719,7 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
                 continue
             if contents.strip():
                 rect = [float(value) for value in resolve1(annotation.get("Rect"))]
-                bounds = rounded_bounds(
-                    page.height - rect[3] - geometry["offset_top"],
-                    rect[0] - geometry["offset_x"],
-                    page.height - rect[1] - geometry["offset_top"],
-                    rect[2] - geometry["offset_x"],
-                )
+                bounds = _raw_rect_to_selected_bounds(rect, geometry)
                 operations.append(
                     {
                         "id": f"p{page_number:03d}-note-{operation_number:03d}",
@@ -538,8 +746,10 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
             values = [float(value) for value in resolve1(raw_stroke)]
             points = [
                 [
-                    round(values[index] - geometry["offset_x"], 3),
-                    round(float(page.height) - values[index + 1] - geometry["offset_top"], 3),
+                    round(coordinate, 3)
+                    for coordinate in _raw_point_to_selected(
+                        (values[index], values[index + 1]), geometry
+                    )
                 ]
                 for index in range(0, len(values) - 1, 2)
             ]
@@ -551,7 +761,9 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
             ignored += 1
             continue
 
-        color = [round(float(value), 6) for value in (resolve1(annotation.get("C")) or [])]
+        color = [
+            round(float(value), 6) for value in (resolve1(annotation.get("C")) or [])
+        ]
         opacity = round(float(annotation.get("CA", 1)), 4)
         border_style = resolve1(annotation.get("BS")) or {}
         stroke_width = round(float(border_style.get("W", 6)), 3)
@@ -580,7 +792,10 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
                     and abs(second["dx"]) > 2
                     and abs(second["dy"]) > 2
                 )
-                if not second_linear or first["dx"] * first["dy"] * second["dx"] * second["dy"] >= 0:
+                if (
+                    not second_linear
+                    or first["dx"] * first["dy"] * second["dx"] * second["dy"] >= 0
+                ):
                     continue
                 union = union_bounds(first["bounds"], second["bounds"])
                 width = union[3] - union[1]
@@ -589,7 +804,10 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
                     first["center"][0] - second["center"][0],
                     first["center"][1] - second["center"][1],
                 )
-                if min(width, height) < 5 or max(width, height) / max(min(width, height), 0.1) > 3:
+                if (
+                    min(width, height) < 5
+                    or max(width, height) / max(min(width, height), 0.1) > 3
+                ):
                     continue
                 if center_distance > max(first["diagonal"], second["diagonal"]) * 0.55:
                     continue
@@ -636,7 +854,9 @@ def extract_annotations(page, page_number: int, geometry: dict) -> tuple[list[di
                 operation_number += 1
                 consumed.add(index)
 
-        remaining = [stroke for index, stroke in enumerate(strokes) if index not in consumed]
+        remaining = [
+            stroke for index, stroke in enumerate(strokes) if index not in consumed
+        ]
         if remaining:
             bounds = remaining[0]["bounds"]
             for stroke in remaining[1:]:
@@ -675,7 +895,10 @@ def extract(
     preprocessed_manuscript_pages: list[dict] | None = None,
 ) -> dict:
     document = parse_idml(idml_path)
-    with pdfplumber.open(clean_path) as clean, pdfplumber.open(manuscript_path) as manuscript:
+    with (
+        pdfplumber.open(clean_path) as clean,
+        pdfplumber.open(manuscript_path) as manuscript,
+    ):
         if len(clean.pages) != len(manuscript.pages):
             raise ValueError(
                 f"Page-count mismatch: clean PDF has {len(clean.pages)}, manuscript has {len(manuscript.pages)}"
@@ -684,10 +907,18 @@ def extract(
             raise ValueError(
                 f"Page-count mismatch: IDML has {document['page_count']}, PDFs have {len(manuscript.pages)}"
             )
-        if preprocessed_clean_pages is not None and len(preprocessed_clean_pages) != len(clean.pages):
-            raise ValueError("Clean PDF text extraction returned an unexpected page count")
-        if preprocessed_manuscript_pages is not None and len(preprocessed_manuscript_pages) != len(manuscript.pages):
-            raise ValueError("Manuscript PDF text extraction returned an unexpected page count")
+        if preprocessed_clean_pages is not None and len(
+            preprocessed_clean_pages
+        ) != len(clean.pages):
+            raise ValueError(
+                "Clean PDF text extraction returned an unexpected page count"
+            )
+        if preprocessed_manuscript_pages is not None and len(
+            preprocessed_manuscript_pages
+        ) != len(manuscript.pages):
+            raise ValueError(
+                "Manuscript PDF text extraction returned an unexpected page count"
+            )
 
         pages = []
         ignored_annotations = 0
@@ -708,7 +939,8 @@ def extract(
             )
             manuscript_chars = (
                 normalized_preprocessed_characters(
-                    preprocessed_manuscript_pages[page_number - 1]["chars"], manuscript_geometry
+                    preprocessed_manuscript_pages[page_number - 1]["chars"],
+                    manuscript_geometry,
                 )
                 if preprocessed_manuscript_pages is not None
                 else normalized_characters(manuscript_page, manuscript_geometry)
@@ -729,7 +961,9 @@ def extract(
                         "status": "review" if source_edit else "ready",
                         "enabled": not source_edit,
                         **(
-                            {"review_reason": "overlaps text changed from the clean PDF"}
+                            {
+                                "review_reason": "overlaps text changed from the clean PDF"
+                            }
                             if source_edit
                             else {}
                         ),
@@ -751,7 +985,12 @@ def extract(
                 }
             )
             if progress:
-                progress(page_number, len(manuscript.pages), len(runs), len(annotation_operations))
+                progress(
+                    page_number,
+                    len(manuscript.pages),
+                    len(runs),
+                    len(annotation_operations),
+                )
 
     counts = Counter(
         operation["kind"] for page in pages for operation in page["operations"]

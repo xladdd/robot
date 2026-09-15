@@ -11,6 +11,8 @@ import {
   validateGraphSpec,
   type RenderSwatch,
 } from "./graph";
+import type { NumberLocale } from "./scales.ts";
+
 const MAX_INPUT_LENGTH = 20_000;
 const MAX_REFERENCES = 3;
 const MAX_REFERENCE_LENGTH = 7_000_000;
@@ -23,13 +25,18 @@ const responseSchema = {
     figure: {
       type: ["object", "null"],
       properties: {
-        version: { type: "integer", enum: [1] },
-        kind: { type: "string", enum: ["line", "bar"] },
+        version: { type: "integer", enum: [2] },
+        kind: {
+          type: "string",
+          enum: ["line", "bar", "combined", "scatter", "donut"],
+        },
         title: { type: "string" },
         subtitle: { type: "string" },
         xLabel: { type: "string" },
         yLabel: { type: "string" },
         unit: { type: "string" },
+        rightYLabel: { type: "string" },
+        rightYUnit: { type: "string" },
         categories: { type: "array", items: { type: "string" } },
         series: {
           type: "array",
@@ -39,11 +46,64 @@ const responseSchema = {
               label: { type: "string" },
               values: { type: "array", items: { type: "number" } },
               sourceIds: { type: "array", items: { type: "string" } },
+              mark: { type: "string", enum: ["bar", "line"] },
+              axis: { type: "string", enum: ["left", "right"] },
+              showValues: { type: "boolean" },
+              showMarkers: { type: "boolean" },
             },
-            required: ["label", "values", "sourceIds"],
+            required: [
+              "label",
+              "values",
+              "sourceIds",
+              "mark",
+              "axis",
+              "showValues",
+              "showMarkers",
+            ],
             additionalProperties: false,
           },
         },
+        points: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              x: { type: "number" },
+              y: { type: "number" },
+              label: { type: "string" },
+              sourceIds: { type: "array", items: { type: "string" } },
+            },
+            required: ["x", "y", "label", "sourceIds"],
+            additionalProperties: false,
+          },
+        },
+        slices: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string" },
+              value: { type: "number" },
+              sourceIds: { type: "array", items: { type: "string" } },
+            },
+            required: ["label", "value", "sourceIds"],
+            additionalProperties: false,
+          },
+        },
+        yMin: { type: ["number", "null"] },
+        yMax: { type: ["number", "null"] },
+        rightYMin: { type: ["number", "null"] },
+        rightYMax: { type: ["number", "null"] },
+        xMin: { type: ["number", "null"] },
+        xMax: { type: ["number", "null"] },
+        showLegend: { type: "boolean" },
+        showGridlines: { type: "boolean" },
+        showVerticalGridlines: { type: "boolean" },
+        showValueLabels: { type: "boolean" },
+        trendLine: { type: "boolean" },
+        centerLabel: { type: "string" },
+        slicesArePercentages: { type: "boolean" },
+        locale: { type: "string", enum: ["en", "cs"] },
         sources: {
           type: "array",
           items: {
@@ -67,8 +127,26 @@ const responseSchema = {
         "xLabel",
         "yLabel",
         "unit",
+        "rightYLabel",
+        "rightYUnit",
         "categories",
         "series",
+        "points",
+        "slices",
+        "yMin",
+        "yMax",
+        "rightYMin",
+        "rightYMax",
+        "xMin",
+        "xMax",
+        "showLegend",
+        "showGridlines",
+        "showVerticalGridlines",
+        "showValueLabels",
+        "trendLine",
+        "centerLabel",
+        "slicesArePercentages",
+        "locale",
         "sources",
         "notes",
       ],
@@ -92,6 +170,7 @@ export async function POST(request: Request) {
       references?: unknown;
       palette?: unknown;
       evaluationModel?: unknown;
+      language?: unknown;
     };
     const userRequest =
       typeof body.request === "string" ? body.request.trim() : "";
@@ -102,6 +181,7 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    const language: NumberLocale = body.language === "cs" ? "cs" : "en";
     const references = Array.isArray(body.references) ? body.references : [];
     if (
       references.length > MAX_REFERENCES ||
@@ -176,12 +256,15 @@ export async function POST(request: Request) {
       ...(model.startsWith("qwen/") ? { reasoning: { enabled: false } } : {}),
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userRequest },
+        {
+          role: "user",
+          content: `${language === "cs" ? "Respond in Czech where text must be generated.\n\n" : "Respond in English where text must be generated.\n\n"}${userRequest}`,
+        },
       ],
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "verified_chart",
+          name: "verified_chart_v2",
           strict: true,
           schema: responseSchema,
         },
@@ -208,7 +291,7 @@ export async function POST(request: Request) {
     }
     if (typeof parsed.error === "string" && parsed.error.trim())
       return NextResponse.json({ error: parsed.error.trim() }, { status: 422 });
-    const { spec, checks } = validateGraphSpec(parsed.figure);
+    const { spec, checks } = validateGraphSpec(parsed.figure, { language });
     if (swatches.length)
       checks.push({
         level: "pass",

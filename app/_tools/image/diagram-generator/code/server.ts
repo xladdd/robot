@@ -9,6 +9,7 @@ import {
   createDiagramReport,
   renderDiagramSvg,
   validateDiagramSpec,
+  type DiagramUsage,
   type RenderSwatch,
 } from "./diagram";
 const MAX_INPUT_LENGTH = 20_000;
@@ -23,63 +24,146 @@ const diagramSchema = {
     diagram: {
       type: ["object", "null"],
       properties: {
-        version: { type: "integer", enum: [1] },
+        version: { type: "integer", enum: [2] },
         kind: { type: "string", enum: ["biology"] },
         title: { type: "string" },
         subtitle: { type: "string" },
         subject: { type: "string" },
-        outline: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: { x: { type: "number" }, y: { type: "number" } },
-            required: ["x", "y"],
-            additionalProperties: false,
-          },
+        diagramType: {
+          type: "string",
+          enum: ["anatomy", "process", "cross-section", "sequence"],
         },
-        structures: {
+        canvas: {
+          type: "object",
+          properties: {
+            width: { type: "number" },
+            height: { type: "number" },
+          },
+          required: ["width", "height"],
+          additionalProperties: false,
+        },
+        panels: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              label: { type: "string" },
-              description: { type: "string" },
-              shape: {
-                type: "string",
-                enum: ["ellipse", "circle", "dots", "vacuole"],
-              },
+              id: { type: "string" },
+              title: { type: "string" },
               x: { type: "number" },
               y: { type: "number" },
               width: { type: "number" },
               height: { type: "number" },
-              labelX: { type: "number" },
-              labelY: { type: "number" },
-              color: {
+            },
+            required: ["id", "title", "x", "y", "width", "height"],
+            additionalProperties: false,
+          },
+        },
+        elements: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              type: {
                 type: "string",
                 enum: [
-                  "orange",
-                  "teal",
-                  "purple",
-                  "pink",
-                  "green",
-                  "yellow",
-                  "blue",
-                  "grey",
+                  "organic",
+                  "open-path",
+                  "ellipse",
+                  "circle",
+                  "tube",
+                  "membrane-network",
+                  "cisternae",
+                  "vesicle",
+                  "vacuole",
+                  "dots",
+                  "layer",
+                  "chromosome",
+                  "spindle",
+                  "centrosome",
                 ],
+              },
+              description: { type: "string" },
+              x: { type: "number" },
+              y: { type: "number" },
+              width: { type: "number" },
+              height: { type: "number" },
+              color: { type: "string" },
+              panelId: { type: ["string", "null"] },
+              rotation: { type: "number" },
+              points: {
+                type: ["array", "null"],
+                items: {
+                  type: "object",
+                  properties: {
+                    x: { type: "number" },
+                    y: { type: "number" },
+                  },
+                  required: ["x", "y"],
+                  additionalProperties: false,
+                },
               },
             },
             required: [
-              "label",
+              "id",
+              "type",
               "description",
-              "shape",
               "x",
               "y",
               "width",
               "height",
-              "labelX",
-              "labelY",
               "color",
+              "panelId",
+              "rotation",
+              "points",
             ],
+            additionalProperties: false,
+          },
+        },
+        labels: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              text: { type: "string" },
+              targetId: { type: "string" },
+              x: { type: "number" },
+              y: { type: "number" },
+              leader: {
+                type: "string",
+                enum: ["straight", "elbow", "bracket", "none"],
+              },
+            },
+            required: ["id", "text", "targetId", "x", "y", "leader"],
+            additionalProperties: false,
+          },
+        },
+        connections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              from: { type: "string" },
+              to: { type: "string" },
+              arrow: { type: "string", enum: ["none", "start", "end", "both"] },
+              route: { type: "string", enum: ["straight", "elbow"] },
+              label: { type: "string" },
+              points: {
+                type: ["array", "null"],
+                items: {
+                  type: "object",
+                  properties: {
+                    x: { type: "number" },
+                    y: { type: "number" },
+                  },
+                  required: ["x", "y"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["id", "from", "to", "arrow", "route", "label", "points"],
             additionalProperties: false,
           },
         },
@@ -92,8 +176,12 @@ const diagramSchema = {
         "title",
         "subtitle",
         "subject",
-        "outline",
-        "structures",
+        "diagramType",
+        "canvas",
+        "panels",
+        "elements",
+        "labels",
+        "connections",
         "notes",
         "referenceSummary",
       ],
@@ -117,6 +205,7 @@ export async function POST(request: Request) {
       mode?: unknown;
       references?: unknown;
       palette?: unknown;
+      language?: unknown;
       evaluationModel?: unknown;
     };
     const userRequest =
@@ -193,15 +282,26 @@ export async function POST(request: Request) {
       evaluationModels.has(body.evaluationModel)
         ? body.evaluationModel
         : configuredModel;
+    const outputLanguage =
+      body.language === "cs" || body.language === "en"
+        ? body.language
+        : /[ěščřžýáíéúůďťňó]/i.test(userRequest)
+          ? "cs"
+          : "en";
+    const languageInstruction =
+      outputLanguage === "cs"
+        ? "Výstupní jazyk: čeština. Všechny viditelné názvy, titulky a popisky napiš česky."
+        : "Output language: English. Write all visible titles and labels in English.";
+    const userText = `${languageInstruction}\n\nUser request:\n${userRequest}`;
     const userContent = references.length
       ? [
-          { type: "text", text: userRequest },
+          { type: "text", text: userText },
           ...references.map((url) => ({
             type: "image_url",
             image_url: { url },
           })),
         ]
-      : userRequest;
+      : userText;
     const { response, result } = await requestOpenRouter<{
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
@@ -249,6 +349,22 @@ export async function POST(request: Request) {
         level: "pass",
         message: `${swatches.length} locally parsed Adobe swatches were applied in file order.`,
       });
+    const usage: DiagramUsage = {
+      generationId: typeof result.id === "string" ? result.id : null,
+      cost: typeof result.usage?.cost === "number" ? result.usage.cost : null,
+      promptTokens:
+        typeof result.usage?.prompt_tokens === "number"
+          ? result.usage.prompt_tokens
+          : null,
+      completionTokens:
+        typeof result.usage?.completion_tokens === "number"
+          ? result.usage.completion_tokens
+          : null,
+      totalTokens:
+        typeof result.usage?.total_tokens === "number"
+          ? result.usage.total_tokens
+          : null,
+    };
     return NextResponse.json({
       spec,
       svg: renderDiagramSvg(spec, swatches),
@@ -259,8 +375,11 @@ export async function POST(request: Request) {
         model,
         references.length,
         swatches,
+        usage,
       ),
       model,
+      generationId: usage.generationId,
+      usage,
     });
   } catch (error) {
     return NextResponse.json(

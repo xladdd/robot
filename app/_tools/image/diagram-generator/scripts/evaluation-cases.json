@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "description": "Controlled Diagram Generator evaluation cases from the diagram testing brief. The first case is the English primary benchmark, followed by its Czech equivalent and the five supplied prompts.",
+  "cases": [
+    {
+      "id": "01-intracellular-en",
+      "name": "Intracellular vesicle transport — English",
+      "language": "en",
+      "kind": "primary",
+      "prompt": "Scientific textbook illustration of intracellular vesicle transport, showing ER, Golgi, secretion, endocytosis and lysosome, clean flat vector style.",
+      "requiredLabels": [
+        {
+          "name": "ER",
+          "anyOf": [
+            "ER",
+            "endoplasmic reticulum",
+            "rough endoplasmic reticulum"
+          ]
+        },
+        {
+          "name": "Golgi",
+          "anyOf": ["Golgi", "Golgi apparatus", "Golgi complex"]
+        },
+        { "name": "secretion", "anyOf": ["secretion", "exocytosis"] },
+        { "name": "endocytosis", "anyOf": ["endocytosis"] },
+        { "name": "lysosome", "anyOf": ["lysosome", "lysosomes"] }
+      ],
+      "requiredConnections": [
+        {
+          "name": "ER to Golgi",
+          "anyOf": ["ER to Golgi", "ER-Golgi", "transport"]
+        },
+        {
+          "name": "Golgi to secretion",
+          "anyOf": ["Golgi to secretion", "secretion", "exocytosis"]
+        },
+        {
+          "name": "endocytosis to lysosome",
+          "anyOf": ["endocytosis to lysosome", "endocytosis", "lysosome"]
+        }
+      ]
+    },
+    {
+      "id": "02-intracellular-cs",
+      "name": "Intracelulární vezikulární transport — česky",
+      "language": "cs",
+      "kind": "language-parity",
+      "prompt": "Vědecká učebnicová ilustrace intracelulárního vezikulárního transportu zobrazující endoplazmatické retikulum, Golgiho aparát, sekreci, endocytózu a lysozom, v čistém plochém vektorovém stylu.",
+      "requiredLabels": [
+        {
+          "name": "endoplazmatické retikulum",
+          "anyOf": [
+            "endoplazmatické retikulum",
+            "drsné endoplazmatické retikulum",
+            "ER"
+          ]
+        },
+        {
+          "name": "Golgiho aparát",
+          "anyOf": ["Golgiho aparát", "Golgiho komplex", "Golgi"]
+        },
+        { "name": "sekrece", "anyOf": ["sekrece", "exocytóza"] },
+        { "name": "endocytóza", "anyOf": ["endocytóza"] },
+        { "name": "lysozom", "anyOf": ["lysozom", "lysozomy"] }
+      ],
+      "requiredConnections": [
+        {
+          "name": "ER k Golgiho aparátu",
+          "anyOf": ["transport", "ER", "Golgiho"]
+        },
+        {
+          "name": "Golgiho aparát k sekreci",
+          "anyOf": ["sekrece", "exocytóza", "Golgiho"]
+        },
+        { "name": "endocytóza k lysozomu", "anyOf": ["endocytóza", "lysozom"] }
+      ]
+    },
+    {
+      "id": "03-plant-cell",
+      "name": "Basic anatomy with labels — plant cell",
+      "language": "en",
+      "kind": "supplied",
+      "prompt": "Create a labeled diagram of a typical plant cell showing the cell wall, cell membrane, cytoplasm, nucleus, nucleolus, chloroplasts, mitochondria, central vacuole, Golgi apparatus, endoplasmic reticulum, and ribosomes.",
+      "requiredLabels": [
+        "cell wall",
+        "cell membrane",
+        "cytoplasm",
+        "nucleus",
+        "nucleolus",
+        "chloroplasts",
+        "mitochondria",
+        "central vacuole",
+        "Golgi apparatus",
+        "endoplasmic reticulum",
+        "ribosomes"
+      ],
+      "requiredConnections": []
+    },
+    {
+      "id": "04-digestive-system",
+      "name": "Human organ system — digestive system",
+      "language": "en",
+      "kind": "supplied",
+      "prompt": "Create a front-view diagram of the human digestive system showing and labeling the mouth, esophagus, stomach, liver, gallbladder, pancreas, small intestine, large intestine, rectum, and anus. Use leader lines so labels do not overlap the organs.",
+      "requiredLabels": [
+        "mouth",
+        "esophagus",
+        "stomach",
+        "liver",
+        "gallbladder",
+        "pancreas",
+        "small intestine",
+        "large intestine",
+        "rectum",
+        "anus"
+      ],
+      "requiredConnections": []
+    },
+    {
+      "id": "05-heart-circulation",
+      "name": "Process diagram — heart circulation",
+      "language": "en",
+      "kind": "supplied",
+      "prompt": "Create a diagram of blood circulation through the human heart. Show the four chambers, vena cava, pulmonary artery, pulmonary veins, aorta, and lungs. Use directional arrows to show the path of deoxygenated and oxygenated blood and label the major structures.",
+      "requiredLabels": [
+        "four chambers",
+        "vena cava",
+        "pulmonary artery",
+        "pulmonary veins",
+        "aorta",
+        "lungs",
+        "deoxygenated blood",
+        "oxygenated blood"
+      ],
+      "requiredConnections": [
+        {
+          "name": "directional blood flow",
+          "anyOf": ["deoxygenated", "oxygenated", "blood", "flow"]
+        }
+      ]
+    },
+    {
+      "id": "06-leaf-cross-section",
+      "name": "Cross-section — leaf",
+      "language": "en",
+      "kind": "supplied",
+      "prompt": "Create a labeled cross-section of a leaf showing the waxy cuticle, upper epidermis, palisade mesophyll, spongy mesophyll, air spaces, vascular bundle with xylem and phloem, lower epidermis, guard cells, and stoma.",
+      "requiredLabels": [
+        "waxy cuticle",
+        "upper epidermis",
+        "palisade mesophyll",
+        "spongy mesophyll",
+        "air spaces",
+        "vascular bundle",
+        "xylem",
+        "phloem",
+        "lower epidermis",
+        "guard cells",
+        "stoma"
+      ],
+      "requiredConnections": []
+    },
+    {
+      "id": "07-mitosis-sequence",
+      "name": "Microscopic / sequential biology — mitosis",
+      "language": "en",
+      "kind": "supplied",
+      "prompt": "Create a five-stage diagram of mitosis in an animal cell: interphase, prophase, metaphase, anaphase, and telophase/cytokinesis. Show chromosomes, spindle fibers, centrosomes, nuclear membrane, and cell membrane where appropriate, with each stage clearly labeled.",
+      "requiredLabels": [
+        "interphase",
+        "prophase",
+        "metaphase",
+        "anaphase",
+        "telophase",
+        "cytokinesis",
+        "chromosomes",
+        "spindle fibers",
+        "centrosomes",
+        "nuclear membrane",
+        "cell membrane"
+      ],
+      "requiredConnections": [
+        {
+          "name": "stage progression",
+          "anyOf": [
+            "interphase",
+            "prophase",
+            "metaphase",
+            "anaphase",
+            "telophase",
+            "next",
+            "progression"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "08-intracellular-en-layout-iteration",
+      "name": "Intracellular vesicle transport — targeted layout iteration",
+      "language": "en",
+      "kind": "iteration",
+      "prompt": "Scientific textbook illustration of intracellular vesicle transport, showing ER, Golgi, secretion, endocytosis and lysosome, clean flat vector style. Match a cropped educational biology illustration rather than a complete cell icon: use an open cytoplasm field, put a partial nucleus and rough ER at the lower left, stacked Golgi cisternae in the centre, a single irregular plasma-membrane boundary near the right edge, secretion vesicles moving out through that boundary, endocytosis returning inward, and a lysosome with endosomes at lower right. Show several small vesicles and clear directional arrows along ER-to-Golgi, Golgi-to-secretion, and endocytosis-to-lysosome routes. Do not draw a large filled enclosing oval or a rectangular cell outline. Keep labels outside crowded structures and use English labels.",
+      "requiredLabels": [
+        {
+          "name": "ER",
+          "anyOf": [
+            "ER",
+            "endoplasmic reticulum",
+            "rough endoplasmic reticulum"
+          ]
+        },
+        {
+          "name": "Golgi",
+          "anyOf": ["Golgi", "Golgi apparatus", "Golgi complex"]
+        },
+        { "name": "secretion", "anyOf": ["secretion", "exocytosis"] },
+        { "name": "endocytosis", "anyOf": ["endocytosis"] },
+        { "name": "lysosome", "anyOf": ["lysosome", "lysosomes"] }
+      ],
+      "requiredConnections": [
+        {
+          "name": "ER to Golgi",
+          "anyOf": ["ER to Golgi", "ER-Golgi", "transport"]
+        },
+        {
+          "name": "Golgi to secretion",
+          "anyOf": ["Golgi to secretion", "secretion", "exocytosis"]
+        },
+        {
+          "name": "endocytosis to lysosome",
+          "anyOf": ["endocytosis to lysosome", "endocytosis", "lysosome"]
+        }
+      ]
+    }
+  ]
+}

@@ -64,7 +64,7 @@ test("keeps static content outside the main page component", async () => {
     registry,
     /solutions-importer-alpha|solutions-importer-beta|solutionsBeta/,
   );
-  assert.match(englishManual, /^# Introduction/m);
+  assert.match(englishManual, /^# Basics/m);
   assert.match(czechManual, /^# Základy/m);
 });
 
@@ -181,14 +181,14 @@ test("parses Design Manual Markdown into the existing chapter view", async () =>
 
   assert.deepEqual(
     english.chapters.map(({ title }) => title),
-    ["Introduction", "Typesetting", "Exporting and saving data", "Editors"],
+    ["Basics", "Typesetting", "Exporting and saving data", "Editors"],
   );
   assert.ok(czech.chapters.some(({ title }) => title === "Redaktoři"));
   assert.ok(
     english.chapters
       .flatMap(({ blocks }) => blocks)
       .some(({ images }) =>
-        images?.includes("/design-manual/media/image1.png"),
+        images?.includes("/design-manual/media/solutions-off.png"),
       ),
   );
   assert.match(page, /loadDesignManual/);
@@ -295,11 +295,15 @@ test("ships Script Buffet and repeatable Design Manual PDF exports", async () =>
   assert.match(buffet, /Opacity Set/);
   assert.match(buffet, /Split Text Frames into Characters/);
   assert.doesNotMatch(buffet, /Solutions Importer: (Simple|Advanced)/);
-  await Promise.all([
-    "Make Silhouette Fill.jsx",
-    "Opacity Set.jsx",
-    "Split Text Frames into Characters.jsx",
-  ].map((name) => access(new URL(`app/_tools/design/script-buffet/public/${name}`, root))));
+  await Promise.all(
+    [
+      "Make Silhouette Fill.jsx",
+      "Opacity Set.jsx",
+      "Split Text Frames into Characters.jsx",
+    ].map((name) =>
+      access(new URL(`app/_tools/design/script-buffet/public/${name}`, root)),
+    ),
+  );
   assert.match(packageJson, /manual:pdf/);
   assert.match(exporter, /changelog\.md/);
   assert.match(changelog, /^# Changelog/m);
@@ -351,25 +355,59 @@ test("uses one explicit processing badge across tool interfaces", async () => {
 
 test("keeps one app-title scale and inline GREP results", async () => {
   const css = await readFile(new URL("app/globals.css", root), "utf8");
-  const grep = await readFile(new URL("app/_tools/design/grep-builder/MainInterface.tsx", root), "utf8");
+  const grep = await readFile(
+    new URL("app/_tools/design/grep-builder/MainInterface.tsx", root),
+    "utf8",
+  );
 
-  assert.match(css, /\.buffet-header h1,[\s\S]*font-size:\s*clamp\(32px, 4vw, 52px\)/);
+  assert.match(
+    css,
+    /\.buffet-header h1,[\s\S]*font-size:\s*clamp\(32px, 4vw, 52px\)/,
+  );
   assert.match(grep, /result\?\.findWhat \?\? props\.findPrompt/);
-  assert.match(grep, /onClick=\{result \? props\.onReset : props\.onGenerate\}/);
+  assert.match(
+    grep,
+    /onClick=\{result \? props\.onReset : props\.onGenerate\}/,
+  );
 });
 
 test("keeps the documented document and visual workspace families", async () => {
-  const [cover, splitter, map, barcode, graph, diagram, index, prompt, css] = await Promise.all([
-    readFile(new URL("app/_tools/image/cover-generator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/image/map-generator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/image/graph-generator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/image/diagram-generator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/text/index-creator/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/_tools/design/prompt-extractor/MainInterface.tsx", root), "utf8"),
-    readFile(new URL("app/globals.css", root), "utf8"),
-  ]);
+  const [cover, splitter, map, barcode, graph, diagram, index, prompt, css] =
+    await Promise.all([
+      readFile(
+        new URL("app/_tools/image/cover-generator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/image/map-generator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/image/graph-generator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/image/diagram-generator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/text/index-creator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/design/prompt-extractor/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(new URL("app/globals.css", root), "utf8"),
+    ]);
 
   assert.match(splitter, /cover-stage-head cover-splitter-active-head/);
   for (const source of [cover, splitter, map]) {
@@ -379,16 +417,33 @@ test("keeps the documented document and visual workspace families", async () => 
   assert.doesNotMatch(map, /ToolHeader/);
   assert.match(cover, /cover-toolbar-exports/);
   for (const source of [graph, diagram]) {
-    assert.ok(source.indexOf("figure-header") < source.indexOf("figure-workbench"));
+    assert.ok(
+      source.indexOf("figure-header") < source.indexOf("figure-workbench"),
+    );
   }
   for (const source of [index, prompt]) {
     assert.match(source, /document-active-workspace/);
   }
-  assert.ok(barcode.indexOf("barcode-preview-card") < barcode.indexOf("barcode-controls"));
+  assert.ok(
+    barcode.indexOf("barcode-preview-card") <
+      barcode.indexOf("barcode-controls"),
+  );
   assert.match(css, /--wide-app-width:\s*1160px/);
   assert.match(css, /calc\(\(100% - var\(--wide-app-width\)\) \/ 2\)/);
-  assert.match(css, /\.solutions-module,\s*\n\.buffet-module\s*\{[^}]*var\(--wide-app-width\)/s);
-  assert.match(css, /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(300px, 1fr\)/);
-  assert.match(css, /\.figure-result,[\s\S]{0,240}\.solutions-detail-review\s*\{\s*box-shadow:\s*none/s);
-  assert.match(css, /\.cover-toolbar\.editor-sidebar\s*\{[^}]*box-shadow:\s*5px 5px 0 var\(--ink\)/s);
+  assert.match(
+    css,
+    /\.solutions-module,\s*\n\.buffet-module\s*\{[^}]*var\(--wide-app-width\)/s,
+  );
+  assert.match(
+    css,
+    /grid-template-columns:\s*minmax\(0, 2fr\) minmax\(300px, 1fr\)/,
+  );
+  assert.match(
+    css,
+    /\.figure-result,[\s\S]{0,240}\.solutions-detail-review\s*\{\s*box-shadow:\s*none/s,
+  );
+  assert.match(
+    css,
+    /\.cover-toolbar\.editor-sidebar\s*\{[^}]*box-shadow:\s*5px 5px 0 var\(--ink\)/s,
+  );
 });

@@ -72,9 +72,18 @@ test("ships one extractor and one mode-selecting InDesign importer", async () =>
 
   assert.match(extractor, /indesign-solutions-v2/);
   assert.match(extractor, /matching_page_geometries/);
+  assert.match(extractor, /grouped_match/);
+  assert.match(extractor, /comparison_text/);
   assert.match(extractor, /TrimBox/);
   assert.match(worker, /extract_solution_operations\.py/);
   assert.match(worker, /\/solutions\/extract_solution_operations\.py/);
+  const pdfSource = await readFile(
+    new URL("app/_tools/design/solutions-importer/code/pdf.ts", root),
+    "utf8",
+  );
+  assert.match(pdfSource, /export function displayedBounds/);
+  assert.match(pdfSource, /page\.view/);
+  assert.match(pdfSource, /page\.rotate/);
   for (const script of [importer, simple, advanced]) {
     assert.match(script, /LAYER_NAME = "SOLUTIONS"/);
     assert.match(script, /TEXT_STYLE_NAME = "Solutions"/);
@@ -109,6 +118,62 @@ test("ships one extractor and one mode-selecting InDesign importer", async () =>
     /href="\/solutions\/import_solutions_(?:simple|advanced)\.jsx"/,
   );
   assert.match(component, /scriptChoice/);
+});
+
+test("ships the experimental Simple-only merged importer", async () => {
+  const experimental = await readFile(
+    new URL(
+      "app/_tools/design/solutions-importer/public/import_solutions_edit.jsx",
+      root,
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    experimental,
+    /Advanced: use tables, answer boxes, and continuation alignment/,
+  );
+  assert.match(
+    experimental,
+    /Simple: place text directly at its PDF coordinates/,
+  );
+  assert.match(experimental, /Coming soon!/);
+  assert.match(experimental, /function runSimpleImport/);
+  assert.match(experimental, /function createProgressPalette/);
+  assert.match(experimental, /function updateProgress/);
+  assert.match(experimental, /Solutions Simple:/);
+  assert.match(experimental, /strokeColor/);
+  assert.match(experimental, /strokeWeight = 0/);
+  assert.doesNotMatch(
+    experimental,
+    /function collectTables|function getTableCopy/,
+  );
+  assert.doesNotMatch(
+    experimental,
+    /function locateGridPlacement|function createContinuationFrame/,
+  );
+  assert.doesNotMatch(experimental, /CELL_STYLE_NAME/);
+});
+
+test("normalizes PDF text bounds against non-zero page origins", async () => {
+  const { displayedBounds } = await import(
+    new URL("../code/pdf.ts", import.meta.url)
+  );
+  const view = [35, 35, 630, 877];
+  const raw = { left: 50, right: 80, bottom: 750, top: 780 };
+
+  assert.deepEqual(displayedBounds(raw, view, 0), {
+    x0: 15,
+    x1: 45,
+    top: 97,
+    bottom: 127,
+  });
+  assert.deepEqual(displayedBounds(raw, view, 90), {
+    x0: 715,
+    x1: 745,
+    top: 15,
+    bottom: 45,
+  });
 });
 
 test("keeps the completed Solutions report compact by default", async () => {

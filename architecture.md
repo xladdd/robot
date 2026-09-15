@@ -145,10 +145,13 @@ Image apps:
 
 Design apps:
 
-- `app/_tools/design/grep-builder/server.ts`: converts plain instructions to InDesign GREP Find and Change strings.
+- `app/_tools/design/grep-builder/server.ts`: converts plain instructions to InDesign GREP Find and Change strings, preserves valid empty replacements, and returns safe model limitation warnings.
+- `app/_tools/design/grep-builder/validation.ts`: narrowly corrects two recognized unsafe model outputs without altering ordinary GREP candidates.
 - `app/_tools/design/grep-builder/copy.ts`: bilingual GREP Builder UI copy.
 - `app/_tools/design/grep-builder/MainInterface.tsx: GREP fields, result controls, and copy buttons.
 - `app/_tools/design/grep-builder/prompts/system.md`: the GREP conversion rules sent to OpenRouter.
+- `app/_tools/design/grep-builder/tests/validation.test.mts`: deterministic validator regressions.
+- `app/_tools/design/grep-builder/tests/prompt.test.mts`: regression coverage for the exact four-pass conditional date-padding guidance.
 - `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, and a Graph-style sidebar containing file actions, optional inside-cover splitting, the local console, progress, and ZIP download.
 - `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders only the outside-cover page locally with PDF.js.
 - `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python and package separate back/front PDFs into a ZIP.
@@ -229,10 +232,11 @@ The following completes the folder map by naming every source-file role. Repeate
 - `MainInterface.tsx`: chart request, palette, preview, checks, and download interface.
 - `copy.ts`: bilingual Graph UI and progress copy.
 - `code/ase.ts`: ASE palette reader.
-- `code/graph.ts`: chart validation, deterministic SVG rendering, and report generation.
-- `code/server.ts`: private graph-generation request implementation.
-- `prompts/system.md`: stable chart-structure instruction.
-- `tests/graph.test.mts`: chart renderer and validator regressions.
+- `code/graph.ts`: version 2 chart validation, deterministic SVG rendering for bar, line, combined, scatter, and donut charts, and report generation.
+- `code/scales.ts`: deterministic numeric domains, human-friendly ticks, and bilingual number formatting.
+- `code/server.ts`: private graph-generation request implementation and version 2 structured-output schema.
+- `prompts/system.md`: stable chart-structure instruction for all supported chart kinds.
+- `tests/graph.test.mts`: chart renderer, scale, and validator regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Diagram Generator: `app/_tools/image/diagram-generator/`
@@ -240,9 +244,10 @@ The following completes the folder map by naming every source-file role. Repeate
 - `MainInterface.tsx`: biological description, references, palette, preview, checks, and download interface.
 - `copy.ts`: bilingual Diagram UI and progress copy.
 - `code/ase.ts`: ASE palette reader.
-- `code/diagram.ts`: biological-diagram validation, deterministic SVG rendering, and report generation.
-- `code/server.ts`: private diagram-generation request implementation.
-- `prompts/system.md`: stable biological-diagram instruction.
+- `code/diagram.ts`: version 1 compatibility plus version 2 biological-diagram validation, deterministic SVG rendering, controlled primitives, panels, labels, connections, and report generation.
+- `code/server.ts`: private diagram-generation request implementation and version 2 structured-output schema with safe usage metadata.
+- `prompts/system.md`: stable version 2 biological-diagram instruction.
+- `scripts/evaluation-cases.json` and `scripts/run-diagram-eval.mjs`: capped, sequential English/Czech and supplied-prompt evaluation tooling; outputs remain in the caller-provided local results directory.
 - `tests/diagram.test.mts`: diagram renderer and validator regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
@@ -288,8 +293,11 @@ The following completes the folder map by naming every source-file role. Repeate
 
 - `MainInterface.tsx`: instruction input and copyable GREP result UI.
 - `copy.ts`: bilingual in-app UI copy.
-- `server.ts`: private GREP model request.
+- `server.ts`: private GREP model request, response normalization, safe limitation handling, and post-generation validation.
+- `validation.ts`: narrow deterministic corrections for a duplicated token protected by a terminal positive lookahead and incorrectly counted four-period ellipses.
 - `prompts/system.md`: stable conversion rules.
+- `tests/validation.test.mts`: validator regression coverage, including idempotence and warning safety.
+- `tests/prompt.test.mts`: protects the documented four-pass conditional date-padding workflow.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Cover Splitter: `app/_tools/design/cover-splitter/`
@@ -493,7 +501,7 @@ SVG and verification report
 
 ### Graph Generator
 
-**Input:** title, supplied numeric values, units, named sources, and optional ASE palette.
+**Input:** title, supplied numeric values, units, optional named sources, natural-language chart instructions, and optional ASE palette.
 
 **Flow:**
 
@@ -504,9 +512,9 @@ POST /api/figures with chart mode
 ↓
 OpenRouter structures only the supplied values
 ↓
-validateFigureSpec checks data and shape
+validateGraphSpec checks data and shape
 ↓
-renderFigureSvg calculates axes and marks
+renderGraphSvg calculates scales, axes, marks, and chart-specific geometry
 ↓
 SVG and verification report
 ```
@@ -554,14 +562,16 @@ Find and Change instructions
 ↓
 POST /api/grep
 ↓
-OpenRouter returns two InDesign strings
+OpenRouter returns a GREP candidate or safe limitation warning
+↓
+Narrow deterministic post-generation validation
 ↓
 Copy buttons
 ```
 
 **Output:** InDesign GREP Find What and Change To strings.
 
-**Dependencies:** OpenRouter model `mistralai/ministral-3b-2512`. No document is uploaded.
+**Dependencies:** OpenRouter model `mistralai/ministral-8b-2512`. No document is uploaded.
 
 ### Cover Splitter
 
@@ -779,7 +789,7 @@ Model names are defaults from `.env.example`. Each can be changed through its na
 | Cover Generator   | high-quality concepts | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
 | Cover Generator   | 2K master and assets  | `OPENROUTER_COVER_PRODUCTION_MODEL` | `black-forest-labs/flux.2-pro`      |
 | Cover Generator   | object analysis       | `OPENROUTER_COVER_ANALYSIS_MODEL`   | `mistralai/mistral-small-2603`      |
-| GREP Builder      | GREP conversion       | `OPENROUTER_GREP_MODEL`             | `mistralai/ministral-3b-2512`       |
+| GREP Builder      | GREP conversion       | `OPENROUTER_GREP_MODEL`             | `mistralai/ministral-8b-2512`       |
 | Prompt Extractor  | page-image reading    | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b`            |
 
 Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, Image Generator, and Typesetter make no OpenRouter call in their current visible flows. Its optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.

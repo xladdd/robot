@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../load-prompt";
+import { validateGrepCandidate } from "./validation";
 import {
   getOpenRouterContext,
   openRouterConfigurationError,
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
     }>(openRouter, "chat/completions", "generate-grep", {
-      model: process.env.OPENROUTER_GREP_MODEL || "mistralai/ministral-3b-2512",
+      model: process.env.OPENROUTER_GREP_MODEL || "mistralai/ministral-8b-2512",
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
     const parsed = JSON.parse(content) as {
       findWhat?: unknown;
       replaceWith?: unknown;
+      warning?: unknown;
     };
     if (
       typeof parsed.findWhat !== "string" ||
@@ -86,15 +88,23 @@ export async function POST(request: Request) {
       value.replace(/\t/g, "\\t").replace(/\r\n|\r|\n/g, "\\r");
     const findWhat = normalizeControlCharacters(parsed.findWhat);
     const replaceWith = normalizeControlCharacters(parsed.replaceWith);
-    if (!findWhat || !replaceWith)
+    const warning =
+      typeof parsed.warning === "string" ? parsed.warning.trim() : "";
+    if ((!findWhat && !warning) || (!findWhat && replaceWith))
       return NextResponse.json(
         {
           error:
-            "The model returned an empty GREP expression. Please try again.",
+            "The model returned neither a GREP expression nor a limitation note.",
         },
         { status: 502 },
       );
-    const combined = `${findWhat}\n${replaceWith}`;
+    const candidate = validateGrepCandidate({
+      findInstruction: find,
+      replaceInstruction: replace,
+      candidate: { findWhat, replaceWith },
+      warning,
+    }).candidate;
+    const combined = `${candidate.findWhat}\n${candidate.replaceWith}\n${warning}`;
     if (
       /tab\s*\[\s*tabindex|<\/?[a-z]|querySelector|document\.|\[[a-z-]+\s*=/i.test(
         combined,
@@ -108,7 +118,11 @@ export async function POST(request: Request) {
         { status: 502 },
       );
     }
-    return NextResponse.json({ findWhat, replaceWith });
+    return NextResponse.json({
+      findWhat: warning ? "" : candidate.findWhat,
+      replaceWith: warning ? "" : candidate.replaceWith,
+      ...(warning ? { warning } : {}),
+    });
   } catch (error) {
     return NextResponse.json(
       {

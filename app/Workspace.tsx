@@ -60,7 +60,12 @@ import {
   type CoverUsage,
 } from "./_tools/image/cover-generator/MainInterface";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
-import { completedApps, groups, type InfoDrawers } from "./_tools/registry";
+import {
+  completedApps,
+  groups,
+  sidebarStatuses,
+  type InfoDrawers,
+} from "./_tools/registry";
 
 type Language = "en" | "cs";
 type Theme = "light" | "dark";
@@ -128,6 +133,7 @@ export default function Workspace({
   const [grepResult, setGrepResult] = useState<{
     findWhat: string;
     replaceWith: string;
+    warning?: string;
   } | null>(null);
   const [isGeneratingGrep, setIsGeneratingGrep] = useState(false);
   const [grepError, setGrepError] = useState("");
@@ -773,6 +779,7 @@ export default function Workspace({
       const result = (await response.json()) as {
         findWhat?: string;
         replaceWith?: string;
+        warning?: string;
         error?: string;
       };
       if (
@@ -784,6 +791,7 @@ export default function Workspace({
       setGrepResult({
         findWhat: result.findWhat,
         replaceWith: result.replaceWith,
+        warning: result.warning,
       });
     } catch (error) {
       setGrepError(
@@ -920,6 +928,9 @@ export default function Workspace({
         body: JSON.stringify({
           request: figureRequest,
           mode: figureMode,
+          ...(figureMode === "diagram" || figureMode === "chart"
+            ? { language }
+            : {}),
           references: figureReferences.map(({ data }) => data),
           palette: figurePalette,
         }),
@@ -1945,24 +1956,40 @@ export default function Workspace({
             </button>
             {open[group.key] && (
               <div className="nav-items">
-                {group.items.map((item, index) => (
-                  <button
-                    className={`nav-item ${selected === item ? "selected" : ""} ${completedApps.has(item) ? "" : "unavailable"}`}
-                    key={item}
-                    onClick={() => selectApp(item)}
-                    aria-disabled={!completedApps.has(item)}
-                  >
-                    <span className="item-number">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span>{t.apps[item]}</span>
-                    {comingSoon === item && (
-                      <span className="coming-soon-tooltip" role="status">
-                        {t.comingSoon}
+                {group.items.map((item, index) => {
+                  const sidebarStatus = sidebarStatuses[item];
+
+                  return (
+                    <button
+                      className={`nav-item ${selected === item ? "selected" : ""} ${completedApps.has(item) ? "" : "unavailable"} ${sidebarStatus ? "has-sidebar-status" : ""}`}
+                      key={item}
+                      onClick={() => selectApp(item)}
+                      aria-disabled={!completedApps.has(item)}
+                    >
+                      <span className="item-number">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      <span>{t.apps[item]}</span>
+                      {sidebarStatus && (
+                        <span
+                          className={`sidebar-status sidebar-status-${sidebarStatus}`}
+                          aria-hidden="true"
+                        >
+                          {sidebarStatus === "tested"
+                            ? "✓"
+                            : sidebarStatus === "to-test"
+                              ? "T"
+                              : "α"}
+                        </span>
+                      )}
+                      {comingSoon === item && (
+                        <span className="coming-soon-tooltip" role="status">
+                          {t.comingSoon}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -2306,19 +2333,23 @@ export default function Workspace({
             )}
           </div>
         )}
-        {!(["extraction", "index", "prompt", "cover"] as Array<string | null>).includes(selected) && <div className="workspace-status">
-          <span className="live-clock">
-            {clockHours}
-            <i className={now && now.getSeconds() % 2 === 0 ? "visible" : ""}>
-              :
-            </i>
-            {clockMinutes}
-          </span>
-          <span>{localDate}</span>
-          <span className="nameday" title={nameday}>
-            {nameday.toLocaleUpperCase("cs-CZ")}
-          </span>
-        </div>}
+        {!(
+          ["extraction", "index", "prompt", "cover"] as Array<string | null>
+        ).includes(selected) && (
+          <div className="workspace-status">
+            <span className="live-clock">
+              {clockHours}
+              <i className={now && now.getSeconds() % 2 === 0 ? "visible" : ""}>
+                :
+              </i>
+              {clockMinutes}
+            </span>
+            <span>{localDate}</span>
+            <span className="nameday" title={nameday}>
+              {nameday.toLocaleUpperCase("cs-CZ")}
+            </span>
+          </div>
+        )}
       </section>
 
       {infoOpen && (

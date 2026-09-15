@@ -366,7 +366,7 @@ button {
 .nav-item {
     position: relative;
     display: grid;
-    grid-template-columns: 31px 1fr;
+    grid-template-columns: 31px minmax(0, 1fr) 34px;
     align-items: center;
     width: 100%;
     min-height: 39px;
@@ -418,6 +418,28 @@ button {
 }
 .nav-item > span:nth-child(2) {
     padding-left: 10px;
+}
+.sidebar-status {
+    justify-self: center;
+    padding: 0;
+    font-weight: 400;
+    line-height: 1;
+}
+.sidebar-status-tested {
+    color: var(--teal);
+    font-size: 12px;
+}
+.nav-item.selected .sidebar-status {
+    color: #fff;
+}
+.sidebar-status-to-test {
+    color: #c43f00;
+    font-size: 9px;
+}
+.sidebar-status-alpha {
+    color: var(--orange);
+    font-family: Georgia, serif;
+    font-size: 12px;
 }
 .nav-item > .coming-soon-tooltip {
     position: absolute;
@@ -2852,8 +2874,19 @@ button {
     font-size: 20px;
     font-weight: 400;
 }
-.grep-module > .extraction-error {
+.grep-module > .extraction-error,
+.grep-module > .grep-warning {
     width: min(720px, 100%);
+}
+.grep-warning {
+    margin: 12px 0 0;
+    padding: 9px 11px;
+    border: 1px solid var(--teal);
+    background: color-mix(in srgb, var(--teal) 12%, var(--bg));
+    color: var(--ink);
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: left;
 }
 .grep-fields {
     box-shadow: none;
@@ -6451,8 +6484,14 @@ button {
 
 .figure-module:not(.map-module),
 .barcode-module {
-    padding-right: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
-    padding-left: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
+    padding-right: max(
+        var(--wide-app-gutter),
+        calc((100% - var(--wide-app-width)) / 2)
+    );
+    padding-left: max(
+        var(--wide-app-gutter),
+        calc((100% - var(--wide-app-width)) / 2)
+    );
 }
 .figure-header.tool-header,
 .barcode-header.tool-header {
@@ -6590,8 +6629,14 @@ button {
 
 .solutions-module,
 .buffet-module {
-    padding-right: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
-    padding-left: max(var(--wide-app-gutter), calc((100% - var(--wide-app-width)) / 2));
+    padding-right: max(
+        var(--wide-app-gutter),
+        calc((100% - var(--wide-app-width)) / 2)
+    );
+    padding-left: max(
+        var(--wide-app-gutter),
+        calc((100% - var(--wide-app-width)) / 2)
+    );
 }
 
 @media (max-width: 1100px) {
