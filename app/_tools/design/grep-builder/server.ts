@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../load-prompt";
+import { resolveDeterministicGrepIntent } from "./intent";
 import { validateGrepCandidate } from "./validation";
 import {
   getOpenRouterContext,
@@ -11,12 +12,6 @@ const grepPrompt = loadPrompt("design/grep-builder/prompts/system.md");
 
 export async function POST(request: Request) {
   try {
-    const openRouter = await getOpenRouterContext(request, "grep");
-    if (!openRouter)
-      return NextResponse.json(
-        { error: openRouterConfigurationError("grep") },
-        { status: 503 },
-      );
     const body = (await request.json()) as {
       find?: unknown;
       replace?: unknown;
@@ -32,6 +27,21 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "The request is too long." },
         { status: 400 },
+      );
+
+    const deterministic = resolveDeterministicGrepIntent(find, replace);
+    if (deterministic.matched)
+      return NextResponse.json({
+        findWhat: deterministic.findWhat,
+        replaceWith: deterministic.replaceWith,
+        ...(deterministic.warning ? { warning: deterministic.warning } : {}),
+      });
+
+    const openRouter = await getOpenRouterContext(request, "grep");
+    if (!openRouter)
+      return NextResponse.json(
+        { error: openRouterConfigurationError("grep") },
+        { status: 503 },
       );
 
     const { response, result } = await requestOpenRouter<{

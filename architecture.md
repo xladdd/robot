@@ -146,12 +146,14 @@ Image apps:
 
 Design apps:
 
-- `app/_tools/design/grep-builder/server.ts`: converts plain instructions to InDesign GREP Find and Change strings, preserves valid empty replacements, and returns safe model limitation warnings.
+- `app/_tools/design/grep-builder/server.ts`: validates requests, applies high-confidence deterministic intents, and otherwise converts plain instructions through the GREP model while preserving valid empty replacements and safe limitation warnings.
+- `app/_tools/design/grep-builder/intent.ts`: bounded bilingual resolver for recurring unambiguous text operations and formatting-only limitations; unmatched requests fall through to the model.
 - `app/_tools/design/grep-builder/validation.ts`: narrowly corrects two recognized unsafe model outputs without altering ordinary GREP candidates.
 - `app/_tools/design/grep-builder/copy.ts`: bilingual GREP Builder UI copy.
 - `app/_tools/design/grep-builder/MainInterface.tsx: GREP fields, result controls, and copy buttons.
 - `app/_tools/design/grep-builder/prompts/system.md`: the GREP conversion rules sent to OpenRouter.
 - `app/_tools/design/grep-builder/tests/validation.test.mts`: deterministic validator regressions.
+- `app/_tools/design/grep-builder/tests/intent.test.mts`: bilingual deterministic-intent and fail-closed regressions.
 - `app/_tools/design/grep-builder/tests/prompt.test.mts`: regression coverage for the exact four-pass conditional date-padding guidance.
 - `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, and a Graph-style sidebar containing file actions, optional inside-cover splitting, the local console, progress, and ZIP download.
 - `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders only the outside-cover page locally with PDF.js.
@@ -295,10 +297,12 @@ The following completes the folder map by naming every source-file role. Repeate
 
 - `MainInterface.tsx`: instruction input and copyable GREP result UI.
 - `copy.ts`: bilingual in-app UI copy.
-- `server.ts`: private GREP model request, response normalization, safe limitation handling, and post-generation validation.
+- `server.ts`: private GREP request, deterministic-intent dispatch, response normalization, safe limitation handling, and post-generation validation.
+- `intent.ts`: bounded bilingual recognition for high-confidence recurring text operations; unsupported or ambiguous requests continue to the model.
 - `validation.ts`: narrow deterministic corrections for a duplicated token protected by a terminal positive lookahead and incorrectly counted four-period ellipses.
 - `prompts/system.md`: stable conversion rules.
 - `tests/validation.test.mts`: validator regression coverage, including idempotence and warning safety.
+- `tests/intent.test.mts`: bilingual deterministic-intent coverage and negative fail-closed cases.
 - `tests/prompt.test.mts`: protects the documented four-pass conditional date-padding workflow.
 - `info.en.md`, `info.cs.md`: live drawer content.
 

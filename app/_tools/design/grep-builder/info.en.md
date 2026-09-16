@@ -8,4 +8,4 @@ Choose Try again to return to your original editable instructions. Always test t
 
 ### How does it work?
 
-Your two short instructions are sent through the protected server route to the fixed Ministral 3 8B 2512 model on OpenRouter. It returns separate InDesign Find What and Change To strings. No InDesign document or document text is uploaded.
+The protected server route first handles a small set of clear, common text operations deterministically for consistent English and Czech results. Other requests go to the fixed Ministral 3 8B 2512 model on OpenRouter. It returns separate InDesign Find What and Change To strings. Formatting-only requests are directed to InDesign Find Format. No InDesign document or document text is uploaded.
