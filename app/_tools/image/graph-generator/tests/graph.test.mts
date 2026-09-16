@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { parseDelimitedText, rowsToMarkdown } from "../code/data-import.ts";
 import { createNumericDomain } from "../code/scales.ts";
 import {
   applyGraphPresentationDefaults,
@@ -76,14 +77,40 @@ function count(svg: string, pattern: string) {
 }
 
 test("accepts complete cited numeric data and renders deterministic SVG", () => {
-  const { spec, checks } = validateGraphSpec(valid);
+  const spec = validateGraphSpec(valid);
   const svg = renderGraphSvg(spec);
   assert.equal(spec.series[0].values[2], 19.1);
-  assert.ok(checks.every(({ level }) => level === "pass"));
   assert.match(svg, /^<svg xmlns=/);
   assert.match(svg, /Safe &lt;title&gt;/);
   assert.match(svg, /User-provided fixture/);
   assert.doesNotMatch(svg, /<script|foreignObject|onload=/i);
+});
+
+test("converts CSV data to an editable Markdown table", () => {
+  const rows = parseDelimitedText(
+    'Country,2022,2023\r\n"Czechia, total",18.2,18.6\r\nSlovakia,17.5,17.0',
+  );
+  assert.equal(
+    rowsToMarkdown(rows),
+    "| Country | 2022 | 2023 |\n| --- | --- | --- |\n| Czechia, total | 18.2 | 18.6 |\n| Slovakia | 17.5 | 17.0 |",
+  );
+});
+
+test("escapes Markdown table separators in imported data", () => {
+  assert.equal(
+    rowsToMarkdown([
+      ["Label", "Value"],
+      ["A | B", 12],
+    ]),
+    "| Label | Value |\n| --- | --- |\n| A \\| B | 12 |",
+  );
+});
+
+test("detects semicolon CSV without treating quoted commas as separators", () => {
+  assert.deepEqual(parseDelimitedText('Label;Value\n"Prague, Czechia";18,6'), [
+    ["Label", "Value"],
+    ["Prague, Czechia", "18,6"],
+  ]);
 });
 
 test("chooses rounded automatic ticks like the reference charts", () => {
@@ -95,7 +122,7 @@ test("chooses rounded automatic ticks like the reference charts", () => {
 });
 
 test("labels short bar charts and annotates their exact change", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       title: "Renewable energy share",
       xLabel: "Year",
@@ -129,7 +156,7 @@ test("labels short bar charts and annotates their exact change", () => {
 });
 
 test("centers short titles and wraps long titles within the chart field", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       title:
         "Relationship Between Hours Studied and Exam Score for Twenty Students in a Fictional Examination Dataset",
@@ -145,7 +172,7 @@ test("centers short titles and wraps long titles within the chart field", () => 
 });
 
 test("renders rainfall bars with requested value labels and rounded ticks", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       title: "Average Monthly Rainfall in Four Cities",
       xLabel: "Month",
@@ -204,7 +231,7 @@ test("renders rainfall bars with requested value labels and rounded ticks", () =
 });
 
 test("renders population lines with rounded ticks and all markers", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       kind: "line",
       title: "Population of Five Fictional Countries",
@@ -270,7 +297,7 @@ test("renders population lines with rounded ticks and all markers", () => {
 });
 
 test("renders a climograph with independent axes and mixed marks", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       kind: "combined",
       title: "Climograph",
@@ -332,7 +359,7 @@ test("renders a climograph with independent axes and mixed marks", () => {
 });
 
 test("renders donut slices, labels, legend, and center text", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       kind: "donut",
       title: "Total biomass",
@@ -365,7 +392,7 @@ test("renders scatter points and a locally calculated trend line", () => {
     label: String(index + 1),
     sourceIds: ["S1"],
   }));
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       kind: "scatter",
       title: "Hours studied and exam score",
@@ -391,8 +418,8 @@ test("renders scatter points and a locally calculated trend line", () => {
   assert.match(svg, /data-axis="x-grid"/);
 });
 
-test("allows source-free user data but reports its provenance warning", () => {
-  const { checks } = validateGraphSpec(
+test("allows source-free user data", () => {
+  const spec = validateGraphSpec(
     v2({
       sources: [],
       series: [
@@ -408,16 +435,11 @@ test("allows source-free user data but reports its provenance warning", () => {
       ],
     }),
   );
-  assert.ok(
-    checks.some(
-      ({ level, message }) =>
-        level === "pass" && message.includes("user-provided"),
-    ),
-  );
+  assert.equal(spec.sources.length, 0);
 });
 
 test("keeps explicit domains and formats ticks in Czech", () => {
-  const { spec } = validateGraphSpec(
+  const spec = validateGraphSpec(
     v2({
       locale: "cs",
       yMin: 0,
@@ -477,11 +499,10 @@ test("rejects undeclared citations and unsafe source protocols", () => {
   );
 });
 
-test("warns when values cross zero and renders negative bars", () => {
-  const { spec, checks } = validateGraphSpec({
+test("renders negative bars without invalid geometry", () => {
+  const spec = validateGraphSpec({
     ...valid,
     series: [{ ...valid.series[0], values: [-2, 0, 3] }],
   });
-  assert.ok(checks.some(({ level }) => level === "warning"));
   assert.doesNotMatch(renderGraphSvg(spec), /height="-/);
 });

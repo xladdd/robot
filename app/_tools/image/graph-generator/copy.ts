@@ -1,7 +1,6 @@
 export const graphProcessing = {
   en: [
-    "checking every supplied number",
-    "reading the source line twice",
+    "reading the supplied data",
     "choosing sensible axes",
     "measuring the longest label",
     "counting the data points",
@@ -14,8 +13,7 @@ export const graphProcessing = {
     "giving the SVG a final polish",
   ],
   cs: [
-    "kontrola každého zadaného čísla",
-    "dvojí čtení zdroje",
+    "čtení dodaných dat",
     "volba rozumných os",
     "měření nejdelšího popisku",
     "počítání datových bodů",
@@ -32,18 +30,22 @@ export const graphProcessing = {
 export const graphUi = {
   en: {
     subtitle:
-      "Create source-backed SVG charts. Specifications are validated and coordinates are rendered by code.",
-    label: "FACTS, VALUES AND SOURCES",
-    placeholder:
-      "Example: Make a line chart titled …\n2022: 18.4\n2023: 21.1\n2024: 23.7\nUnit: percent\nSource: Statistical office, https://…",
+      "Create source-backed, editable SVG charts from your instructions and data.",
+    promptLabel: "PROMPT",
+    promptPlaceholder:
+      "Example: Create a line chart titled … Unit: percent. Source: Statistical office, https://…",
+    dataLabel: "DATA",
+    dataPlaceholder: "Type or paste data here, or drop an Excel or CSV file…",
+    dataHelp: "Excel and CSV files are converted locally to a Markdown table.",
+    importData: "Import Excel or CSV",
+    dataFileError:
+      "Could not read the file. Choose an Excel (.xlsx) or CSV (.csv) file containing data.",
+    dataFileSizeError: "Choose an Excel or CSV file up to 10 MB.",
     generate: "Generate SVG (about 30 seconds)",
     generating: "Generating SVG",
     preview: "SVG PREVIEW",
-    checks: "AUTOMATED CHECKS",
     downloadSvg: "Download SVG",
-    downloadReport: "Download verification report (.md)",
     empty: "Nothing scarier than an empty page.",
-    warning: "Charts validate supplied data.",
     example: "Insert example",
     palette: "COLOR PALETTE (OPTIONAL)",
     addPalette: "Add Adobe swatches (.ase)",
@@ -54,19 +56,24 @@ export const graphUi = {
     valueLabelsHelp: "Short bar charts show exact values by default.",
   },
   cs: {
-    subtitle:
-      "Vytváří zdrojované SVG grafy. Specifikace ověří a souřadnice vykreslí kód.",
-    label: "FAKTA, HODNOTY A ZDROJE",
-    placeholder:
-      "Příklad: Vytvoř spojnicový graf s názvem …\n2022: 18,4\n2023: 21,1\n2024: 23,7\nJednotka: procenta\nZdroj: Statistický úřad, https://…",
+    subtitle: "Vytváří zdrojované a upravitelné SVG grafy z pokynů a dat.",
+    promptLabel: "POKYN",
+    promptPlaceholder:
+      "Příklad: Vytvoř spojnicový graf s názvem … Jednotka: procenta. Zdroj: Statistický úřad, https://…",
+    dataLabel: "DATA",
+    dataPlaceholder:
+      "Data napište či vložte sem nebo přetáhněte soubor Excel či CSV…",
+    dataHelp: "Soubory Excel a CSV se místně převedou na tabulku Markdown.",
+    importData: "Importovat Excel nebo CSV",
+    dataFileError:
+      "Soubor se nepodařilo přečíst. Vyberte soubor Excel (.xlsx) nebo CSV (.csv) s daty.",
+    dataFileSizeError:
+      "Vyberte soubor Excel nebo CSV o velikosti nejvýše 10 MB.",
     generate: "Vytvořit SVG (asi 30 sekund)",
     generating: "Vytváření SVG",
     preview: "NÁHLED SVG",
-    checks: "AUTOMATICKÉ KONTROLY",
     downloadSvg: "Stáhnout SVG",
-    downloadReport: "Stáhnout protokol kontroly (.md)",
     empty: "Není nic děsivějšího než prázdná stránka.",
-    warning: "Grafy ověřují dodaná data.",
     example: "Vložit příklad",
     palette: "BAREVNÁ PALETA (VOLITELNÉ)",
     addPalette: "Přidat vzorník Adobe (.ase)",

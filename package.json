@@ -25,6 +25,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-markdown": "^10.1.0",
+    "read-excel-file": "^6.0.1",
     "remark-parse": "^11.0.0",
     "topojson-client": "^3.1.0",
     "unified": "^11.0.5",

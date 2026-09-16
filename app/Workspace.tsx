@@ -147,6 +147,7 @@ export default function Workspace({
   const [promptCopied, setPromptCopied] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [figureRequest, setFigureRequest] = useState("");
+  const [graphData, setGraphData] = useState("");
   const [figureMode, setFigureMode] = useState<"chart" | "diagram" | "map">(
     "chart",
   );
@@ -297,6 +298,7 @@ export default function Workspace({
         setFigureOutput(null);
         setFigureError("");
         setFigureRequest("");
+        setGraphData("");
       }
       setSelected(app);
       if (app === "graph") setFigureMode("chart");
@@ -927,7 +929,10 @@ export default function Workspace({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          request: figureRequest,
+          request:
+            figureMode === "chart"
+              ? `${figureRequest.trim()}\n\nDATA:\n${graphData.trim()}`
+              : figureRequest,
           mode: figureMode,
           ...(figureMode === "diagram" || figureMode === "chart"
             ? { language }
@@ -2192,7 +2197,8 @@ export default function Workspace({
             language={language}
             section={selectedSection}
             label={selectedLabel}
-            request={figureRequest}
+            prompt={figureRequest}
+            data={graphData}
             palette={figurePalette}
             paletteName={figurePaletteName}
             showValueLabels={graphShowValueLabels}
@@ -2208,10 +2214,10 @@ export default function Workspace({
               setFigureOutput(null);
             }}
             onShowValueLabels={setGraphShowValueLabels}
-            onRequest={setFigureRequest}
+            onPrompt={setFigureRequest}
+            onData={setGraphData}
             onGenerate={() => void generateFigure()}
             onDownload={downloadFigure}
-            onVerificationMarkdown={verificationMarkdown}
           />
         ) : selected === "bio" ? (
           <DiagramMainInterface

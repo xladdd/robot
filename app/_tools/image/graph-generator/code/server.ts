@@ -6,7 +6,6 @@ import {
   requestOpenRouter,
 } from "../../../openrouter/server";
 import {
-  createGraphReport,
   applyGraphPresentationDefaults,
   renderGraphSvg,
   validateGraphSpec,
@@ -293,24 +292,14 @@ export async function POST(request: Request) {
     }
     if (typeof parsed.error === "string" && parsed.error.trim())
       return NextResponse.json({ error: parsed.error.trim() }, { status: 422 });
-    const { spec: validatedSpec, checks } = validateGraphSpec(parsed.figure, {
-      language,
-    });
+    const validatedSpec = validateGraphSpec(parsed.figure, { language });
     const spec = applyGraphPresentationDefaults(
       validatedSpec,
       body.showValueLabels !== false,
     );
-    if (swatches.length)
-      checks.push({
-        level: "pass",
-        message: `${swatches.length} locally parsed Adobe swatches were applied in file order.`,
-      });
     return NextResponse.json({
       spec,
       svg: renderGraphSvg(spec, swatches),
-      checks,
-      report: createGraphReport(spec, checks, model, swatches),
-      model,
     });
   } catch (error) {
     return NextResponse.json(

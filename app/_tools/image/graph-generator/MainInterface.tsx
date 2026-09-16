@@ -1,6 +1,12 @@
 "use client";
 
-import type { ChangeEvent, RefObject } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type RefObject,
+  useRef,
+  useState,
+} from "react";
 import { LoadingText } from "../../../_components/LoadingText";
 import {
   EmptyViewportState,
@@ -8,14 +14,11 @@ import {
 } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import type { AseSwatch } from "./code/ase";
+import { tableFileToMarkdown } from "./code/data-import";
 import { graphProcessing, graphUi } from "./copy";
 
-export type GraphCheck = { level: "pass" | "warning"; message: string };
 export type GraphOutput = {
   svg: string;
-  report: string;
-  checks: GraphCheck[];
-  model: string;
   spec: {
     title: string;
     sources?: Array<{ id: string; title: string; url: string }>;
@@ -32,7 +35,8 @@ export function GraphMainInterface({
   language,
   section,
   label,
-  request,
+  prompt,
+  data,
   palette,
   paletteName,
   showValueLabels,
@@ -44,15 +48,16 @@ export function GraphMainInterface({
   onPaletteInput,
   onClearPalette,
   onShowValueLabels,
-  onRequest,
+  onPrompt,
+  onData,
   onGenerate,
   onDownload,
-  onVerificationMarkdown,
 }: {
   language: Language;
   section: string | null;
   label: string | null;
-  request: string;
+  prompt: string;
+  data: string;
   palette: AseSwatch[];
   paletteName: string;
   showValueLabels: boolean;
@@ -64,19 +69,69 @@ export function GraphMainInterface({
   onPaletteInput: (event: ChangeEvent<HTMLInputElement>) => void;
   onClearPalette: () => void;
   onShowValueLabels: (show: boolean) => void;
-  onRequest: (request: string) => void;
+  onPrompt: (prompt: string) => void;
+  onData: (data: string) => void;
   onGenerate: () => void;
   onDownload: (content: string, filename: string, type: string) => void;
-  onVerificationMarkdown: (report: string) => string;
 }) {
   const t = graphUi[language];
-  const example =
-    language === "cs"
-      ? "Vytvoř sloupcový graf s názvem Podíl obnovitelné energie. Česko: 2021 17,7; 2022 18,2; 2023 18,6. Jednotka: %. Zdroj S1: Eurostat, https://ec.europa.eu/eurostat"
-      : "Create a bar chart titled Renewable energy share. Czechia: 2021 17.7; 2022 18.2; 2023 18.6. Unit: %. Source S1: Eurostat, https://ec.europa.eu/eurostat";
+  const dataInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState("");
+  const [isDraggingData, setIsDraggingData] = useState(false);
+  const example = {
+    prompt:
+      "Create a climograph showing monthly temperature and precipitation for a fictional Mediterranean city.\n\nUse exactly the data in the Data field.\n\nPlace January through December on the x-axis.\nShow precipitation as vertical bars using the left y-axis, ranging from 0 to 100 mm.\nShow temperature as a line with circular data markers using the right y-axis, ranging from 0 to 35 °C.\nInclude labels for both y-axes, horizontal gridlines, and a legend distinguishing precipitation from temperature.",
+    data: [
+      "| Month | Temperature °C | Precipitation mm |",
+      "| --- | --- | --- |",
+      "| January | 9 | 82 |",
+      "| February | 10 | 68 |",
+      "| March | 13 | 57 |",
+      "| April | 16 | 48 |",
+      "| May | 21 | 32 |",
+      "| June | 26 | 15 |",
+      "| July | 29 | 5 |",
+      "| August | 29 | 8 |",
+      "| September | 25 | 28 |",
+      "| October | 19 | 61 |",
+      "| November | 14 | 79 |",
+      "| December | 10 | 91 |",
+    ].join("\n"),
+  };
+
+  async function importDataFile(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 10_000_000) {
+      setFileError(t.dataFileSizeError);
+      return;
+    }
+    try {
+      onData(await tableFileToMarkdown(file));
+      setFileError("");
+    } catch {
+      setFileError(t.dataFileError);
+    }
+  }
+
+  function handleDataDrop(event: DragEvent<HTMLTextAreaElement>) {
+    event.preventDefault();
+    setIsDraggingData(false);
+    void importDataFile(event.dataTransfer.files[0]);
+  }
+
+  function downloadSvg() {
+    if (!output) return;
+    const filename = `${
+      output.spec.title
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase() || "figure"
+    }.svg`;
+    onDownload(output.svg, filename, "image/svg+xml");
+  }
 
   return (
-    <div className="figure-module">
+    <div className="figure-module graph-module">
       <ToolHeader
         className="figure-header"
         code={`${section} / CHART`}
@@ -88,20 +143,68 @@ export function GraphMainInterface({
       <div className="figure-workbench">
         <section className="figure-controls">
           <div className="figure-label-row">
-            <label htmlFor="figure-request">{t.label}</label>
-            <button type="button" onClick={() => onRequest(example)}>
+            <label htmlFor="graph-prompt">{t.promptLabel}</label>
+            <button
+              type="button"
+              onClick={() => {
+                onPrompt(example.prompt);
+                onData(example.data);
+                setFileError("");
+              }}
+            >
               {t.example}
             </button>
           </div>
           <textarea
-            className="chart-request"
-            id="figure-request"
-            value={request}
-            onChange={(event) => onRequest(event.target.value)}
-            placeholder={t.placeholder}
-            rows={12}
+            className="graph-prompt"
+            id="graph-prompt"
+            value={prompt}
+            onChange={(event) => onPrompt(event.target.value)}
+            placeholder={t.promptPlaceholder}
+            rows={6}
             disabled={isGenerating}
           />
+          <div className="figure-label-row graph-data-label">
+            <label htmlFor="graph-data">{t.dataLabel}</label>
+            <button
+              type="button"
+              onClick={() => dataInputRef.current?.click()}
+              disabled={isGenerating}
+            >
+              {t.importData}
+            </button>
+          </div>
+          <input
+            ref={dataInputRef}
+            type="file"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={(event) => {
+              void importDataFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+            hidden
+          />
+          <textarea
+            className={`graph-data${isDraggingData ? " is-dragging" : ""}`}
+            id="graph-data"
+            value={data}
+            onChange={(event) => {
+              onData(event.target.value);
+              setFileError("");
+            }}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              setIsDraggingData(true);
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={() => setIsDraggingData(false)}
+            onDrop={handleDataDrop}
+            placeholder={t.dataPlaceholder}
+            wrap="off"
+            rows={8}
+            disabled={isGenerating}
+          />
+          <small className="graph-data-help">{t.dataHelp}</small>
           <div className="figure-palette">
             <span>{t.palette}</span>
             <input
@@ -152,15 +255,15 @@ export function GraphMainInterface({
               <small>{t.valueLabelsHelp}</small>
             </span>
           </label>
-          {error && (
+          {(fileError || error) && (
             <p className="extraction-error" role="alert">
-              {error}
+              {fileError || error}
             </p>
           )}
           <button
-            className="figure-generate"
+            className={`figure-generate${output ? " has-output" : ""}`}
             onClick={onGenerate}
-            disabled={!request.trim() || isGenerating}
+            disabled={!prompt.trim() || !data.trim() || isGenerating}
           >
             <span>
               {isGenerating
@@ -169,17 +272,15 @@ export function GraphMainInterface({
             </span>
             <b>{isGenerating ? "…" : "→"}</b>
           </button>
-          <p className="figure-warning">{t.warning}</p>
           {output && (
-            <div className="figure-checks">
-              <span>{t.checks}</span>
-              {output.checks.map((check, index) => (
-                <p className={check.level} key={`${check.message}-${index}`}>
-                  <b>{check.level === "pass" ? "✓" : "!"}</b>
-                  {check.message}
-                </p>
-              ))}
-            </div>
+            <button
+              className="graph-download"
+              type="button"
+              onClick={downloadSvg}
+            >
+              {t.downloadSvg}
+              <b>↓</b>
+            </button>
           )}
         </section>
         <div className="figure-preview-column">
@@ -197,39 +298,6 @@ export function GraphMainInterface({
                 <EmptyViewportState>{t.empty}</EmptyViewportState>
               )}
             </div>
-            {output && (
-              <div className="figure-actions">
-                <button
-                  onClick={() =>
-                    onDownload(
-                      output.svg,
-                      `${
-                        output.spec.title
-                          .replace(/[^a-z0-9]+/gi, "-")
-                          .replace(/^-|-$/g, "")
-                          .toLowerCase() || "figure"
-                      }.svg`,
-                      "image/svg+xml",
-                    )
-                  }
-                >
-                  {t.downloadSvg}
-                  <b>↓</b>
-                </button>
-                <button
-                  onClick={() =>
-                    onDownload(
-                      onVerificationMarkdown(output.report),
-                      "figure-verification.md",
-                      "text/markdown",
-                    )
-                  }
-                >
-                  {t.downloadReport}
-                  <b>↓</b>
-                </button>
-              </div>
-            )}
           </section>
         </div>
       </div>

@@ -24,7 +24,7 @@ Turns a written biological description and optional reference images into a chec
 
 ### Graph Generator
 
-Turns supplied numbers and sources into an editable bar, line, combined, scatter, or donut chart. It also produces a report so the numbers can be checked. [English info drawer](app/_tools/image/graph-generator/info.en.md)
+Turns a separate chart prompt and supplied data into an editable bar, line, combined, scatter, or donut chart. Data can be typed, pasted, or imported locally from Excel and CSV files. [English info drawer](app/_tools/image/graph-generator/info.en.md)
 
 ### Image Generator
 

@@ -51,7 +51,7 @@ export type GraphSpec = {
   sources: GraphSource[];
   notes: string[];
 };
-export type GraphCheck = { level: "pass" | "warning"; message: string };
+
 export type RenderSwatch = {
   name: string;
   hex: string;
@@ -129,36 +129,6 @@ function unitLabel(label: string, unit: string) {
   return label.toLocaleLowerCase().endsWith(suffix.toLocaleLowerCase())
     ? label
     : `${label} ${suffix}`;
-}
-
-function checkMessages(locale: NumberLocale) {
-  return locale === "cs"
-    ? {
-        complete: "Všechna dodaná číselná data jsou konečná a rozměrově úplná.",
-        cited: "Každá řada odkazuje na deklarovaný zdroj.",
-        deterministic:
-          "Geometrie SVG se vypočítá deterministicky z ověřených hodnot.",
-        noSource:
-          "Nebyl uveden pojmenovaný zdroj; data jsou označena jako dodaná uživatelem.",
-        noUrl:
-          "Jeden nebo více zdrojů nemá URL. Bibliografický odkaz ověřte ručně.",
-        zero: "Data procházejí nulou; pečlivě zkontrolujte osu a interpretaci.",
-        percentage:
-          "Hodnoty prstencového grafu jsou interpretovány jako procenta.",
-      }
-    : {
-        complete:
-          "All supplied numeric values are finite and dimensionally complete.",
-        cited: "Every series cites a declared source.",
-        deterministic:
-          "SVG geometry will be calculated deterministically from the validated values.",
-        noSource:
-          "No named source was supplied; the data is marked as user-provided.",
-        noUrl:
-          "One or more sources has no URL. Verify the bibliographic reference manually.",
-        zero: "The data crosses zero; inspect the axis and interpretation carefully.",
-        percentage: "Donut values are interpreted as percentages.",
-      };
 }
 
 function declaredSourceIds(sources: GraphSource[]) {
@@ -337,7 +307,7 @@ function normalizeSlices(
 export function validateGraphSpec(
   input: unknown,
   options: ValidationOptions = {},
-): { spec: GraphSpec; checks: GraphCheck[] } {
+): GraphSpec {
   if (!input || typeof input !== "object")
     throw new Error("The model did not return a figure specification.");
   const raw = input as RawRecord;
@@ -469,28 +439,7 @@ export function validateGraphSpec(
   if (kind !== "combined" && series.some(({ axis }) => axis === "right"))
     throw new Error("Only combined charts may use a right y-axis.");
 
-  const numericValues =
-    kind === "scatter"
-      ? points.flatMap(({ x, y }) => [x, y])
-      : kind === "donut"
-        ? slices.map(({ value }) => value)
-        : series.flatMap(({ values }) => values);
-  const messages = checkMessages(locale);
-  const checks: GraphCheck[] = [
-    { level: "pass", message: messages.complete },
-    {
-      level: "pass",
-      message: sources.length ? messages.cited : messages.noSource,
-    },
-    { level: "pass", message: messages.deterministic },
-  ];
-  if (Math.min(...numericValues) < 0 && Math.max(...numericValues) > 0)
-    checks.push({ level: "warning", message: messages.zero });
-  if (sources.some(({ url }) => !url))
-    checks.push({ level: "warning", message: messages.noUrl });
-  if (kind === "donut" && percentages)
-    checks.push({ level: "pass", message: messages.percentage });
-  return { spec, checks };
+  return spec;
 }
 
 export function applyGraphPresentationDefaults(
@@ -931,24 +880,4 @@ export function renderGraphSvg(spec: GraphSpec, swatches: RenderSwatch[] = []) {
     "text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.title{font-size:30px;font-weight:700}.subtitle{font-size:14px;fill:#666}.tick{font-size:11px}.legend{font-size:12px}.axis-label{font-size:13px;font-weight:700}.value-label,.slice-label{font-size:11px}.change-note{font-size:10px;font-weight:700}.center-label{font-size:17px;font-weight:700}.source{font-size:9px;fill:#666}";
   const titleMarkup = `<text id="figure-title-text" x="${plot.x + plot.width / 2}" y="52" text-anchor="middle" class="title">${titleLines.map((line, index) => `<tspan x="${plot.x + plot.width / 2}" dy="${index ? 32 : 0}">${escapeXml(line)}</tspan>`).join("")}</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="figure-title figure-desc" data-chart-kind="${spec.kind}">${defs}<title id="figure-title">${title}</title><desc id="figure-desc">${subtitle}</desc><style>${styles}</style><rect width="${width}" height="${height}" fill="#fff"/>${titleMarkup}<text x="${plot.x}" y="${82 + titleOffset}" class="subtitle">${subtitle}</text>${chartLegend}${body}${changeAnnotation}<text x="${plot.x}" y="640" class="source">${sourcePrefix}: ${escapeXml(sourceText)}</text></svg>`;
-}
-
-export function createGraphReport(
-  spec: GraphSpec,
-  checks: GraphCheck[],
-  model: string,
-  swatches: RenderSwatch[] = [],
-) {
-  return JSON.stringify(
-    {
-      generatedAt: new Date().toISOString(),
-      generator: "Taktik Robot Figure Generator",
-      model,
-      palette: swatches,
-      spec,
-      checks,
-    },
-    null,
-    2,
-  );
 }

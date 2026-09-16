@@ -126,7 +126,7 @@ Text apps:
 
 Image apps:
 
-- `app/_tools/image/graph-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Graph UI, copy, ASE parser, chart validator/renderer, and model-backed generation handler.
+- `app/_tools/image/graph-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Graph UI, copy, local CSV/XLSX-to-Markdown import, ASE parser, chart validator/renderer, and model-backed generation handler.
 - `app/_tools/image/diagram-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Diagram UI, copy, ASE parser, biological-diagram validator/renderer, and model-backed generation handler.
 - `app/_tools/image/map-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Map UI, copy, ASE parser, deterministic map renderer, model-backed generation handler, timeline handler, and local map data.
 - Each image app has its own `tests/` folder; graph, diagram, and map renderer regressions run independently.
@@ -230,10 +230,11 @@ The following completes the folder map by naming every source-file role. Repeate
 
 #### Graph Generator: `app/_tools/image/graph-generator/`
 
-- `MainInterface.tsx`: chart request, palette, preview, checks, and download interface.
+- `MainInterface.tsx`: separate chart prompt and data fields, local spreadsheet import, palette, preview, and SVG download interface.
 - `copy.ts`: bilingual Graph UI and progress copy.
 - `code/ase.ts`: ASE palette reader.
-- `code/graph.ts`: version 2 chart validation, deterministic SVG rendering for bar, line, combined, scatter, and donut charts, and report generation.
+- `code/data-import.ts`: converts CSV or the first XLSX sheet into an editable Markdown table in the browser.
+- `code/graph.ts`: version 2 chart validation and deterministic SVG rendering for bar, line, combined, scatter, and donut charts.
 - `code/scales.ts`: deterministic numeric domains, human-friendly ticks, and bilingual number formatting.
 - `code/server.ts`: private graph-generation request implementation and version 2 structured-output schema.
 - `prompts/system.md`: stable chart-structure instruction for all supported chart kinds.
@@ -502,27 +503,29 @@ SVG and verification report
 
 ### Graph Generator
 
-**Input:** title, supplied numeric values, units, optional named sources, natural-language chart instructions, and optional ASE palette.
+**Input:** separate chart instructions, typed or pasted data, optional CSV or XLSX data file, optional named sources, and optional ASE palette.
 
 **Flow:**
 
 ```text
-User-supplied data and sources
+Separate user prompt and typed, pasted, CSV, or XLSX data
+↓
+The browser converts imported tabular files to Markdown
 ↓
 POST /api/figures with chart mode
 ↓
 OpenRouter structures only the supplied values
 ↓
-validateGraphSpec checks data and shape
+validateGraphSpec checks data and shape for safe rendering
 ↓
 renderGraphSvg calculates scales, axes, marks, and chart-specific geometry
 ↓
-SVG and verification report
+Editable SVG
 ```
 
-**Output:** editable SVG plus Markdown verification report.
+**Output:** editable SVG.
 
-**Dependencies:** OpenRouter model `mistralai/mistral-large-2512`, the shared graph validator/renderer, and the ASE parser. The model must not research, estimate, or invent graph numbers.
+**Dependencies:** OpenRouter model `mistralai/mistral-large-2512`, `read-excel-file` for local XLSX parsing, the graph validator/renderer, and the ASE parser. The model must not research, estimate, or invent graph numbers.
 
 ### Cover Generator
 

@@ -2997,8 +2997,33 @@ button {
         Geneva,
         sans-serif;
 }
-.figure-controls textarea.chart-request {
-    min-height: 225px;
+.graph-module .figure-label-row label,
+.diagram-module .figure-label-row label {
+    font-size: 8px;
+}
+.graph-module .graph-prompt {
+    min-height: 112px;
+}
+.graph-data-label {
+    margin-top: 16px;
+}
+.graph-module .graph-data {
+    min-height: 145px;
+    overflow-x: auto;
+    white-space: pre;
+}
+.graph-module .graph-data.is-dragging {
+    box-shadow: inset 0 0 0 2px var(--orange);
+}
+.graph-data-help {
+    display: block;
+    margin-top: 7px;
+}
+.graph-data-help,
+.graph-value-labels small {
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.45;
 }
 .figure-controls textarea:focus {
     box-shadow: inset 0 0 0 2px var(--teal);
@@ -3012,6 +3037,11 @@ button {
     color: var(--teal);
     font-size: 7px;
     letter-spacing: 0.12em;
+}
+.graph-module .figure-palette > span,
+.diagram-module .figure-palette > span,
+.diagram-module .figure-references > span {
+    font-size: 8px;
 }
 .figure-add-palette {
     display: flex;
@@ -3088,11 +3118,6 @@ button {
     font-size: 8px;
     letter-spacing: 0.08em;
 }
-.graph-value-labels small {
-    color: var(--muted);
-    font-size: 8px;
-    line-height: 1.45;
-}
 .figure-references {
     margin-top: 16px;
 }
@@ -3160,7 +3185,8 @@ button {
     font-size: 20px;
     font-weight: 400;
 }
-.figure-generate {
+.figure-generate,
+.graph-download {
     display: flex;
     width: 100%;
     min-height: 50px;
@@ -3179,9 +3205,16 @@ button {
     cursor: default;
     opacity: 0.42;
 }
-.figure-generate b {
+.graph-module .figure-generate.has-output {
+    background: var(--teal);
+}
+.figure-generate b,
+.graph-download b {
     font-size: 18px;
     font-weight: 400;
+}
+.graph-download {
+    margin-top: 10px;
 }
 .figure-warning {
     margin: 16px 0 0;
