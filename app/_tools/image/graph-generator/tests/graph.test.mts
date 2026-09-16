@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createNumericDomain } from "../code/scales.ts";
-import { renderGraphSvg, validateGraphSpec } from "../code/graph.ts";
+import {
+  applyGraphPresentationDefaults,
+  renderGraphSvg,
+  validateGraphSpec,
+} from "../code/graph.ts";
 
 const source = {
   id: "S1",
@@ -88,6 +92,40 @@ test("chooses rounded automatic ticks like the reference charts", () => {
     [0, 250, 500, 750, 1000],
   );
   assert.deepEqual(createNumericDomain([12, 59]).ticks, [0, 20, 40, 60]);
+});
+
+test("labels short bar charts and annotates their exact change", () => {
+  const { spec } = validateGraphSpec(
+    v2({
+      title: "Renewable energy share",
+      xLabel: "Year",
+      yLabel: "Share",
+      unit: "%",
+      categories: ["2021", "2022", "2023"],
+      series: [
+        {
+          label: "Czechia",
+          values: [17.7, 18.2, 18.6],
+          sourceIds: ["S1"],
+          mark: "bar",
+          axis: "left",
+          showValues: false,
+          showMarkers: false,
+        },
+      ],
+    }),
+  );
+  const svg = renderGraphSvg(applyGraphPresentationDefaults(spec));
+  assert.equal(count(svg, 'data-chart-role="value-label"'), 3);
+  assert.match(svg, />17\.7%<\/text>/);
+  assert.match(svg, />18\.6%<\/text>/);
+  assert.match(svg, /Change from 2021 to 2023: \+0\.9 percentage points/);
+  assert.match(svg, /data-axis="y-left"[^>]*>0<\/text>/);
+
+  const withoutLabels = renderGraphSvg(
+    applyGraphPresentationDefaults(spec, false),
+  );
+  assert.equal(count(withoutLabels, 'data-chart-role="value-label"'), 0);
 });
 
 test("centers short titles and wraps long titles within the chart field", () => {

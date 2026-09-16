@@ -3062,6 +3062,37 @@ button {
     height: 24px;
     border: 1px solid var(--ink);
 }
+
+/* Graph Generator value-label control */
+.graph-value-labels {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 16px;
+    cursor: pointer;
+}
+.graph-value-labels input {
+    width: 14px;
+    height: 14px;
+    margin: 1px 0 0;
+    accent-color: var(--teal);
+}
+.graph-value-labels input:disabled {
+    cursor: default;
+}
+.graph-value-labels span {
+    display: grid;
+    gap: 3px;
+}
+.graph-value-labels b {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+}
+.graph-value-labels small {
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.45;
+}
 .figure-references {
     margin-top: 16px;
 }

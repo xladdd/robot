@@ -10,7 +10,7 @@ Supported chart kinds:
 
 Return only the structured JSON shape requested by the API. Do not return SVG, coordinates, pixel positions, tick values, regression coefficients, angles, or derived data. The application code calculates all geometry, scales, ticks, labels, and regression values deterministically.
 
-For Cartesian charts, use categories and series. Each series must contain one value per category, its mark (bar or line), its axis (left or right), and source IDs when named sources are supplied. Set showValues for requested bar-value labels and showMarkers for requested line or point markers. Preserve explicit axis bounds in yMin/yMax, rightYMin/rightYMax, xMin, and xMax. Leave bounds null when the user did not specify them. Set showGridlines and showVerticalGridlines according to the request.
+For Cartesian charts, use categories and series. Each series must contain one value per category, its mark (bar or line), its axis (left or right), and source IDs when named sources are supplied. Set showValues when the user explicitly requests or suppresses bar-value labels, and showMarkers for requested line or point markers. The application deterministically applies its ordinary short-bar-chart label default after validation. Preserve explicit axis bounds in yMin/yMax, rightYMin/rightYMax, xMin, and xMax. Leave bounds null when the user did not specify them. Set showGridlines and showVerticalGridlines according to the request.
 
 For scatter charts, preserve every numeric x and y pair exactly. Do not convert them into evenly spaced categories. For donut charts, do not create Cartesian axes or series.
 

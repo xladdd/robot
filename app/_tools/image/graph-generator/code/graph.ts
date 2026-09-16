@@ -493,6 +493,32 @@ export function validateGraphSpec(
   return { spec, checks };
 }
 
+export function applyGraphPresentationDefaults(
+  spec: GraphSpec,
+  showValueLabels = true,
+): GraphSpec {
+  const barCount = spec.series
+    .filter(({ mark }) => mark === "bar")
+    .reduce((count, series) => count + series.values.length, 0);
+  const labelShortBarChart =
+    showValueLabels && spec.kind === "bar" && barCount <= 12;
+
+  return {
+    ...spec,
+    series: spec.series.map((series) => ({
+      ...series,
+      showValues:
+        series.mark === "bar"
+          ? labelShortBarChart
+            ? true
+            : showValueLabels
+              ? series.showValues
+              : false
+          : series.showValues,
+    })),
+  };
+}
+
 function round(value: number) {
   return Number(value.toFixed(3));
 }
@@ -567,6 +593,12 @@ function categoryLabels(
     .join("");
 }
 
+function formatValueLabel(value: number, unit: string, locale: NumberLocale) {
+  const formatted = formatNumber(value, locale);
+  if (!unit) return formatted;
+  return unit === "%" ? `${formatted}%` : `${formatted} ${unit}`;
+}
+
 function cartesianMarks(
   spec: GraphSpec,
   colors: string[],
@@ -607,7 +639,7 @@ function cartesianMarks(
           const height = Math.abs(zeroY - valueY);
           const color = colors[seriesIndex % colors.length];
           const label = series.showValues
-            ? `<text data-chart-role="value-label" x="${round(px + barWidth / 2)}" y="${round(value >= 0 ? py - 6 : py + height + 14)}" text-anchor="middle" class="value-label">${escapeXml(formatNumber(value, spec.locale))}</text>`
+            ? `<text data-chart-role="value-label" x="${round(px + barWidth / 2)}" y="${round(value >= 0 ? py - 6 : py + height + 14)}" text-anchor="middle" class="value-label">${escapeXml(formatValueLabel(value, series.axis === "right" ? spec.rightYUnit : spec.unit, spec.locale))}</text>`
             : "";
           return `<g data-chart-role="bar" data-series="${escapeXml(series.label)}"><rect x="${round(px)}" y="${round(py)}" width="${round(Math.max(0, barWidth - 3))}" height="${round(height)}" fill="${color}"/>${label}</g>`;
         })
@@ -717,6 +749,36 @@ function donutMarks(spec: GraphSpec, colors: string[]) {
     ? `<text data-chart-role="center-label" x="${cx}" y="${cy}" text-anchor="middle" class="center-label">${escapeXml(spec.centerLabel)}</text>`
     : "";
   return `<g data-chart-role="donut">${marks}${center}</g>`;
+}
+
+function barChangeAnnotation(spec: GraphSpec, plotX: number) {
+  if (
+    spec.kind !== "bar" ||
+    spec.series.length !== 1 ||
+    spec.series[0].mark !== "bar" ||
+    spec.categories.length < 2 ||
+    spec.categories.length > 12
+  )
+    return "";
+
+  const series = spec.series[0];
+  const change = series.values.at(-1)! - series.values[0];
+  if (change === 0) return "";
+  const sign = change > 0 ? "+" : "−";
+  const amount = `${sign}${formatNumber(Math.abs(change), spec.locale)}`;
+  const isPercentage = spec.unit === "%";
+  const unit = isPercentage
+    ? spec.locale === "cs"
+      ? " procentního bodu"
+      : " percentage points"
+    : spec.unit
+      ? ` ${spec.unit}`
+      : "";
+  const prefix =
+    spec.locale === "cs"
+      ? `Změna ${spec.categories[0]}–${spec.categories.at(-1)}: `
+      : `Change from ${spec.categories[0]} to ${spec.categories.at(-1)}: `;
+  return `<text data-chart-role="change-annotation" x="${plotX}" y="620" class="change-note">${escapeXml(`${prefix}${amount}${unit}`)}</text>`;
 }
 
 function estimatedTextWidth(value: string, fontSize: number) {
@@ -864,10 +926,11 @@ export function renderGraphSvg(spec: GraphSpec, swatches: RenderSwatch[] = []) {
   const title = escapeXml(spec.title);
   const subtitle = escapeXml(spec.subtitle || `${spec.kind} chart`);
   const sourcePrefix = spec.locale === "cs" ? "Zdroje" : "Sources";
+  const changeAnnotation = barChangeAnnotation(spec, plot.x);
   const styles =
-    "text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.title{font-size:30px;font-weight:700}.subtitle{font-size:14px;fill:#666}.tick{font-size:11px}.legend{font-size:12px}.axis-label{font-size:13px;font-weight:700}.value-label,.slice-label{font-size:11px}.center-label{font-size:17px;font-weight:700}.source{font-size:9px;fill:#666}";
+    "text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.title{font-size:30px;font-weight:700}.subtitle{font-size:14px;fill:#666}.tick{font-size:11px}.legend{font-size:12px}.axis-label{font-size:13px;font-weight:700}.value-label,.slice-label{font-size:11px}.change-note{font-size:10px;font-weight:700}.center-label{font-size:17px;font-weight:700}.source{font-size:9px;fill:#666}";
   const titleMarkup = `<text id="figure-title-text" x="${plot.x + plot.width / 2}" y="52" text-anchor="middle" class="title">${titleLines.map((line, index) => `<tspan x="${plot.x + plot.width / 2}" dy="${index ? 32 : 0}">${escapeXml(line)}</tspan>`).join("")}</text>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="figure-title figure-desc" data-chart-kind="${spec.kind}">${defs}<title id="figure-title">${title}</title><desc id="figure-desc">${subtitle}</desc><style>${styles}</style><rect width="${width}" height="${height}" fill="#fff"/>${titleMarkup}<text x="${plot.x}" y="${82 + titleOffset}" class="subtitle">${subtitle}</text>${chartLegend}${body}<text x="${plot.x}" y="640" class="source">${sourcePrefix}: ${escapeXml(sourceText)}</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="figure-title figure-desc" data-chart-kind="${spec.kind}">${defs}<title id="figure-title">${title}</title><desc id="figure-desc">${subtitle}</desc><style>${styles}</style><rect width="${width}" height="${height}" fill="#fff"/>${titleMarkup}<text x="${plot.x}" y="${82 + titleOffset}" class="subtitle">${subtitle}</text>${chartLegend}${body}${changeAnnotation}<text x="${plot.x}" y="640" class="source">${sourcePrefix}: ${escapeXml(sourceText)}</text></svg>`;
 }
 
 export function createGraphReport(

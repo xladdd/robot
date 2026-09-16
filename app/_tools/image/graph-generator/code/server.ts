@@ -7,6 +7,7 @@ import {
 } from "../../../openrouter/server";
 import {
   createGraphReport,
+  applyGraphPresentationDefaults,
   renderGraphSvg,
   validateGraphSpec,
   type RenderSwatch,
@@ -171,6 +172,7 @@ export async function POST(request: Request) {
       palette?: unknown;
       evaluationModel?: unknown;
       language?: unknown;
+      showValueLabels?: unknown;
     };
     const userRequest =
       typeof body.request === "string" ? body.request.trim() : "";
@@ -291,7 +293,13 @@ export async function POST(request: Request) {
     }
     if (typeof parsed.error === "string" && parsed.error.trim())
       return NextResponse.json({ error: parsed.error.trim() }, { status: 422 });
-    const { spec, checks } = validateGraphSpec(parsed.figure, { language });
+    const { spec: validatedSpec, checks } = validateGraphSpec(parsed.figure, {
+      language,
+    });
+    const spec = applyGraphPresentationDefaults(
+      validatedSpec,
+      body.showValueLabels !== false,
+    );
     if (swatches.length)
       checks.push({
         level: "pass",

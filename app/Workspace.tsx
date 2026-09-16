@@ -155,6 +155,7 @@ export default function Workspace({
   >([]);
   const [figurePalette, setFigurePalette] = useState<AseSwatch[]>([]);
   const [figurePaletteName, setFigurePaletteName] = useState("");
+  const [graphShowValueLabels, setGraphShowValueLabels] = useState(true);
   const [figureOutput, setFigureOutput] = useState<FigureOutput | null>(null);
   const [figureError, setFigureError] = useState("");
   const [isGeneratingFigure, setIsGeneratingFigure] = useState(false);
@@ -930,6 +931,9 @@ export default function Workspace({
           mode: figureMode,
           ...(figureMode === "diagram" || figureMode === "chart"
             ? { language }
+            : {}),
+          ...(figureMode === "chart"
+            ? { showValueLabels: graphShowValueLabels }
             : {}),
           references: figureReferences.map(({ data }) => data),
           palette: figurePalette,
@@ -2191,6 +2195,7 @@ export default function Workspace({
             request={figureRequest}
             palette={figurePalette}
             paletteName={figurePaletteName}
+            showValueLabels={graphShowValueLabels}
             output={figureOutput as GraphOutput | null}
             error={figureError}
             isGenerating={isGeneratingFigure}
@@ -2202,6 +2207,7 @@ export default function Workspace({
               setFigurePaletteName("");
               setFigureOutput(null);
             }}
+            onShowValueLabels={setGraphShowValueLabels}
             onRequest={setFigureRequest}
             onGenerate={() => void generateFigure()}
             onDownload={downloadFigure}
