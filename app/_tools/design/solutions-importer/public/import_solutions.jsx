@@ -13,13 +13,13 @@
     var LAYER_NAME = "SOLUTIONS";
     var TEXT_STYLE_NAME = "Solutions";
     var CELL_STYLE_NAME = "Cell Solutions";
+    var FRAME_STYLE_NAME = "Solutions No Stroke";
     var SWATCH_NAME = "SOLUTIONS";
     var GENERATED_PREFIX = "Solutions Advanced:";
     var SIMPLE_GENERATED_PREFIX = "Solutions Simple:";
     var AUTOMATED = $.global.__SOLUTIONS_IMPORTER_AUTOMATED__ === true ||
         $.global.__SOLUTIONS_BETA_AUTOMATED__ === true ||
         $.global.__SOLUTIONS_SIMPLE_AUTOMATED__ === true;
-    var noneCharacterStyle = null;
 
     if (!app.documents.length) {
         notify("Open the matching InDesign chapter before running this script.");
@@ -31,13 +31,15 @@
 
     function run() {
         var jsonFile = TEST_JSON_PATH ? File(TEST_JSON_PATH) : null;
-        if (!jsonFile || !jsonFile.exists)
+        if (!jsonFile || !jsonFile.exists) {
             jsonFile = File.openDialog("Choose Solutions Importer JSON", "JSON:*.json");
+        }
         if (!jsonFile) return;
 
         var data = readJson(jsonFile);
         if (!data) return;
-        if (data.format !== "indesign-solutions-v2" || !data.pages) {
+        if (data.format !== "indesign-solutions-v2" || !data.pages ||
+                typeof data.pages.length !== "number") {
             notify("This is not Solutions Importer JSON.");
             return;
         }
@@ -57,6 +59,10 @@
             return;
         }
 
+        runAdvancedImport(doc, data);
+    }
+
+    function runAdvancedImport(doc, data) {
         var layer = ensureLayer(doc);
         var oldItems = collectLayerItems(layer);
         var swatch = ensureSolutionSwatch(doc);
@@ -66,13 +72,13 @@
             notify('The selected font "' + typography.fontFamily + '" is not installed.');
             return;
         }
-        var textStyle = ensureParagraphStyle(
+        var textStyle = ensureAdvancedParagraphStyle(
             doc, TEXT_STYLE_NAME, swatch, font, typography.pointSize, true
         );
-        var cellStyle = ensureParagraphStyle(
+        var cellStyle = ensureAdvancedParagraphStyle(
             doc, CELL_STYLE_NAME, swatch, font, typography.pointSize, true
         );
-        noneCharacterStyle = getNoneCharacterStyle(doc);
+        var advancedNoneCharacterStyle = getNoneCharacterStyle(doc);
 
         var oldH = doc.viewPreferences.horizontalMeasurementUnits;
         var oldV = doc.viewPreferences.verticalMeasurementUnits;
@@ -142,7 +148,8 @@
                         if (!copy) {
                             createLooseTextFrame(
                                 page, layer, operation, textStyle, answerBoxes,
-                                pageWidth, pageHeight, scaleX, scaleY, createdItems
+                                pageWidth, pageHeight, scaleX, scaleY, createdItems,
+                                advancedNoneCharacterStyle
                             );
                             looseFrames++;
                             unresolved.push(operation.id);
@@ -155,7 +162,7 @@
                             var copyCell = findCopyCell(copy, sourceCell.row, sourceCell.column);
                             if (!copyCell) throw new Error("Could not find copied table cell for " + operation.id + ".");
                             copyCell.contents = parsed.glyphs[glyphIndex].text;
-                            styleSolutionCell(copyCell, cellStyle);
+                            styleSolutionCell(copyCell, cellStyle, advancedNoneCharacterStyle);
                             tableWrites[cellKey(placement.table, sourceCell)] = true;
                             tableCharacters++;
                         }
@@ -165,7 +172,8 @@
                             if (continuation) {
                                 createContinuationFrame(
                                     page, layer, operation, continuation, placement, copy, textStyle,
-                                    pageWidth, pageHeight, scaleX, scaleY, createdItems
+                                    pageWidth, pageHeight, scaleX, scaleY, createdItems,
+                                    advancedNoneCharacterStyle
                                 );
                                 continuations++;
                             }
@@ -181,7 +189,8 @@
                         copy = getTableCopy(placement.table, tableCopies, layer, createdItems);
                         createLooseTextFrame(
                             page, layer, operation, textStyle, answerBoxes,
-                            pageWidth, pageHeight, scaleX, scaleY, createdItems, placement, copy
+                            pageWidth, pageHeight, scaleX, scaleY, createdItems,
+                            advancedNoneCharacterStyle, placement, copy
                         );
                         looseFrames++;
                         previousTablePlacement = null;
@@ -190,13 +199,15 @@
                         createContinuationFrame(
                             page, layer, operation, normalizeText(operation.text),
                             previousTablePlacement.placement, previousTablePlacement.copy, textStyle,
-                            pageWidth, pageHeight, scaleX, scaleY, createdItems
+                            pageWidth, pageHeight, scaleX, scaleY, createdItems,
+                            advancedNoneCharacterStyle
                         );
                         continuations++;
                     } else {
                         createLooseTextFrame(
                             page, layer, operation, textStyle, answerBoxes,
-                            pageWidth, pageHeight, scaleX, scaleY, createdItems
+                            pageWidth, pageHeight, scaleX, scaleY, createdItems,
+                            advancedNoneCharacterStyle
                         );
                         looseFrames++;
                         if (parsed.glyphs.length && !isQuestionLine(operation.text)) unresolved.push(operation.id);
@@ -263,21 +274,18 @@
 
         var advanced = choices.add(
             "radiobutton", undefined,
-            "Advanced — use tables, answer boxes, and continuation alignment"
+            "Advanced: use tables, answer boxes, and continuation alignment"
         );
         advanced.value = true;
-        advanced.helpTip = "Recommended for structured layouts. Falls back to loose frames when no confident match is found.";
 
         var simple = choices.add(
             "radiobutton", undefined,
-            "Simple — place text directly at its PDF coordinates"
+            "Simple: place text directly at its PDF coordinates"
         );
-        simple.helpTip = "The more failsafe option. It does not inspect tables or answer boxes.";
 
         var warning = dialog.add(
             "statictext", undefined,
-            "Advanced replaces every existing item on the SOLUTIONS layer after a successful import.\n" +
-            "Simple replaces only frames generated by an earlier Simple import.",
+            "If Advanced doesn't work as expected, undo the action and rerun the script in Simple mode.",
             {multiline: true}
         );
         warning.preferredSize.width = 440;
@@ -293,7 +301,7 @@
 
     function runSimpleImport(doc, data) {
         var layer = ensureLayer(doc);
-        var oldItems = collectGeneratedItems(layer, SIMPLE_GENERATED_PREFIX);
+        var oldItems = collectGeneratedItems(layer);
         var swatch = ensureSolutionSwatch(doc);
         var typography = readTypography(data);
         var font = resolveFont(typography.fontFamily);
@@ -301,91 +309,132 @@
             notify('The selected font "' + typography.fontFamily + '" is not installed.');
             return;
         }
-        var style = ensureParagraphStyle(
-            doc, TEXT_STYLE_NAME, swatch, font, typography.pointSize, false
-        );
+        var style = ensureParagraphStyle(doc, TEXT_STYLE_NAME, swatch, font,
+            typography.pointSize);
+        var noneCharacterStyle = getNoneCharacterStyle(doc);
+        var noneSwatch = getNoneSwatch(doc);
+        var frameStyle = ensureNoStrokeObjectStyle(doc, noneSwatch);
 
         var oldH = doc.viewPreferences.horizontalMeasurementUnits;
         var oldV = doc.viewPreferences.verticalMeasurementUnits;
         var oldOrigin = doc.viewPreferences.rulerOrigin;
+        var oldLayerVisible = layer.visible;
+        var oldLayerLocked = layer.locked;
         var createdItems = [];
+        var progressPalette = null;
         var placed = 0;
         var skipped = 0;
-
-        doc.viewPreferences.horizontalMeasurementUnits = MeasurementUnits.POINTS;
-        doc.viewPreferences.verticalMeasurementUnits = MeasurementUnits.POINTS;
-        doc.viewPreferences.rulerOrigin = RulerOrigin.PAGE_ORIGIN;
+        var processed = 0;
+        var total = countEnabledOperations(data);
 
         try {
+            doc.viewPreferences.horizontalMeasurementUnits = MeasurementUnits.POINTS;
+            doc.viewPreferences.verticalMeasurementUnits = MeasurementUnits.POINTS;
+            doc.viewPreferences.rulerOrigin = RulerOrigin.PAGE_ORIGIN;
+
+            progressPalette = createProgressPalette(total);
             layer.visible = true;
             layer.locked = false;
+            updateProgress(progressPalette, 0, total, "Preparing Simple import...");
+
             for (var pageIndex = 0; pageIndex < data.pages.length; pageIndex++) {
                 var page = doc.pages[pageIndex];
                 var pageData = data.pages[pageIndex];
+                var pdfWidth = Number(pageData.width);
+                var pdfHeight = Number(pageData.height);
+                if (!isFinite(pdfWidth) || !isFinite(pdfHeight) ||
+                        pdfWidth <= 0 || pdfHeight <= 0) {
+                    throw new Error("Invalid PDF dimensions on page " + (pageIndex + 1) + ".");
+                }
+
                 var pageWidth = page.bounds[3] - page.bounds[1];
                 var pageHeight = page.bounds[2] - page.bounds[0];
-                var scaleX = pageWidth / Number(pageData.width);
-                var scaleY = pageHeight / Number(pageData.height);
+                var scaleX = pageWidth / pdfWidth;
+                var scaleY = pageHeight / pdfHeight;
                 var operations = pageData.operations || [];
 
                 for (var operationIndex = 0; operationIndex < operations.length; operationIndex++) {
                     var operation = operations[operationIndex];
-                    if (operation.enabled === false) continue;
-                    if (operation.kind !== "text" || !operation.text ||
-                            !operation.bounds || operation.bounds.length !== 4) {
+                    if (!isEnabledOperation(operation)) continue;
+
+                    processed++;
+                    updateProgress(
+                        progressPalette, processed, total,
+                        "Operation " + processed + " of " + total +
+                        (operation.kind === "text" ? ": placing text" : ": skipping non-text")
+                    );
+
+                    if (!isValidTextOperation(operation)) {
                         skipped++;
                         continue;
                     }
 
                     var bounds = scaledBounds(operation.bounds, scaleX, scaleY);
-                    var minimumHeight = typography.pointSize + 2;
-                    bounds[0] = clamp(bounds[0], 0, Math.max(0, pageHeight - minimumHeight));
-                    bounds[1] = clamp(bounds[1], 0, Math.max(0, pageWidth - 12));
-                    bounds[2] = clamp(
-                        Math.max(bounds[2], bounds[0] + minimumHeight),
-                        bounds[0] + minimumHeight, pageHeight
-                    );
-                    bounds[3] = clamp(
-                        Math.max(bounds[3], bounds[1] + 12),
-                        bounds[1] + 12, pageWidth
-                    );
-
+                    bounds = constrainBounds(bounds, pageWidth, pageHeight,
+                        typography.pointSize);
                     var frame = page.textFrames.add(layer, undefined, undefined, {
                         geometricBounds: bounds,
-                        contents: normalizeText(operation.text)
+                        contents: normalizeText(operation.text),
+                        fillColor: noneSwatch,
+                        strokeColor: noneSwatch,
+                        strokeWeight: "0 pt"
                     });
-                    frame.label = SIMPLE_GENERATED_PREFIX + operation.id;
-                    makeFrameTransparent(frame);
-                    frame.textFramePreferences.insetSpacing = [0, 0, 0, 0];
-                    frame.textFramePreferences.firstBaselineOffset = FirstBaseline.ASCENT_OFFSET;
-                    frame.parentStory.paragraphs[0].appliedParagraphStyle = style;
-                    try {
-                        frame.parentStory.paragraphs[0].justification = Justification.LEFT_ALIGN;
-                    } catch (_) {}
                     createdItems.push(frame);
+                    frame.label = SIMPLE_GENERATED_PREFIX +
+                        (operation.id !== undefined ? operation.id : operationIndex);
+                    applyNoStrokeObjectStyle(frame, frameStyle);
+                    clearFrameInsets(frame);
+                    frame.textFramePreferences.firstBaselineOffset =
+                        FirstBaseline.ASCENT_OFFSET;
+                    frame.parentStory.paragraphs[0].appliedParagraphStyle = style;
+                    frame.parentStory.paragraphs[0].justification = Justification.LEFT_ALIGN;
+                    applyNoneCharacterStyle(frame.parentStory.texts[0], noneCharacterStyle);
+                    verifyFrameAppearance(frame, noneSwatch, operation.id);
                     placed++;
                 }
             }
-            removeItems(oldItems);
+
+            var removalErrors = removeItems(oldItems);
+            if (removalErrors.length) {
+                throw new Error("Could not remove previous Simple-import items.\n" +
+                    removalErrors.join("\n"));
+            }
+            updateProgress(progressPalette, processed, total,
+                "Simple import complete.");
         } catch (error) {
-            removeItems(createdItems);
-            if (AUTOMATED) throw error;
-            alert("Import failed. Previous Simple-import items were kept.\n\n" + error, TITLE);
+            var cleanupErrors = removeItems(createdItems);
+            var failure = "Import failed. Previous Simple-import items were kept.\n\n" +
+                error;
+            if (cleanupErrors.length) {
+                failure += "\n\nSome new items could not be removed:\n" +
+                    cleanupErrors.join("\n");
+            }
+            if (AUTOMATED) throw new Error(failure);
+            alert(failure, TITLE);
             return;
         } finally {
+            closeProgressPalette(progressPalette);
             doc.viewPreferences.horizontalMeasurementUnits = oldH;
             doc.viewPreferences.verticalMeasurementUnits = oldV;
             doc.viewPreferences.rulerOrigin = oldOrigin;
+            try {
+                layer.visible = oldLayerVisible;
+            } catch (visibilityError) {
+                $.writeln("Solutions Simple warning: could not restore layer visibility: " +
+                    visibilityError);
+            }
+            try {
+                layer.locked = oldLayerLocked;
+            } catch (lockError) {
+                $.writeln("Solutions Simple warning: could not restore layer lock: " +
+                    lockError);
+            }
         }
 
         if (!AUTOMATED) {
-            alert(
-                "Simple Solutions import completed.\n\n" +
-                "Text frames placed: " + placed +
-                "\nNon-text operations skipped: " + skipped +
-                "\n\nCheck the SOLUTIONS layer page by page.",
-                TITLE
-            );
+            alert("Simple Solutions import completed.\n\nText frames placed: " + placed +
+                "\nNon-text or invalid operations skipped: " + skipped +
+                "\n\nCheck the SOLUTIONS layer page by page.", TITLE);
         }
     }
 
@@ -414,8 +463,6 @@
     function ensureLayer(doc) {
         var layer = doc.layers.itemByName(LAYER_NAME);
         if (!layer.isValid) layer = doc.layers.add({name: LAYER_NAME});
-        layer.visible = true;
-        layer.locked = false;
         return layer;
     }
 
@@ -446,18 +493,43 @@
         try {
             font = app.fonts.itemByName(family + "\tRegular");
             if (font.isValid) return font;
-        } catch (_) {}
+        } catch (lookupError) {
+            $.writeln("Solutions Simple warning: direct font lookup failed: " +
+                lookupError);
+        }
         for (var index = 0; index < app.fonts.length; index++) {
             try {
                 font = app.fonts[index];
                 if (String(font.fontFamily) === family &&
                         String(font.fontStyleName).toLowerCase() === "regular") return font;
-            } catch (__) {}
+            } catch (fontError) {
+                $.writeln("Solutions Simple warning: could not inspect font " + index + ": " +
+                    fontError);
+            }
         }
         return null;
     }
 
-    function ensureParagraphStyle(doc, name, swatch, font, pointSize, centered) {
+    function ensureParagraphStyle(doc, name, swatch, font, pointSize) {
+        var style = doc.paragraphStyles.itemByName(name);
+        if (!style.isValid) style = doc.paragraphStyles.add({name: name});
+        style.appliedFont = font;
+        try {
+            style.fontStyle = font.fontStyleName;
+        } catch (styleFontError) {
+            $.writeln("Solutions Simple warning: could not set font style: " +
+                styleFontError);
+        }
+        style.pointSize = pointSize;
+        style.leading = pointSize;
+        style.fillColor = swatch;
+        style.spaceBefore = 0;
+        style.spaceAfter = 0;
+        style.justification = Justification.LEFT_ALIGN;
+        return style;
+    }
+
+    function ensureAdvancedParagraphStyle(doc, name, swatch, font, pointSize, centered) {
         var style = doc.paragraphStyles.itemByName(name);
         if (!style.isValid) style = doc.paragraphStyles.add({name: name});
         style.appliedFont = font;
@@ -474,24 +546,21 @@
     }
 
     function getNoneCharacterStyle(doc) {
-        var style;
-        try {
-            style = doc.characterStyles.itemByName("$ID/[None]");
-            if (style.isValid) return style;
-        } catch (_) {}
-        try {
-            style = doc.characterStyles.itemByName("[None]");
-            if (style.isValid) return style;
-        } catch (__) {}
-        return doc.characterStyles[0];
+        var style = doc.characterStyles.itemByName("$ID/[None]");
+        if (style.isValid) return style;
+        style = doc.characterStyles.itemByName("[None]");
+        if (style.isValid) return style;
+        return null;
     }
 
-    function applyNoneCharacterStyle(text) {
+    function applyNoneCharacterStyle(text, style) {
+        if (!style || !style.isValid || !text) return;
         try {
-            if (noneCharacterStyle && noneCharacterStyle.isValid) {
-                text.appliedCharacterStyle = noneCharacterStyle;
-            }
-        } catch (_) {}
+            text.appliedCharacterStyle = style;
+        } catch (error) {
+            $.writeln("Solutions Simple warning: could not apply [None] character style: " +
+                error);
+        }
     }
 
     function confirmPageNames(doc, data) {
@@ -511,12 +580,26 @@
         );
     }
 
+    function isEnabledOperation(operation) {
+        return !!operation && operation.enabled !== false;
+    }
+
+    function isValidTextOperation(operation) {
+        if (!isEnabledOperation(operation) || operation.kind !== "text") return false;
+        if (!normalizeText(operation.text)) return false;
+        if (!operation.bounds || operation.bounds.length !== 4) return false;
+        for (var index = 0; index < operation.bounds.length; index++) {
+            if (!isFinite(Number(operation.bounds[index]))) return false;
+        }
+        return true;
+    }
+
     function countEnabledOperations(data) {
         var count = 0;
         for (var pageIndex = 0; pageIndex < data.pages.length; pageIndex++) {
             var operations = data.pages[pageIndex].operations || [];
             for (var operationIndex = 0; operationIndex < operations.length; operationIndex++) {
-                if (operations[operationIndex].enabled !== false) count++;
+                if (isEnabledOperation(operations[operationIndex])) count++;
             }
         }
         return count;
@@ -529,23 +612,32 @@
         return result;
     }
 
-    function collectGeneratedItems(layer, prefix) {
+    function collectGeneratedItems(layer) {
         var items = layer.allPageItems;
         var result = [];
         for (var index = 0; index < items.length; index++) {
             try {
-                if (String(items[index].label).indexOf(prefix) === 0) {
+                if (String(items[index].label).indexOf(SIMPLE_GENERATED_PREFIX) === 0) {
                     result.push(items[index]);
                 }
-            } catch (_) {}
+            } catch (labelError) {
+                $.writeln("Solutions Simple warning: could not inspect item label: " +
+                    labelError);
+            }
         }
         return result;
     }
 
     function removeItems(items) {
+        var errors = [];
         for (var index = items.length - 1; index >= 0; index--) {
-            try { if (items[index].isValid) items[index].remove(); } catch (_) {}
+            try {
+                if (items[index].isValid) items[index].remove();
+            } catch (error) {
+                errors.push("Item " + index + ": " + error);
+            }
         }
+        return errors;
     }
 
     function collectTables(page, solutionLayer) {
@@ -897,9 +989,9 @@
         return null;
     }
 
-    function styleSolutionCell(cell, style) {
+    function styleSolutionCell(cell, style, characterStyle) {
         try { cell.paragraphs.everyItem().appliedParagraphStyle = style; } catch (_) {}
-        try { applyNoneCharacterStyle(cell.texts[0]); } catch (__) {}
+        try { applyNoneCharacterStyle(cell.texts[0], characterStyle); } catch (__) {}
         try {
             cell.verticalJustification = VerticalJustification.CENTER_ALIGN;
             cell.topInset = 0;
@@ -924,7 +1016,7 @@
     }
 
     function createContinuationFrame(page, layer, operation, text, placement, tableCopy, style,
-            pageWidth, pageHeight, scaleX, scaleY, createdItems) {
+            pageWidth, pageHeight, scaleX, scaleY, createdItems, characterStyle) {
         var operationBounds = scaledBounds(operation.bounds, scaleX, scaleY);
         var lastCell = placement.cells[placement.cells.length - 1];
         var left = lastCell.right + 2;
@@ -941,14 +1033,14 @@
         frame.textFramePreferences.firstBaselineOffset = FirstBaseline.ASCENT_OFFSET;
         frame.parentStory.paragraphs[0].appliedParagraphStyle = style;
         frame.parentStory.paragraphs[0].justification = Justification.LEFT_ALIGN;
-        applyNoneCharacterStyle(frame.parentStory.texts[0]);
+        applyNoneCharacterStyle(frame.parentStory.texts[0], characterStyle);
         fitSingleLineFrame(frame, left, pageWidth, false);
         alignFrameToTableRow(frame, tableCopy, placement.row);
         createdItems.push(frame);
     }
 
     function createLooseTextFrame(page, layer, operation, style, answerBoxes,
-            pageWidth, pageHeight, scaleX, scaleY, createdItems, rowPlacement, tableCopy) {
+            pageWidth, pageHeight, scaleX, scaleY, createdItems, characterStyle, rowPlacement, tableCopy) {
         var bounds = scaledBounds(operation.bounds, scaleX, scaleY);
         var target = findAnswerBox(answerBoxes, bounds);
         if (target) {
@@ -967,7 +1059,7 @@
         makeFrameTransparent(frame);
         frame.textFramePreferences.insetSpacing = [0, 0, 0, 0];
         frame.parentStory.paragraphs[0].appliedParagraphStyle = style;
-        applyNoneCharacterStyle(frame.parentStory.texts[0]);
+        applyNoneCharacterStyle(frame.parentStory.texts[0], characterStyle);
         if (target) {
             frame.geometricBounds = copyBounds(target.bounds);
             frame.textFramePreferences.verticalJustification = VerticalJustification.CENTER_ALIGN;
@@ -1100,21 +1192,127 @@
         return null;
     }
 
+    function ensureNoStrokeObjectStyle(doc, none) {
+        var style = doc.objectStyles.itemByName(FRAME_STYLE_NAME);
+        if (!style.isValid) style = doc.objectStyles.add({name: FRAME_STYLE_NAME});
+        try {
+            style.enableFill = true;
+            style.fillColor = none;
+            style.enableStroke = true;
+            style.strokeColor = none;
+            style.strokeWeight = "0 pt";
+        } catch (error) {
+            throw new Error("Could not configure the no-stroke object style: " + error);
+        }
+        return style;
+    }
+
+    function applyNoStrokeObjectStyle(frame, style) {
+        try {
+            frame.applyObjectStyle(style, true, true);
+        } catch (error) {
+            throw new Error("Could not apply the no-stroke object style: " + error);
+        }
+    }
+
     function getNoneSwatch(doc) {
-        var none;
+        var names = ["$ID/None", "None"];
+        var errors = [];
         try {
-            none = doc.swatches[0];
-            if (none.isValid && String(none.name) === "None") return none;
-        } catch (_) {}
+            names.push(app.translateKeyString("$ID/None"));
+        } catch (translationError) {
+            errors.push("translation: " + translationError);
+        }
+        for (var index = 0; index < names.length; index++) {
+            try {
+                var none = doc.swatches.itemByName(names[index]);
+                if (none.isValid) return none;
+                errors.push(names[index] + " is not valid");
+            } catch (error) {
+                errors.push(names[index] + ": " + error);
+            }
+        }
+        throw new Error("Could not find the InDesign None swatch. " +
+            errors.join("; "));
+    }
+
+
+    function verifyFrameAppearance(frame, none, operationId) {
+        var errors = [];
+        var strokeWeight = Number(frame.strokeWeight);
+        if (!isFinite(strokeWeight) || Math.abs(strokeWeight) > 0.001) {
+            errors.push("stroke weight is " + frame.strokeWeight);
+        }
         try {
-            none = doc.swatches.itemByName("$ID/None");
-            if (none.isValid) return none;
-        } catch (__) {}
+            if (!frame.strokeColor.isValid || frame.strokeColor.id !== none.id) {
+                errors.push("stroke colour is " + frame.strokeColor.name);
+            }
+        } catch (strokeError) {
+            errors.push("could not verify stroke colour: " + strokeError);
+        }
         try {
-            none = doc.swatches.itemByName("None");
-            if (none.isValid) return none;
-        } catch (___) {}
-        return doc.swatches[0];
+            if (!frame.fillColor.isValid || frame.fillColor.id !== none.id) {
+                errors.push("fill colour is " + frame.fillColor.name);
+            }
+        } catch (fillError) {
+            errors.push("could not verify fill colour: " + fillError);
+        }
+        if (errors.length) {
+            throw new Error("Frame appearance verification failed for " +
+                (operationId || "an unlabelled operation") + ".\n" +
+                errors.join("\n"));
+        }
+    }
+
+    function clearFrameInsets(frame) {
+        try {
+            frame.textFramePreferences.insetSpacing = [0, 0, 0, 0];
+        } catch (insetError) {
+            throw new Error("Could not set zero text-frame insets: " + insetError);
+        }
+    }
+
+    function createProgressPalette(total) {
+        var palette = new Window("palette", TITLE);
+        palette.orientation = "column";
+        palette.alignChildren = "fill";
+        palette.margins = 16;
+        palette.statusText = palette.add("statictext", undefined,
+            "Preparing Simple import...");
+        palette.statusText.preferredSize.width = 360;
+        palette.progressBar = palette.add("progressbar", undefined, 0,
+            Math.max(1, total));
+        palette.progressBar.preferredSize.width = 360;
+        palette.show();
+        return palette;
+    }
+
+    function updateProgress(palette, value, total, status) {
+        if (!palette) return;
+        palette.progressBar.value = value;
+        palette.statusText.text = status;
+        try {
+            palette.update();
+        } catch (updateError) {
+            $.writeln("Solutions Simple warning: could not redraw progress palette: " +
+                updateError);
+        }
+        try {
+            app.processTasks();
+        } catch (taskError) {
+            $.writeln("Solutions Simple warning: could not process palette events: " +
+                taskError);
+        }
+    }
+
+    function closeProgressPalette(palette) {
+        if (!palette) return;
+        try {
+            palette.close();
+        } catch (closeError) {
+            $.writeln("Solutions Simple warning: could not close progress palette: " +
+                closeError);
+        }
     }
 
     function scaledBounds(bounds, scaleX, scaleY) {
@@ -1130,17 +1328,25 @@
         return [Number(bounds[0]), Number(bounds[1]), Number(bounds[2]), Number(bounds[3])];
     }
 
+    function constrainBounds(bounds, pageWidth, pageHeight, pointSize) {
+        var minimumHeight = Math.min(pageHeight, Math.max(1, pointSize + 2));
+        var minimumWidth = Math.min(pageWidth, 12);
+        bounds[0] = clamp(bounds[0], 0,
+            Math.max(0, pageHeight - minimumHeight));
+        bounds[1] = clamp(bounds[1], 0,
+            Math.max(0, pageWidth - minimumWidth));
+        bounds[2] = clamp(Math.max(bounds[2], bounds[0] + minimumHeight),
+            bounds[0] + minimumHeight, pageHeight);
+        bounds[3] = clamp(Math.max(bounds[3], bounds[1] + minimumWidth),
+            bounds[1] + minimumWidth, pageWidth);
+        return bounds;
+    }
+
     function clamp(value, minimum, maximum) {
         return Math.min(maximum, Math.max(minimum, value));
     }
 
     function normalizeText(text) {
         return String(text || "").replace(/[ \t]+/g, " ").replace(/^\s+|\s+$/g, "");
-    }
-
-    function countKeys(object) {
-        var count = 0;
-        for (var key in object) if (object.hasOwnProperty(key)) count++;
-        return count;
     }
 })();

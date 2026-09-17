@@ -34,10 +34,7 @@ Canonical InDesign importer distributed by the app:
 
 - `/solutions/import_solutions.jsx`
 
-Deprecated compatibility URLs remain available for existing links and installations, but are not advertised in the UI:
-
-- `/solutions/import_solutions_simple.jsx`
-- `/solutions/import_solutions_advanced.jsx`
+The app-owned public directory intentionally contains only the Python extractor, its browser worker, and this single mode-selecting InDesign importer.
 
 Recommended InDesign installation path:
 
@@ -110,7 +107,7 @@ The JSON is an operation manifest, not a finished layout. It records page-relati
 
 In InDesign, open **Window > Utilities > Scripts**. Reveal the User scripts folder and confirm that `import_solutions.jsx` is present.
 
-The authoritative installed path is listed in **Current Files** above. The Solutions page offers this canonical JSX as its only importer download. The old mode-specific files remain reachable only through their deprecated compatibility URLs.
+The authoritative installed path is listed in **Current Files** above. The Solutions page offers this canonical JSX as its only importer download; standalone mode-specific importers are no longer distributed.
 
 Before a production test, compare the installed file with the repository copy:
 
