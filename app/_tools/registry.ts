@@ -98,7 +98,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   cover: "to-test",
   grep: "tested",
   coverSplitter: "tested",
-  solutions: "to-test",
+  solutions: "tested",
   barcode: "tested",
   prompt: "to-test",
 };
