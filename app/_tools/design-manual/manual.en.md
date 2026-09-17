@@ -124,15 +124,15 @@
 
 ## Solutions
 
-### Answer layer
+### Solutions layer
 
 - Interactive workbooks must contain a separate top layer with answers.
 
-- The answer layer must be easy to turn on and off.
+- The solutions layer must be easy to turn on and off.
 
-- Answers are usually not included in print, except in some teacher’s guides.
+- Solutions are usually not included in print, except in some teacher’s guides.
 
-- Answers should ideally be typeset in dark blue. Ask the editor for the preferred answer format.
+- Solutions should ideally be typeset in dark blue. Ask the editor for the preferred answer format.
 
 - Every exercise should have an answer filled in. If one is missing, inform the editor.
 
@@ -175,11 +175,11 @@
 
 <!-- image-group -->
 
-![Manual image](images/cs-package.png)
+![Manual image](images/en-package.png)
 
 > “Package” window
 
-![Manual image](images/cs-package-settings.png)
+![Manual image](images/en-package-settings.png)
 
 > Settings (the print PDF is not generated here)
 
@@ -239,11 +239,11 @@
 
 <!-- image-group -->
 
-![Manual image](images/cs-export-marks.png)
+![Manual image](images/en-export-marks.png)
 
 > PDF/X-1a preset, compatibility: Acrobat 8/9, printer’s marks settings
 
-![Manual image](images/cs-export-fogra.png)
+![Manual image](images/en-export-fogra.png)
 
 > FOGRA39 output profile
 
