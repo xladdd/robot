@@ -94,7 +94,7 @@ The individual route files are deliberately small:
 
 - `app/api/auth/login/route.ts`: checks configured credentials and creates the signed session cookie.
 - `app/api/auth/logout/route.ts`: removes that cookie.
-- `app/api/ocr/route.ts`, `correct/route.ts`, `index/forms/route.ts`, and `index/select/route.ts`: Text Extractor and Index Creator endpoint addresses.
+- `app/api/ocr/route.ts`, `correct/route.ts`, and `index/forms/route.ts`: Text Extractor and Index Creator endpoint addresses.
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts`, `diagrams/route.ts`, and `maps/generate/route.ts`: app-native Graph, Diagram, and model-backed Map generation adapters.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
@@ -119,10 +119,13 @@ Text apps:
 - `app/_tools/text/text-extractor/prompts/`: OCR and correction instructions sent to OpenRouter.
 - `app/_tools/text/index-creator/MainInterface.tsx`: Index Creator PDF, term, result, and page-mapping interface.
 - `app/_tools/text/index-creator/copy.ts`: bilingual Index Creator UI copy.
-- `app/_tools/text/index-creator/code/pdf-indexer.ts`: reads PDF text locally, detects printed page numbers, finds candidate word forms, and formats matches.
-- `app/_tools/text/index-creator/code/forms-server.ts`: asks the language model for grammatical forms.
-- `app/_tools/text/index-creator/code/select-server.ts`: asks the model which candidate pages are index-worthy.
-- `app/_tools/text/index-creator/prompts/`: grammatical-form and page-selection instructions.
+- `app/_tools/text/index-creator/code/pdf-indexer.ts`: reads PDF text locally, validates phrase-safe forms, ranks candidate pages, and formats match evidence.
+- `app/_tools/text/index-creator/code/local-ocr.ts`: renders sparse PDF pages locally and runs the bundled Czech Tesseract OCR worker without uploading page data.
+- `app/_tools/text/index-creator/code/forms-server.ts`: asks the language model for grammatical forms and rejects unsafe reductions.
+- `app/_tools/text/index-creator/tests/`: deterministic matching, ranking, normalization, and form-safety regressions.
+- `app/_tools/text/index-creator/scripts/evaluate-index.mts`: reusable local evaluator for a supplied benchmark and the normal forms endpoint.
+- `app/_tools/text/index-creator/prompts/forms.md`: stable grammatical-form instructions.
+- `public/index-creator-ocr/`: browser-local Tesseract worker, Czech language data, and core assets used by the OCR fallback.
 
 Image apps:
 
@@ -224,9 +227,12 @@ The following completes the folder map by naming every source-file role. Repeate
 - `MainInterface.tsx`: PDF and term input, review controls, and index output interface.
 - `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/pdf-indexer.ts`: local PDF text reading, printed-page detection, candidate search, and output formatting helpers.
-- `code/forms-server.ts`: model request for word forms.
-- `code/select-server.ts`: model request for page selection.
-- `prompts/forms.md`, `prompts/select-pages.md`: stable model instructions.
+- `code/local-ocr.ts`: local sparse-page rendering and bundled Czech OCR fallback.
+- `code/forms-server.ts`: server request for word forms.
+- `code/form-validation.ts`: server-neutral validation for complete, identity-preserving model forms.
+- `tests/index-creator.test.mts`: protects phrase identity, normalization, local scoring, and candidate evidence.
+- `scripts/evaluate-index.mts`: evaluates supplied index benchmarks through the current local extraction and ranking pipeline.
+- `prompts/forms.md`: stable grammatical-form instructions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Graph Generator: `app/_tools/image/graph-generator/`
@@ -442,16 +448,16 @@ detectPrintedPageAnchor proposes page numbering
 ↓
 forms-server.POST expands grammatical forms
 ↓
-findIndexCandidates finds possible pages locally
+findIndexCandidates finds and ranks possible pages locally
 ↓
-select-server.POST chooses index-worthy pages
+Workspace lets the user accept or demote candidate pages
 ↓
-Workspace formats the tab-separated index
+Workspace formats accepted pages as tab-separated ranges
 ```
 
 **Output:** editable index, copy, `.md`, or `.txt`.
 
-**Dependencies:** PDF.js plus two OpenRouter calls. Both grammatical-form expansion and page selection use `mistralai/mistral-medium-3-5`. The PDF never goes to OpenRouter; only the term list and short candidate excerpts do.
+**Dependencies:** PDF.js plus one OpenRouter call. Grammatical-form expansion uses `mistralai/mistral-medium-3-5`; candidate search, ranking, review, and output formatting remain local. Only the term list goes to OpenRouter.
 
 ### Map Generator
 
@@ -788,7 +794,6 @@ Model names are defaults from `.env.example`. Each can be changed through its na
 | Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`              | `mistralai/mistral-small-2603`      |
 | Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL`       | `mistralai/ministral-8b-2512`       |
 | Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`            | `mistralai/mistral-medium-3-5`      |
-| Index Creator     | page selection        | `OPENROUTER_INDEX_SELECTION_MODEL`  | `mistralai/mistral-medium-3-5`      |
 | Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
 | Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
 | Cover Generator   | fast 512 px concepts  | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |

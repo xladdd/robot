@@ -5,10 +5,9 @@ import {
   openRouterConfigurationError,
   requestOpenRouter,
 } from "../../../openrouter/server";
+import { sanitizeFormEntries, type FormEntry } from "./form-validation";
 
 const formsPrompt = loadPrompt("text/index-creator/prompts/forms.md");
-
-type FormEntry = { word?: unknown; forms?: unknown };
 
 export async function POST(request: Request) {
   try {
@@ -61,24 +60,10 @@ export async function POST(request: Request) {
         { status: response.status || 502 },
       );
     const parsed = JSON.parse(content) as { entries?: FormEntry[] };
-    const byOriginal = new Map(
-      cleanWords.map((word) => [word.toLocaleLowerCase(), word]),
+    const entries = sanitizeFormEntries(
+      cleanWords,
+      Array.isArray(parsed.entries) ? parsed.entries : [],
     );
-    const formsByOriginal = new Map(
-      cleanWords.map((word) => [word, new Set([word])]),
-    );
-    for (const entry of parsed.entries ?? []) {
-      if (typeof entry.word !== "string") continue;
-      const original = byOriginal.get(entry.word.trim().toLocaleLowerCase());
-      if (!original || !Array.isArray(entry.forms)) continue;
-      const forms = formsByOriginal.get(original);
-      for (const form of entry.forms)
-        if (typeof form === "string" && form.trim()) forms?.add(form.trim());
-    }
-    const entries = cleanWords.map((word) => ({
-      word,
-      forms: [...(formsByOriginal.get(word) ?? [word])],
-    }));
     return NextResponse.json({ entries });
   } catch (error) {
     return NextResponse.json(

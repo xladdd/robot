@@ -28,6 +28,7 @@ import { PromptExtractorMainInterface } from "./_tools/design/prompt-extractor/M
 import { ScriptBuffetMainInterface } from "./_tools/design/script-buffet/MainInterface";
 import { indexCreatorCopy } from "./_tools/text/index-creator/copy";
 import { IndexCreatorMainInterface } from "./_tools/text/index-creator/MainInterface";
+import type { IndexCandidatePage } from "./_tools/text/index-creator/code/pdf-indexer";
 import { textExtractorCopy } from "./_tools/text/text-extractor/copy";
 import { TextExtractorMainInterface } from "./_tools/text/text-extractor/MainInterface";
 import {
@@ -120,7 +121,12 @@ export default function Workspace({
   const [indexWords, setIndexWords] = useState("");
   const [indexResult, setIndexResult] = useState("");
   const [indexMatches, setIndexMatches] = useState<
-    Array<{ word: string; pdfPages: number[]; otherPdfPages: number[] }>
+    Array<{
+      word: string;
+      pdfPages: number[];
+      otherPdfPages: number[];
+      candidatePages: IndexCandidatePage[];
+    }>
   >([]);
   const [pdfAnchor, setPdfAnchor] = useState(1);
   const [printedAnchor, setPrintedAnchor] = useState(1);
@@ -636,6 +642,23 @@ export default function Workspace({
     if (file) selectIndexFile(file);
   }
 
+  function toggleIndexPage(word: string, pdfPage: number) {
+    setIndexMatches((current) =>
+      current.map((match) => {
+        if (match.word !== word) return match;
+        const accepted = match.pdfPages.includes(pdfPage);
+        const pdfPages = accepted
+          ? match.pdfPages.filter((page) => page !== pdfPage)
+          : [...match.pdfPages, pdfPage].sort((a, b) => a - b);
+        const otherPdfPages = match.candidatePages
+          .map((candidate) => candidate.pdfPage)
+          .filter((page) => page !== pdfPage && !pdfPages.includes(page))
+          .sort((a, b) => a - b);
+        return { ...match, pdfPages, otherPdfPages };
+      }),
+    );
+  }
+
   async function createIndex() {
     const words = [
       ...new Set(
@@ -654,9 +677,21 @@ export default function Workspace({
     try {
       const indexer =
         await import("./_tools/text/index-creator/code/pdf-indexer");
-      const pages = await indexer.extractPdfPages(indexFile, (done, total) =>
+      let pages = await indexer.extractPdfPages(indexFile, (done, total) =>
         setIndexProgress(Math.max(2, Math.round((done / total) * 65))),
       );
+      const { addLocalOcrText, findLikelyOcrPages } =
+        await import("./_tools/text/index-creator/code/local-ocr");
+      const ocrPageNumbers = findLikelyOcrPages(pages);
+      if (ocrPageNumbers.length) {
+        pages = await addLocalOcrText(
+          indexFile,
+          pages,
+          ocrPageNumbers,
+          (done, total) =>
+            setIndexProgress(65 + Math.round((done / total) * 6)),
+        );
+      }
       const anchor = indexer.detectPrintedPageAnchor(pages);
       const detectedPdfAnchor = anchor.pdfPage;
       const detectedPrintedAnchor = anchor.printedPage;
@@ -692,58 +727,16 @@ export default function Workspace({
       }
 
       const candidates = indexer.findIndexCandidates(pages, entries);
-      setIndexProgress(84);
-      const selections: Array<{ word: string; pages: number[] }> = [];
-      const selectionBatchSize = 4;
-      const selectionBatches = Array.from(
-        { length: Math.ceil(candidates.length / selectionBatchSize) },
-        (_, index) =>
-          candidates.slice(
-            index * selectionBatchSize,
-            (index + 1) * selectionBatchSize,
-          ),
-      );
-
-      for (
-        let batchIndex = 0;
-        batchIndex < selectionBatches.length;
-        batchIndex += 1
-      ) {
-        const response = await fetch("/api/index/select", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ candidates: selectionBatches[batchIndex] }),
-        });
-        const result = (await response.json()) as {
-          selections?: Array<{ word: string; pages: number[] }>;
-          error?: string;
-        };
-        if (!response.ok || !result.selections)
-          throw new Error(
-            result.error || "Could not select index-worthy pages.",
-          );
-        selections.push(...result.selections);
-        setIndexProgress(
-          84 + Math.round(((batchIndex + 1) / selectionBatches.length) * 14),
-        );
-      }
-
-      const byWord = new Map(
-        selections.map((selection) => [selection.word, selection.pages]),
-      );
-      const candidatePagesByWord = new Map(
-        candidates.map((candidate) => [
-          candidate.word,
-          candidate.pages.map((page) => page.pdfPage),
-        ]),
-      );
+      setIndexProgress(96);
       const matches = words.map((word) => {
-        const pdfPages = byWord.get(word) ?? [];
+        const candidate = candidates.find((item) => item.word === word);
+        const candidatePages = candidate?.pages ?? [];
+        const pdfPages = candidate?.recommendedPages ?? [];
         const selectedPages = new Set(pdfPages);
-        const otherPdfPages = (candidatePagesByWord.get(word) ?? []).filter(
-          (page) => !selectedPages.has(page),
-        );
-        return { word, pdfPages, otherPdfPages };
+        const otherPdfPages = candidatePages
+          .map((page) => page.pdfPage)
+          .filter((page) => !selectedPages.has(page));
+        return { word, pdfPages, otherPdfPages, candidatePages };
       });
       setIndexMatches(matches);
       setIndexResult(
@@ -2171,6 +2164,7 @@ export default function Workspace({
             onCopy={() => void copyIndex()}
             onDownload={downloadText}
             onPreviewPage={setIndexPreviewPage}
+            onTogglePage={toggleIndexPage}
             onPdfAnchor={setPdfAnchor}
             onPrintedAnchor={setPrintedAnchor}
           />
@@ -2419,30 +2413,44 @@ function PageLoadStatus({ items }: { items: readonly string[] }) {
   return <span>{items[index]}</span>;
 }
 
+function formatPageRanges(pages: number[]) {
+  const sorted = [...new Set(pages)].sort((left, right) => left - right);
+  const ranges: string[] = [];
+  let start: number | null = null;
+  let end: number | null = null;
+
+  for (const page of sorted) {
+    if (page <= 0) continue;
+    if (start === null) {
+      start = page;
+      end = page;
+      continue;
+    }
+    if (page === (end as number) + 1) {
+      end = page;
+      continue;
+    }
+    ranges.push(start === end ? String(start) : `${start}–${end}`);
+    start = page;
+    end = page;
+  }
+
+  if (start !== null && end !== null)
+    ranges.push(start === end ? String(start) : `${start}–${end}`);
+  return ranges.join(", ");
+}
+
 function formatIndexOutput(
-  matches: Array<{ word: string; pdfPages: number[]; otherPdfPages: number[] }>,
+  matches: Array<{ word: string; pdfPages: number[] }>,
   pdfAnchor: number,
   printedAnchor: number,
 ) {
-  const toPrintedPages = (pages: number[]) =>
-    [
-      ...new Set(
-        pages
-          .map((page) => printedAnchor + page - pdfAnchor)
-          .filter((page) => page > 0),
-      ),
-    ].sort((a, b) => a - b);
   return matches
-    .map(({ word, pdfPages, otherPdfPages }) => {
-      const printedPages = [
-        ...new Set(
-          pdfPages
-            .map((page) => printedAnchor + page - pdfAnchor)
-            .filter((page) => page > 0),
-        ),
-      ].sort((a, b) => a - b);
-      const otherPrintedPages = toPrintedPages(otherPdfPages);
-      return `${word}\t${printedPages.join(", ")}\t(${otherPrintedPages.join(", ")})`;
+    .map(({ word, pdfPages }) => {
+      const printedPages = pdfPages
+        .map((page) => printedAnchor + page - pdfAnchor)
+        .filter((page) => page > 0);
+      return `${word}\t${formatPageRanges(printedPages)}`;
     })
     .join("\n");
 }

@@ -50,7 +50,6 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
     "app/_tools/text/text-extractor/code/ocr-server.ts",
     "app/_tools/text/text-extractor/code/correct-server.ts",
     "app/_tools/text/index-creator/code/forms-server.ts",
-    "app/_tools/text/index-creator/code/select-server.ts",
     "app/_tools/image/graph-generator/code/server.ts",
     "app/_tools/image/diagram-generator/code/server.ts",
     "app/_tools/image/map-generator/code/generate-server.ts",
