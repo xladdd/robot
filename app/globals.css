@@ -1708,6 +1708,8 @@ button {
 }
 .manual-source-topic-h3 > h2 {
     margin-left: 22px;
+    color: var(--orange);
+    font-weight: 400;
 }
 .manual-source-paragraph {
     margin: 12px 0;
