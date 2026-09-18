@@ -91,7 +91,7 @@ export type Language = "en" | "cs";
 
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   extraction: "tested",
-  index: "to-test",
+  index: "tested",
   map: "alpha",
   bio: "alpha",
   graph: "tested",
@@ -101,7 +101,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   coverSplitter: "tested",
   solutions: "tested",
   barcode: "tested",
-  prompt: "to-test",
+  prompt: "tested",
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
 
