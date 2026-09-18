@@ -106,11 +106,7 @@ export function PromptExtractorMainInterface({
             <section className="text-pane prompt-output-pane">
               <div className="pane-label">
                 <span>{t.extractedPrompts}</span>
-                <span>
-                  {language === "cs"
-                    ? "JEDNODUCHÉ / SLOŽITÉ"
-                    : "SIMPLE / COMPLEX"}
-                </span>
+                <span>{t.pageGroups}</span>
               </div>
               <div className="output-actions">
                 <button

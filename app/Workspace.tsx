@@ -24,6 +24,10 @@ import { BarcodeMainInterface } from "./_tools/design/barcode-generator/MainInte
 import { CoverSplitterMainInterface } from "./_tools/design/cover-splitter/MainInterface";
 import { GrepMainInterface } from "./_tools/design/grep-builder/MainInterface";
 import { promptExtractorCopy } from "./_tools/design/prompt-extractor/copy";
+import {
+  formatPromptOutput,
+  type IllustrationPrompt,
+} from "./_tools/design/prompt-extractor/code/output";
 import { PromptExtractorMainInterface } from "./_tools/design/prompt-extractor/MainInterface";
 import { ScriptBuffetMainInterface } from "./_tools/design/script-buffet/MainInterface";
 import { indexCreatorCopy } from "./_tools/text/index-creator/copy";
@@ -71,11 +75,6 @@ import {
 
 type Language = "en" | "cs";
 type Theme = "light" | "dark";
-type IllustrationPrompt = {
-  page: number;
-  complexity: "simple" | "complex";
-  prompt: string;
-};
 type FigureOutput = GraphOutput | DiagramOutput | MapOutput;
 type FigureCheck = { level: "pass" | "warning"; message: string };
 
@@ -2462,29 +2461,6 @@ function formatIndexOutput(
       return `${word}\t${formatPageRanges(printedPages)}`;
     })
     .join("\n");
-}
-
-function formatPromptOutput(items: IllustrationPrompt[]) {
-  const seen = new Set<string>();
-  const sorted = [...items]
-    .sort((left, right) => left.page - right.page)
-    .filter((item) => {
-      const key = item.prompt
-        .trim()
-        .toLocaleLowerCase("en-US")
-        .replace(/\s+/g, " ")
-        .replace(/[.,;:!?]+$/g, "");
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  const simple = sorted.filter((item) => item.complexity === "simple");
-  const complex = sorted.filter((item) => item.complexity === "complex");
-  const lines = (group: IllustrationPrompt[]) =>
-    group.map((item) => item.prompt).join("\n");
-  if (simple.length && complex.length)
-    return `# SIMPLE\n\n${lines(simple)}\n\n# COMPLEX\n\n${lines(complex)}`;
-  return lines(simple.length ? simple : complex);
 }
 
 function safeFilename(value: string) {
