@@ -33,7 +33,7 @@ export const appRegistry = [
     id: "image",
     category: "image",
     folder: "image/image-generator",
-    available: false,
+    available: true,
   },
   {
     id: "cover",
@@ -95,6 +95,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   map: "alpha",
   bio: "alpha",
   graph: "tested",
+  image: "alpha",
   cover: "to-test",
   grep: "tested",
   coverSplitter: "tested",

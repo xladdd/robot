@@ -28,7 +28,7 @@ Turns a separate chart prompt and supplied data into an editable bar, line, comb
 
 ### Image Generator
 
-Reserved for a future image tool. It is visible in the sidebar but is not available yet. [English info drawer](app/_tools/image/image-generator/info.en.md)
+Creates up to 15 square images from prompts queued in order, with a choice of one to three simultaneous requests. Prompts can be typed or imported locally from Word, Markdown, and text files, with up to three optional reference images, retries, and 2× generative upscaling. [English info drawer](app/_tools/image/image-generator/info.en.md)
 
 ### Cover Generator
 
@@ -129,11 +129,11 @@ Create the app keys automatically:
 npm run openrouter:provision
 ```
 
-The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their eight inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
+The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their nine inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
 
 Only add the generated per-app inference variables to production deployment secrets. Do not deploy `OPENROUTER_MANAGEMENT_API_KEY`; it is deliberately kept in the nonstandard local file so the Next.js runtime does not load it.
 
-`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all eight per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
+`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all nine per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
 
 Stable instructions sent to OpenRouter live as readable Markdown in each app's `prompts/` folder. TypeScript adds only current user data and other values that change per request.
 

@@ -98,6 +98,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     indexCreator,
     promptExtractor,
     coverGenerator,
+    imageGenerator,
     graphGenerator,
     diagramGenerator,
     mapGenerator,
@@ -124,6 +125,10 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
       "utf8",
     ),
     readFile(
+      new URL("app/_tools/image/image-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
       new URL("app/_tools/image/graph-generator/MainInterface.tsx", root),
       "utf8",
     ),
@@ -143,6 +148,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     "IndexCreatorMainInterface",
     "PromptExtractorMainInterface",
     "CoverGeneratorMainInterface",
+    "ImageGeneratorMainInterface",
     "GraphMainInterface",
     "DiagramMainInterface",
     "MapMainInterface",
@@ -164,6 +170,9 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
   assert.match(indexCreator, /index-module/);
   assert.match(promptExtractor, /prompt-module/);
   assert.match(coverGenerator, /className="cover-module"/);
+  assert.match(imageGenerator, /image-generator-module/);
+  assert.match(imageGenerator, /if \(!active\) return null/);
+  assert.doesNotMatch(imageGenerator, /hidden=\{!active\}/);
   assert.match(graphGenerator, /figure-module/);
   assert.match(diagramGenerator, /figure-module/);
   assert.match(mapGenerator, /map-module/);
@@ -329,6 +338,7 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       "text/index-creator",
       "image/diagram-generator",
       "image/graph-generator",
+      "image/image-generator",
       "image/cover-generator",
       "design/grep-builder",
       "design/prompt-extractor",

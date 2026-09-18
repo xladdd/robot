@@ -83,9 +83,11 @@ export async function requestOpenRouter<T extends object>(
   endpoint: "chat/completions" | "images",
   operation: string,
   body: Record<string, unknown>,
+  options: { signal?: AbortSignal } = {},
 ) {
   const response = await fetch(`${OPENROUTER_API_URL}/${endpoint}`, {
     method: "POST",
+    signal: options.signal,
     headers: {
       Authorization: `Bearer ${context.apiKey}`,
       "Content-Type": "application/json",

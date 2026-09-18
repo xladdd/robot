@@ -98,7 +98,7 @@ The individual route files are deliberately small:
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts`, `diagrams/route.ts`, and `maps/generate/route.ts`: app-native Graph, Diagram, and model-backed Map generation adapters.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, GREP Builder, and Prompt Extractor endpoint addresses.
+- `app/api/covers/route.ts`, `images/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, Image Generator, GREP Builder, and Prompt Extractor endpoint addresses.
 
 ### `app/_tools/`: tool ownership
 
@@ -145,7 +145,11 @@ Image apps:
 - `app/_tools/image/cover-generator/copy.ts`: bilingual Cover Generator UI copy.
 - `app/_tools/image/cover-generator/code/cover-artboard.ts`: creates a PDF contact sheet from generated covers in the browser.
 - `app/_tools/image/cover-generator/scripts/`: cover workflow checks and evaluation helpers.
-- `app/_tools/image/image-generator/`: reserved for the unavailable sidebar app.
+- `app/_tools/image/image-generator/MainInterface.tsx`: square image queue, local prompt-document import, optional references, results, downloads, cancellation, and lightbox.
+- `app/_tools/image/image-generator/code/prompts.ts`: blank-line queue parsing, the 15-image cap, and browser-local DOCX/Markdown/text reading.
+- `app/_tools/image/image-generator/code/server.ts`: private square-image generation through the app-specific OpenRouter key and the same fast/fidelity FLUX models as Cover Generator.
+- `app/_tools/image/image-generator/prompts/generate.md`: stable image-generation instruction.
+- `app/_tools/image/image-generator/tests/prompts.test.mts`: queue splitting and limit regressions.
 
 Design apps:
 
@@ -294,9 +298,15 @@ The following completes the folder map by naming every source-file role. Repeate
 - `scripts/create-cover-artboard-sample.py`, `evaluate-cover-model.mjs`, `run-cover-full-workflow.mjs`, `test-cover-workflow.mjs`: local maintenance and evaluation tools, not application runtime code.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
-#### Reserved Image Generator: `app/_tools/image/image-generator/`
+#### Image Generator: `app/_tools/image/image-generator/`
 
-- `info.en.md`, `info.cs.md`: drawer content for the unavailable placeholder. There is no implementation yet.
+- `MainInterface.tsx`: prompt and reference intake, local document import, sequential queue controller, cancellation, results, downloads, and lightbox.
+- `copy.ts`: bilingual in-app UI copy.
+- `code/prompts.ts`: blank-line prompt splitting, queue capping, and local `.docx`, `.md`, and `.txt` reading.
+- `code/server.ts`: validates one queued request and generates one square image through OpenRouter.
+- `prompts/generate.md`: stable generation instruction.
+- `tests/prompts.test.mts`: prompt splitting and 15-image cap regressions.
+- `info.en.md`, `info.cs.md`: live drawer content.
 
 #### GREP Builder: `app/_tools/design/grep-builder/`
 
@@ -385,17 +395,17 @@ The output is written to `design-manual/public/design-manual.en.pdf` and `design
 
 ## OpenRouter provisioning and usage attribution
 
-Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the eight app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
+Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the nine app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
 
-Provision the eight app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
+Provision the nine app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
 
 ```bash
 npm run openrouter:provision
 ```
 
-The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the eight generated inference variables copied into its secret environment.
+The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the nine generated inference variables copied into its secret environment.
 
-`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all eight variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
+`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all nine variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
 
 ## Main execution flow
 
@@ -755,19 +765,29 @@ design-manual.en.pdf and design-manual.cs.pdf
 
 ### Image Generator
 
-**Input:** none yet.
+**Input:** one or more prompts separated by empty lines, optionally imported locally from `.docx`, `.md`, or `.txt`, plus up to three optional PNG, JPEG, or WebP references.
 
 **Flow:**
 
 ```text
-Unavailable sidebar entry
+Typed or locally imported prompt text
 ↓
-Reserved app folder
+Blank lines split and cap the queue at 15 prompts
+↓
+The browser sends one to three prompts at a time to /api/images
+↓
+The app-owned handler calls OpenRouter with the Image Generator key
+↓
+Each square result appears as its request completes
 ```
 
-**Output:** none yet.
+The Stop action aborts every active browser request and marks unstarted queue entries as stopped. The route passes request abort signals to OpenRouter so cancellation also stops in-flight upstream fetches when the runtime propagates disconnects. The app stays mounted while another sidebar tool is active, retaining its browser-session state and allowing its queue to continue.
 
-**Dependencies:** none yet; no OpenRouter model is configured.
+Failed cards can retry their own request. Completed 512 px and 1K cards can be upscaled one size step through FLUX.2 Pro image editing: 512 px to 1K, or 1K to 2K. This is generative enhancement rather than pixel-identical scaling; the source image is supplied as a reference and a stable prompt requires the model to preserve its composition. 2K is the maximum square output.
+
+**Output:** separate square JPEG images with individual and batch download controls.
+
+**Dependencies:** browser File, Canvas, ZIP decompression, and DOM APIs for local input preparation; OpenRouter image generation using the same FLUX fast/fidelity choices as Cover Generator. The imported source document itself is not uploaded.
 
 ### Typesetter
 
@@ -796,6 +816,9 @@ Model names are defaults from `.env.example`. Each can be changed through its na
 | Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`            | `mistralai/mistral-medium-3-5`      |
 | Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
 | Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
+| Image Generator   | fast 512 px images    | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
+| Image Generator   | high-quality images   | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
+| Image Generator   | 2× generative upscale | `OPENROUTER_IMAGE_UPSCALE_MODEL`*   | `black-forest-labs/flux.2-pro`      |
 | Cover Generator   | fast 512 px concepts  | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
 | Cover Generator   | high-quality concepts | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
 | Cover Generator   | 2K master and assets  | `OPENROUTER_COVER_PRODUCTION_MODEL` | `black-forest-labs/flux.2-pro`      |
@@ -803,7 +826,9 @@ Model names are defaults from `.env.example`. Each can be changed through its na
 | GREP Builder      | GREP conversion       | `OPENROUTER_GREP_MODEL`             | `mistralai/ministral-8b-2512`       |
 | Prompt Extractor  | page-image reading    | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b`            |
 
-Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, Image Generator, and Typesetter make no OpenRouter call in their current visible flows. Its optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
+`*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`.
+
+Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, and Typesetter make no OpenRouter call in their current visible flows. Its optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
 
 ## Important functions
 

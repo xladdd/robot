@@ -6781,6 +6781,115 @@ button {
     width: 100%;
 }
 
+/* Image Generator */
+
+.workspace.image-generator-active > .welcome {
+    display: none !important;
+}
+.image-generator-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.image-generator-grid.has-results .cover-card {
+    max-width: calc(100vh - 245px);
+}
+.image-generator-grid .cover-image img,
+.image-generator-loading,
+.image-generator-references figure,
+.image-generator-references .cover-add-reference {
+    aspect-ratio: 1;
+}
+.image-generator-loading {
+    min-height: 0;
+}
+.image-generator-card-failed .image-generator-loading,
+.image-generator-card-stopped .image-generator-loading {
+    animation: none;
+    opacity: 0.62;
+}
+.image-generator-card footer small {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.image-generator-card-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    gap: 10px;
+    align-items: center;
+}
+.image-generator-card-actions .cover-upvote {
+    padding: 3px 0;
+}
+.image-generator-upscale {
+    color: var(--teal) !important;
+}
+.image-generator-card-actions button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+.image-generator-prompt-control > small {
+    display: block;
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.45;
+}
+.image-generator-import {
+    width: 100%;
+    min-height: 34px;
+    margin-top: 8px;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 7px;
+    letter-spacing: 0.06em;
+}
+.image-generator-import:hover:not(:disabled) {
+    background: var(--teal);
+    color: #111;
+}
+.image-generator-import:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-limit {
+    margin: 9px 0 0;
+    color: var(--orange);
+    font-size: 7px;
+    line-height: 1.45;
+}
+.image-generator-bottom-actions {
+    display: grid;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 20px;
+}
+.image-generator-bottom-actions .cover-toolbar-exports {
+    margin-top: 0;
+    padding-top: 0;
+}
+.image-generator-generate-group {
+    grid-template-columns: 1fr;
+}
+.image-generator-generate-group .cover-generate {
+    margin-top: 0;
+}
+.image-generator-stop {
+    background: var(--teal);
+}
+.image-generator-toolbar textarea:disabled,
+.image-generator-toolbar select:disabled,
+.image-generator-references button:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+.image-generator-module .cover-lightbox figure img {
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
 /* Shared Cover Generator and Cover Splitter workbench */
 .cover-splitter-module.has-files {
     inset: var(--wide-app-gutter) auto auto 50%;

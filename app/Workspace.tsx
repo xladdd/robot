@@ -51,6 +51,7 @@ import {
 import { graphUi } from "./_tools/image/graph-generator/copy";
 import { createCoverArtboardPdf } from "./_tools/image/cover-generator/code/cover-artboard";
 import { localizedCoverUi } from "./_tools/image/cover-generator/copy";
+import { ImageGeneratorMainInterface } from "./_tools/image/image-generator/MainInterface";
 import {
   CoverGeneratorMainInterface,
   CoverLightbox,
@@ -2024,7 +2025,9 @@ export default function Workspace({
         </nav>
       </aside>
 
-      <section className="workspace">
+      <section
+        className={`workspace ${selected === "image" ? "image-generator-active" : ""}`.trim()}
+      >
         <div className="workspace-grid" aria-hidden="true" />
         {selectedNumber && (
           <span className="axis axis-x">{selectedNumber}</span>
@@ -2032,7 +2035,11 @@ export default function Workspace({
         {selectedInitial && (
           <span className="axis axis-y">{selectedInitial}</span>
         )}
-        {selected === "manual" ? (
+        <ImageGeneratorMainInterface
+          language={language}
+          active={selected === "image"}
+        />
+        {selected === "image" ? null : selected === "manual" ? (
           <DesignManualMainInterface
             language={language}
             content={
@@ -2315,7 +2322,7 @@ export default function Workspace({
             onGenerate={() => void generateGrep()}
             onReset={() => setGrepResult(null)}
           />
-        ) : (
+        ) : selected === "image" ? null : (
           <div className={`welcome ${selectedLabel ? "has-selection" : ""}`}>
             {selectedLabel ? (
               <>
@@ -2340,7 +2347,9 @@ export default function Workspace({
           </div>
         )}
         {!(
-          ["extraction", "index", "prompt", "cover"] as Array<string | null>
+          ["extraction", "index", "prompt", "cover", "image"] as Array<
+            string | null
+          >
         ).includes(selected) && (
           <div className="workspace-status">
             <span className="live-clock">
