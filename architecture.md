@@ -814,6 +814,7 @@ Model names are defaults from `.env.example`. Each can be changed through its na
 | Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`              | `mistralai/mistral-small-2603`      |
 | Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL`       | `mistralai/ministral-8b-2512`       |
 | Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`            | `mistralai/mistral-medium-3-5`      |
+| Index Creator     | page selection        | `OPENROUTER_INDEX_SELECTION_MODEL`  | `mistralai/mistral-medium-3-5`      |
 | Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
 | Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
 | Image Generator   | fast 512 px images    | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
