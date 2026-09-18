@@ -6705,13 +6705,22 @@ button {
     max-width: none;
 }
 
-/* Shared application title scale */
-.tool-header h1,
-.document-active-head h1,
-.cover-title-row h1,
+/* Shared full-size application title scale */
+.welcome.has-selection h1,
+.extraction-module:not(.has-source) .document-title h1,
+.index-module:not(.has-file) .index-head h1,
+.prompt-module:not(.has-file) .index-head h1,
+.grep-module h1,
+.figure-header h1,
+.barcode-header h1,
+.cover-splitter-module:not(.has-files) .cover-splitter-head h1,
+.solutions-header h1,
 .buffet-header h1,
+.cover-stage-head:not(.cover-stage-head-compact) h1,
+.tool-header:not(.editor-header) h1,
+.document-active-head h1,
 .manual-toolbar h1 {
-    font-size: clamp(32px, 4vw, 52px);
+    font-size: 2rem;
 }
 .figure-workbench,
 .barcode-workbench {
