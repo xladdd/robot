@@ -51,7 +51,11 @@ export function PromptExtractorMainInterface({
       />
       {!file ? (
         <div className="index-head">
-          <ToolMeta code={`${section} / PROMPT`} mode="ai" language={language} />
+          <ToolMeta
+            code={`${section} / PROMPT`}
+            mode="ai"
+            language={language}
+          />
           <h1>{t.heading}</h1>
           <button
             className="start-button upload-button"
@@ -93,66 +97,70 @@ export function PromptExtractorMainInterface({
             )}
           </div>
           <div className="prompt-split">
-          <section className="source-pane prompt-pdf-column">
-            <div className="pane-label">
-              <span>{t.source}</span>
-              <span>{file.name}</span>
-            </div>
-            <div className="source-viewer">
-              {url && <iframe src={url} title={file.name} />}
-            </div>
-          </section>
-          <div className="prompt-side-column">
-            <section className="text-pane prompt-output-pane">
+            <section className="source-pane prompt-pdf-column">
               <div className="pane-label">
-                <span>{t.extractedPrompts}</span>
-                <span>{t.pageGroups}</span>
+                <span>{t.source}</span>
+                <span>{file.name}</span>
               </div>
-              <div className="output-actions">
-                <button
-                  className="copy-button"
-                  onClick={onCopy}
-                  disabled={!result}
-                  aria-label={t.copyText}
-                >
-                  {copied ? "✓" : "▣"}
-                  <span>{copied ? t.copied : t.copyText}</span>
-                </button>
-                <button
-                  className="download-button"
-                  onClick={() =>
-                    onDownload(
-                      result,
-                      "illustration-prompts.md",
-                      "text/markdown",
-                    )
-                  }
-                  disabled={!result}
-                >
-                  MD
-                </button>
-                <button
-                  className="download-button"
-                  onClick={() =>
-                    onDownload(result, "illustration-prompts.txt", "text/plain")
-                  }
-                  disabled={!result}
-                >
-                  TXT
-                </button>
+              <div className="source-viewer">
+                {url && <iframe src={url} title={file.name} />}
               </div>
-              {isExtracting ? (
-                <LoadingText items={t.processing} />
-              ) : (
-                <textarea
-                  value={result}
-                  onChange={(event) => onResult(event.target.value)}
-                  placeholder={error ? "" : t.noIllustrations}
-                  spellCheck
-                />
-              )}
             </section>
-          </div>
+            <div className="prompt-side-column">
+              <section className="text-pane prompt-output-pane">
+                <div className="pane-label">
+                  <span>{t.extractedPrompts}</span>
+                  <span>{t.pageGroups}</span>
+                </div>
+                <div className="output-actions">
+                  <button
+                    className="copy-button"
+                    onClick={onCopy}
+                    disabled={!result}
+                    aria-label={t.copyText}
+                  >
+                    {copied ? "✓" : "▣"}
+                    <span>{copied ? t.copied : t.copyText}</span>
+                  </button>
+                  <button
+                    className="download-button"
+                    onClick={() =>
+                      onDownload(
+                        result,
+                        "illustration-prompts.md",
+                        "text/markdown",
+                      )
+                    }
+                    disabled={!result}
+                  >
+                    MD
+                  </button>
+                  <button
+                    className="download-button"
+                    onClick={() =>
+                      onDownload(
+                        result,
+                        "illustration-prompts.txt",
+                        "text/plain",
+                      )
+                    }
+                    disabled={!result}
+                  >
+                    TXT
+                  </button>
+                </div>
+                {isExtracting ? (
+                  <LoadingText items={t.processing} />
+                ) : (
+                  <textarea
+                    value={result}
+                    onChange={(event) => onResult(event.target.value)}
+                    placeholder={error ? "" : t.noIllustrations}
+                    spellCheck
+                  />
+                )}
+              </section>
+            </div>
           </div>
         </div>
       )}
