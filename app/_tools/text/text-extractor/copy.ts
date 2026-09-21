@@ -2,9 +2,10 @@ export const textExtractorCopy = {
   en: {
     heading: "Text Extractor",
     upload: "Drag image/PDF, paste, or click here to select file",
-    another: "Another one",
+    another: "Another",
     extractedText: "Extracted text",
     source: "Source",
+    emptySource: "Drop file here, paste, or click to select",
     copyText: "Copy text",
     copied: "Copied",
     correctionPlaceholder:
@@ -32,6 +33,7 @@ export const textExtractorCopy = {
     another: "Další",
     extractedText: "Extrahovaný text",
     source: "Zdroj",
+    emptySource: "Přetáhněte soubor sem, vložte ho nebo klikněte pro výběr",
     copyText: "Kopírovat text",
     copied: "Zkopírováno",
     correctionPlaceholder: "Popište, jak má být extrahovaný text opraven…",

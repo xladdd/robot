@@ -2,8 +2,9 @@ export const promptExtractorCopy = {
   en: {
     heading: "Prompt Extractor",
     upload: "Drag a manuscript PDF (up to 20 pages), or select",
-    another: "Another one",
+    another: "Another",
     source: "Source",
+    emptySource: "Drop file here, paste, or click to select",
     extractedPrompts: "Extracted prompts",
     pageGroups: "PAGE GROUPS",
     copyText: "Copy text",
@@ -32,6 +33,7 @@ export const promptExtractorCopy = {
     upload: "Přetáhněte rukopis v PDF (max. 20 stran), nebo vyberte",
     another: "Další",
     source: "Zdroj",
+    emptySource: "Přetáhněte soubor sem, vložte ho nebo klikněte pro výběr",
     extractedPrompts: "Extrahované prompty",
     pageGroups: "SKUPINY STRAN",
     copyText: "Kopírovat text",

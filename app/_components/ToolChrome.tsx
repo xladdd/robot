@@ -3,16 +3,32 @@ import type { ReactNode } from "react";
 export type ProcessingMode = "ai" | "local";
 type Language = "en" | "cs";
 
-export function ProcessingBadge({ mode, language }: { mode: ProcessingMode; language: Language }) {
+export function ProcessingBadge({
+  mode,
+  language,
+}: {
+  mode: ProcessingMode;
+  language: Language;
+}) {
   return (
     <span className={`processing-badge processing-badge-${mode}`}>
       <i aria-hidden="true" />
-      {language === "cs" ? mode === "ai" ? "AI AKTIVNÍ" : "ZPRACOVÁNO MÍSTNĚ" : mode === "ai" ? "AI ENABLED" : "PROCESSED LOCALLY"}
+      {language === "cs"
+        ? mode === "ai"
+          ? "AI AKTIVNÍ"
+          : "ZPRACOVÁNO MÍSTNĚ"
+        : mode === "ai"
+          ? "AI ENABLED"
+          : "PROCESSED LOCALLY"}
     </span>
   );
 }
 
-export function ToolMeta({ code, mode, language, className = "" }: {
+export function ToolMeta({
+  mode,
+  language,
+  className = "",
+}: {
   code: string;
   mode: ProcessingMode;
   language: Language;
@@ -20,16 +36,21 @@ export function ToolMeta({ code, mode, language, className = "" }: {
 }) {
   return (
     <div className={`tool-header-meta ${className}`.trim()}>
-      <span className="module-code">{code}</span>
       <ProcessingBadge mode={mode} language={language} />
     </div>
   );
 }
 
-export function ToolHeader({ code, title, subtitle, mode, language, actions, className = "" }: {
+export function ToolHeader({
+  code,
+  title,
+  mode,
+  language,
+  actions,
+  className = "",
+}: {
   code: string;
   title: string;
-  subtitle?: string;
   mode: ProcessingMode;
   language: Language;
   actions?: ReactNode;
@@ -40,21 +61,28 @@ export function ToolHeader({ code, title, subtitle, mode, language, actions, cla
       <div className="tool-header-copy">
         <ToolMeta code={code} mode={mode} language={language} />
         <h1>{title}</h1>
-        {subtitle && <p>{subtitle}</p>}
       </div>
       {actions && <div className="tool-header-actions">{actions}</div>}
     </header>
   );
 }
 
-export function EmptyViewportState({ children, className = "" }: {
+export function CrosshairInstruction({
+  children,
+  className = "",
+}: {
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`empty-viewport-state ${className}`.trim()}>
-      <div className="crosshair" aria-hidden="true"><span /><span /></div>
+    <div className={`crosshair-instruction ${className}`.trim()}>
+      <div className="crosshair" aria-hidden="true">
+        <span />
+        <span />
+      </div>
       <p>{children}</p>
     </div>
   );
 }
+
+export const EmptyViewportState = CrosshairInstruction;

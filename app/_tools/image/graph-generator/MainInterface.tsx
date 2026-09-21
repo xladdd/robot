@@ -9,7 +9,7 @@ import {
 } from "react";
 import { LoadingText } from "../../../_components/LoadingText";
 import {
-  EmptyViewportState,
+  CrosshairInstruction,
   ToolHeader,
 } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
@@ -131,17 +131,33 @@ export function GraphMainInterface({
   }
 
   return (
-    <div className="figure-module graph-module">
-      <ToolHeader
-        className="figure-header"
-        code={`${section} / CHART`}
-        title={label || "Graph Generator"}
-        subtitle={t.subtitle}
-        mode="ai"
-        language={language}
-      />
-      <div className="figure-workbench">
-        <section className="figure-controls">
+    <div className="cover-module visual-single-module graph-module">
+      <section className="cover-stage visual-single-stage graph-stage">
+        <ToolHeader
+          className="cover-stage-head graph-stage-head"
+          code={`${section} / CHART`}
+          title={label || "Graph Generator"}
+          mode="ai"
+          language={language}
+        />
+        <section className="figure-result graph-result">
+          <div className="pane-label">
+            <span>{t.preview}</span>
+            <span>1000 × 700 / SVG 1.1</span>
+          </div>
+          <div className="figure-paper">
+            {isGenerating ? (
+              <LoadingText items={graphProcessing[language]} />
+            ) : output ? (
+              <div dangerouslySetInnerHTML={{ __html: output.svg }} />
+            ) : (
+              <CrosshairInstruction>{t.empty}</CrosshairInstruction>
+            )}
+          </div>
+        </section>
+      </section>
+      <aside className="cover-toolbar editor-sidebar visual-single-toolbar graph-toolbar">
+        <section className="cover-control">
           <div className="figure-label-row">
             <label htmlFor="graph-prompt">{t.promptLabel}</label>
             <button
@@ -164,6 +180,8 @@ export function GraphMainInterface({
             rows={6}
             disabled={isGenerating}
           />
+        </section>
+        <section className="cover-control">
           <div className="figure-label-row graph-data-label">
             <label htmlFor="graph-data">{t.dataLabel}</label>
             <button
@@ -205,6 +223,8 @@ export function GraphMainInterface({
             disabled={isGenerating}
           />
           <small className="graph-data-help">{t.dataHelp}</small>
+        </section>
+        <section className="cover-control">
           <div className="figure-palette">
             <span>{t.palette}</span>
             <input
@@ -243,6 +263,8 @@ export function GraphMainInterface({
               </button>
             )}
           </div>
+        </section>
+        <section className="cover-control">
           <label className="graph-value-labels">
             <input
               type="checkbox"
@@ -255,52 +277,36 @@ export function GraphMainInterface({
               <small>{t.valueLabelsHelp}</small>
             </span>
           </label>
-          {(fileError || error) && (
-            <p className="extraction-error" role="alert">
-              {fileError || error}
-            </p>
-          )}
-          <button
-            className={`figure-generate${output ? " has-output" : ""}`}
-            onClick={onGenerate}
-            disabled={!prompt.trim() || !data.trim() || isGenerating}
-          >
-            <span>
-              {isGenerating
-                ? `${t.generating} · ${formatCountdown(secondsLeft)}`
-                : t.generate}
-            </span>
-            <b>{isGenerating ? "…" : "→"}</b>
-          </button>
-          {output && (
+        </section>
+        {(fileError || error) && (
+          <p className="extraction-error" role="alert">
+            {fileError || error}
+          </p>
+        )}
+        <button
+          className={`cover-generate graph-generate${output ? " has-output" : ""}`}
+          onClick={onGenerate}
+          disabled={!prompt.trim() || !data.trim() || isGenerating}
+        >
+          <span>
+            {isGenerating
+              ? `${t.generating} · ${formatCountdown(secondsLeft)}`
+              : t.generate}
+          </span>
+          <b>{isGenerating ? "…" : "→"}</b>
+        </button>
+        {output && (
+          <div className="cover-export-actions cover-toolbar-exports">
             <button
-              className="graph-download"
+              className="cover-export"
               type="button"
               onClick={downloadSvg}
             >
               {t.downloadSvg}
-              <b>↓</b>
             </button>
-          )}
-        </section>
-        <div className="figure-preview-column">
-          <section className="figure-result">
-            <div className="pane-label">
-              <span>{t.preview}</span>
-              <span>1000 × 680 / SVG 1.1</span>
-            </div>
-            <div className="figure-paper">
-              {isGenerating ? (
-                <LoadingText items={graphProcessing[language]} />
-              ) : output ? (
-                <div dangerouslySetInnerHTML={{ __html: output.svg }} />
-              ) : (
-                <EmptyViewportState>{t.empty}</EmptyViewportState>
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }

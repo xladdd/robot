@@ -98,7 +98,7 @@ The individual route files are deliberately small:
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts`, `diagrams/route.ts`, and `maps/generate/route.ts`: app-native Graph, Diagram, and model-backed Map generation adapters.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `images/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, Image Generator, GREP Builder, and Prompt Extractor endpoint addresses.
+- `app/api/covers/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, Layer Splitter, Image Generator, GREP Builder, and Prompt Extractor endpoint addresses.
 
 ### `app/_tools/`: tool ownership
 
@@ -125,6 +125,11 @@ Text apps:
 - `app/_tools/text/index-creator/tests/`: deterministic matching, ranking, normalization, and form-safety regressions.
 - `app/_tools/text/index-creator/scripts/evaluate-index.mts`: reusable local evaluator for a supplied benchmark and the normal forms endpoint.
 - `app/_tools/text/index-creator/prompts/forms.md`: stable grammatical-form instructions.
+- `app/_tools/text/prompt-extractor/copy.ts`: bilingual Prompt Extractor UI copy.
+- `app/_tools/text/prompt-extractor/code/pdf-images.ts`: renders PDF pages to browser images with PDF.js.
+- `app/_tools/text/prompt-extractor/code/server.ts`: asks the vision model to describe illustration needs on those page images.
+- `app/_tools/text/prompt-extractor/MainInterface.tsx`: manuscript preview, progress, and prompt-result interface.
+- `app/_tools/text/prompt-extractor/prompts/system.md`: the page-image inspection rules sent to OpenRouter.
 - `public/index-creator-ocr/`: browser-local Tesseract worker, Czech language data, and core assets used by the OCR fallback.
 
 Image apps:
@@ -139,10 +144,16 @@ Image apps:
 - `app/_tools/image/map-generator/code/timeline-server.ts`: returns the deterministic map for a selected year.
 - `app/_tools/image/map-generator/code/data/`: the only repository copies of processed map datasets and their licence note.
 - `app/_tools/image/map-generator/scripts/`: repeatable dataset import and map evaluation commands.
-- `app/_tools/image/cover-generator/code/server.ts`: OpenRouter image generation, Shutterstock research, object analysis, master generation, and separate asset generation.
-- `app/_tools/image/cover-generator/prompts/`: editable prompt templates and reusable medium/subject instructions for each cover workflow.
-- `app/_tools/image/cover-generator/MainInterface.tsx`: cover references, concepts, production controls, results, and lightbox.
+- `app/_tools/image/cover-generator/code/server.ts`: protected low-cost OpenRouter planning and image generation for distinct text-free cover-art concepts.
+- `app/_tools/image/cover-generator/code/concept-plan.ts`: Mistral Small vision planning, structured concept validation, reference guidance, and local fallback directions.
+- `app/_tools/image/cover-generator/code/types.ts`: shared audience, subject, planner, reference-guidance, and concept metadata types.
+- `app/_tools/image/cover-generator/prompts/`: editable planner and text-free artwork prompts.
+- `app/_tools/image/cover-generator/MainInterface.tsx`: optional references, audience/subject/keyword controls, model controls, concepts, results, exports, and lightbox.
 - `app/_tools/image/cover-generator/copy.ts`: bilingual Cover Generator UI copy.
+- `app/_tools/image/layer-splitter/MainInterface.tsx`: one-image upload, quality control, reconstruction action, generated result, warnings, and PSD download.
+- `app/_tools/image/layer-splitter/code/`: OpenRouter scene analysis and FLUX image generation, local chroma-key extraction, back-to-front compositing, validation, and layered PSD export.
+- `app/_tools/image/layer-splitter/prompts/`: stable scene-analysis, background-reconstruction, and object-reconstruction instructions.
+- `app/_tools/image/layer-splitter/tests/`: layer-plan, keying, compositing, and PSD format regressions.
 - `app/_tools/image/cover-generator/code/cover-artboard.ts`: creates a PDF contact sheet from generated covers in the browser.
 - `app/_tools/image/cover-generator/scripts/`: cover workflow checks and evaluation helpers.
 - `app/_tools/image/image-generator/MainInterface.tsx`: square image queue, local prompt-document import, optional references, results, downloads, cancellation, and lightbox.
@@ -166,11 +177,6 @@ Design apps:
 - `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders only the outside-cover page locally with PDF.js.
 - `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python and package separate back/front PDFs into a ZIP.
 - `app/_tools/design/cover-splitter/tests/`: protects panel dimensions, per-file presets, first-page-only processing, output names, and vector output.
-- `app/_tools/design/prompt-extractor/copy.ts`: bilingual Prompt Extractor UI copy.
-- `app/_tools/design/prompt-extractor/code/pdf-images.ts`: renders PDF pages to browser images with PDF.js.
-- `app/_tools/design/prompt-extractor/code/server.ts`: asks the vision model to describe illustration needs on those page images.
-- `app/_tools/design/prompt-extractor/MainInterface.tsx`: manuscript preview, progress, and prompt-result interface.
-- `app/_tools/design/prompt-extractor/prompts/system.md`: the page-image inspection rules sent to OpenRouter.
 - `app/_tools/design/barcode-generator/code/ean13.ts`: validates ISBN, builds EAN-13 bars, outlines the digits, and writes a vector PDF.
 - `app/_tools/design/barcode-generator/copy.ts`: bilingual Barcode Generator UI copy.
 - `app/_tools/design/barcode-generator/MainInterface.tsx: barcode input, preview, specifications, and download control.
@@ -239,6 +245,15 @@ The following completes the folder map by naming every source-file role. Repeate
 - `prompts/forms.md`: stable grammatical-form instructions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
+#### Prompt Extractor: `app/_tools/text/prompt-extractor/`
+
+- `MainInterface.tsx`: manuscript controls, preview, progress, and output UI.
+- `copy.ts`: bilingual in-app UI copy and validation messages.
+- `code/pdf-images.ts`: local PDF page-to-image rendering.
+- `code/server.ts`: private vision-model request and response validation.
+- `prompts/system.md`: stable page-inspection instruction.
+- `info.en.md`, `info.cs.md`: live drawer content.
+
 #### Graph Generator: `app/_tools/image/graph-generator/`
 
 - `MainInterface.tsx`: separate chart prompt and data fields, local spreadsheet import, palette, preview, and SVG download interface.
@@ -295,7 +310,7 @@ The following completes the folder map by naming every source-file role. Repeate
 - `prompts/analyse-assets.md`, `asset.md`, `master.md`, `sketch.md`: the main stable workflow instructions.
 - `prompts/medium-3d.md`, `medium-illustration.md`, `medium-match.md`, `medium-photo.md`: medium-specific instruction fragments.
 - `prompts/subject-default.md`, `subject-evolution.md`: subject-specific instruction fragments.
-- `scripts/create-cover-artboard-sample.py`, `evaluate-cover-model.mjs`, `run-cover-full-workflow.mjs`, `test-cover-workflow.mjs`: local maintenance and evaluation tools, not application runtime code.
+- `scripts/create-cover-artboard-sample.py`, `evaluate-cover-model.mjs`, and `test-cover-workflow.mjs`: local maintenance and evaluation tools, not application runtime code.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Image Generator: `app/_tools/image/image-generator/`
@@ -329,15 +344,6 @@ The following completes the folder map by naming every source-file role. Repeate
 - `public/pyodide-worker.js`: browser worker that downloads Pyodide and `pypdf`, then processes all PDFs locally.
 - `public/split_cover.py`: vector-preserving panel extraction and ZIP packaging. Fixed sizes retain the outer trim-width panels and omit the middle spine; half mode divides at the midpoint. Page 2 is ignored by default or optionally mapped left to `FRONT-inside` and right to `BACK-inside`.
 - `tests/cover-splitter.test.mjs`: preset geometry, mixed per-file settings, first-page-only behavior, vector output, and archive-name regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Prompt Extractor: `app/_tools/design/prompt-extractor/`
-
-- `MainInterface.tsx`: manuscript controls, preview, progress, and output UI.
-- `copy.ts`: bilingual in-app UI copy and validation messages.
-- `code/pdf-images.ts`: local PDF page-to-image rendering.
-- `code/server.ts`: private vision-model request and response validation.
-- `prompts/system.md`: stable page-inspection instruction.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Barcode Generator: `app/_tools/design/barcode-generator/`

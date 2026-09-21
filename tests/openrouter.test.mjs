@@ -20,6 +20,7 @@ test("defines one unique OpenRouter key for every model-backed app", () => {
     "grep",
     "image",
     "index",
+    "layerSplitter",
     "map",
     "prompt",
   ]);
@@ -63,8 +64,9 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
     "app/_tools/image/map-generator/code/generate-server.ts",
     "app/_tools/image/cover-generator/code/server.ts",
     "app/_tools/image/image-generator/code/server.ts",
+    "app/_tools/image/layer-splitter/code/server.ts",
     "app/_tools/design/grep-builder/server.ts",
-    "app/_tools/design/prompt-extractor/code/server.ts",
+    "app/_tools/text/prompt-extractor/code/server.ts",
   ];
   const sources = await Promise.all(
     paths.map((path) => readFile(new URL(path, root), "utf8")),

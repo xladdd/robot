@@ -42,6 +42,12 @@ export const appRegistry = [
     available: true,
   },
   {
+    id: "layerSplitter",
+    category: "image",
+    folder: "image/layer-splitter",
+    available: true,
+  },
+  {
     id: "grep",
     category: "design",
     folder: "design/grep-builder",
@@ -73,8 +79,8 @@ export const appRegistry = [
   },
   {
     id: "prompt",
-    category: "design",
-    folder: "design/prompt-extractor",
+    category: "text",
+    folder: "text/prompt-extractor",
     available: true,
   },
   {
@@ -97,6 +103,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   graph: "tested",
   image: "alpha",
   cover: "to-test",
+  layerSplitter: "alpha",
   grep: "tested",
   coverSplitter: "tested",
   solutions: "tested",

@@ -1,0 +1,149 @@
+"use client";
+
+import type { ChangeEvent, DragEvent, RefObject } from "react";
+import { LoadingText } from "../../../_components/LoadingText";
+import {
+  CrosshairInstruction,
+  ProcessingBadge,
+} from "../../../_components/ToolChrome";
+import type { Language } from "../../registry";
+import { promptExtractorCopy } from "./copy";
+
+export function PromptExtractorMainInterface({
+  language,
+  inputRef,
+  file,
+  url,
+  result,
+  error,
+  copied,
+  isExtracting,
+  onFileInput,
+  onDrop,
+  onCopy,
+  onDownload,
+  onResult,
+}: {
+  language: Language;
+  inputRef: RefObject<HTMLInputElement | null>;
+  file: File | null;
+  url: string | null;
+  result: string;
+  error: string;
+  copied: boolean;
+  isExtracting: boolean;
+  onFileInput: (event: ChangeEvent<HTMLInputElement>) => void;
+  onDrop: (event: DragEvent<HTMLButtonElement>) => void;
+  onCopy: () => void;
+  onDownload: (text: string, filename: string, type: string) => void;
+  onResult: (result: string) => void;
+}) {
+  const t = promptExtractorCopy[language];
+  return (
+    <div className="prompt-module has-file">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={onFileInput}
+        hidden
+      />
+      <div className="document-active-workspace prompt-active-workspace">
+        <div className="prompt-split">
+          <section className="source-pane prompt-pdf-column">
+            <div className="pane-label">
+              <span>{t.source}</span>
+              <span>{file?.name || "—"}</span>
+            </div>
+            <div className="source-viewer">
+              {!file && (
+                <button
+                  type="button"
+                  className="text-workbench-crosshair-button"
+                  onClick={() => inputRef.current?.click()}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={onDrop}
+                >
+                  <CrosshairInstruction>{t.emptySource}</CrosshairInstruction>
+                </button>
+              )}
+              {url && <iframe src={url} title={file?.name || t.source} />}
+            </div>
+          </section>
+          <div className="prompt-side-column">
+            <div className="prompt-active-head document-active-head document-app-head">
+              <div>
+                <ProcessingBadge mode="ai" language={language} />
+                <h1>{t.heading}</h1>
+              </div>
+              <button
+                className="start-button upload-button"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={onDrop}
+                disabled={isExtracting}
+              >
+                <span>{t.another}</span>
+                <b>＋</b>
+              </button>
+              {error && (
+                <p className="extraction-error" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
+            <section className="text-pane prompt-output-pane">
+              <div className="pane-label">
+                <span>{t.extractedPrompts}</span>
+                <span>{t.pageGroups}</span>
+              </div>
+              <div className="output-actions">
+                <button
+                  className="copy-button"
+                  onClick={onCopy}
+                  disabled={!result}
+                  aria-label={t.copyText}
+                >
+                  {copied ? "✓" : "▣"}
+                  <span>{copied ? t.copied : t.copyText}</span>
+                </button>
+                <button
+                  className="download-button"
+                  onClick={() =>
+                    onDownload(
+                      result,
+                      "illustration-prompts.md",
+                      "text/markdown",
+                    )
+                  }
+                  disabled={!result}
+                >
+                  MD
+                </button>
+                <button
+                  className="download-button"
+                  onClick={() =>
+                    onDownload(result, "illustration-prompts.txt", "text/plain")
+                  }
+                  disabled={!result}
+                >
+                  TXT
+                </button>
+              </div>
+              {isExtracting ? (
+                <LoadingText items={t.processing} />
+              ) : (
+                <textarea
+                  value={result}
+                  onChange={(event) => onResult(event.target.value)}
+                  placeholder={error ? "" : t.noIllustrations}
+                  spellCheck
+                />
+              )}
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

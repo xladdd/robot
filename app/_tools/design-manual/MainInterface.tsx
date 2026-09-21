@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { copy } from "../../content/ui";
+import { ProcessingBadge } from "../../_components/ToolChrome";
 import type { Language } from "../registry";
 import type {
   ManualContent,
@@ -194,9 +195,7 @@ export function DesignManualMainInterface({
       </nav>
       <article className="manual-article" ref={articleRef}>
         <header className="manual-hero">
-          <span className="module-code">
-            {language === "cs" ? "REFERENCE / GRAFIKA" : "REFERENCE / DESIGN"}
-          </span>
+          <ProcessingBadge mode="local" language={language} />
           <small>
             {String(chapterIndex + 1).padStart(2, "0")} /{" "}
             {String(chapters.length).padStart(2, "0")}

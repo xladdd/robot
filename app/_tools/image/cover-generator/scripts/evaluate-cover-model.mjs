@@ -19,7 +19,8 @@ const artReferencePaths = [
   "/private/tmp/robot-cover-eval/refs-art/BI7-art.jpg",
 ];
 
-const brief = "A biology cover: the evolution of humans in the foreground, with different energy sources—coal, nuclear, and solar—in the background. Rivers and a DNA spiral in front.";
+const brief =
+  "A biology cover: the evolution of humans in the foreground, with different energy sources—coal, nuclear, and solar—in the background. Rivers and a DNA spiral in front.";
 const prompts = {
   baseline: `Create a cover concept for an educational textbook. The source covers are the primary visual specification. Match their visual medium, realism level, colour treatment, lighting logic, compositing finish, image density, age appropriateness, and series-level art direction with high fidelity. First infer the dominant visual medium of the reference covers and reproduce that same medium faithfully. Do not render readable typography. Reserve a calm title-safe area in the upper third. The requested new cover: ${brief}`,
   structured_crop: `Use reference images 1, 2, and 3 only as cropped art-direction samples from the same Romanian school biology cover series. Infer the repeated image-making grammar shared by all three—not the specific animals, anatomical models, words, logos, grade numerals, badges, or author panels.
@@ -38,16 +39,25 @@ The fully clothed, classroom-safe human-evolution figures are the main focal poi
 };
 
 if (!prompts[variant]) throw new Error(`Unknown prompt variant: ${variant}`);
-const referencePaths = variant.endsWith("_crop") ? artReferencePaths : fullReferencePaths;
+const referencePaths = variant.endsWith("_crop")
+  ? artReferencePaths
+  : fullReferencePaths;
 
-const references = await Promise.all(referencePaths.map(async (path) => {
-  const bytes = await readFile(path);
-  const mime = extname(path).toLowerCase() === ".png" ? "image/png" : "image/jpeg";
-  return { type: "image_url", image_url: { url: `data:${mime};base64,${bytes.toString("base64")}` } };
-}));
+const references = await Promise.all(
+  referencePaths.map(async (path) => {
+    const bytes = await readFile(path);
+    const mime =
+      extname(path).toLowerCase() === ".png" ? "image/png" : "image/jpeg";
+    return {
+      type: "image_url",
+      image_url: { url: `data:${mime};base64,${bytes.toString("base64")}` },
+    };
+  }),
+);
 
 await mkdir(outputDir, { recursive: true });
 const startedAt = new Date().toISOString();
+const isGemini = model === "google/gemini-3.1-flash-lite-image";
 const response = await fetch("https://openrouter.ai/api/v1/images", {
   method: "POST",
   headers: {
@@ -61,30 +71,41 @@ const response = await fetch("https://openrouter.ai/api/v1/images", {
     prompt: prompts[variant],
     input_references: references,
     aspect_ratio: "3:4",
-    resolution,
-    output_format: "jpeg",
-    seed: 260826,
+    resolution: isGemini ? "1K" : resolution,
+    ...(isGemini ? { n: 1 } : { output_format: "jpeg", seed: 260826 }),
   }),
 });
 
 const result = await response.json();
 if (!response.ok || !result.data?.[0]?.b64_json) {
-  throw new Error(result.error?.message || `Generation failed with HTTP ${response.status}.`);
+  throw new Error(
+    result.error?.message || `Generation failed with HTTP ${response.status}.`,
+  );
 }
 
 const stem = `${variant}-${model.split("/").at(-1)}-${resolution}`;
-await writeFile(join(outputDir, `${stem}.jpg`), Buffer.from(result.data[0].b64_json, "base64"));
+const mediaType = result.data[0].media_type || "image/jpeg";
+const extension = mediaType === "image/png" ? "png" : "jpg";
+await writeFile(
+  join(outputDir, `${stem}.${extension}`),
+  Buffer.from(result.data[0].b64_json, "base64"),
+);
 const record = {
   startedAt,
   completedAt: new Date().toISOString(),
   model,
   variant,
   resolution,
-  seed: 260826,
+  seed: isGemini ? null : 260826,
   references: referencePaths,
   prompt: prompts[variant],
   generationId: result.id || null,
   usage: result.usage || null,
 };
-await writeFile(join(outputDir, `${stem}.json`), `${JSON.stringify(record, null, 2)}\n`);
-process.stdout.write(`${JSON.stringify({ image: join(outputDir, `${stem}.jpg`), usage: result.usage || null })}\n`);
+await writeFile(
+  join(outputDir, `${stem}.json`),
+  `${JSON.stringify(record, null, 2)}\n`,
+);
+process.stdout.write(
+  `${JSON.stringify({ image: join(outputDir, `${stem}.jpg`), usage: result.usage || null })}\n`,
+);

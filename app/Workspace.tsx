@@ -23,12 +23,12 @@ import { barcodeUi } from "./_tools/design/barcode-generator/copy";
 import { BarcodeMainInterface } from "./_tools/design/barcode-generator/MainInterface";
 import { CoverSplitterMainInterface } from "./_tools/design/cover-splitter/MainInterface";
 import { GrepMainInterface } from "./_tools/design/grep-builder/MainInterface";
-import { promptExtractorCopy } from "./_tools/design/prompt-extractor/copy";
+import { promptExtractorCopy } from "./_tools/text/prompt-extractor/copy";
 import {
   formatPromptOutput,
   type IllustrationPrompt,
-} from "./_tools/design/prompt-extractor/code/output";
-import { PromptExtractorMainInterface } from "./_tools/design/prompt-extractor/MainInterface";
+} from "./_tools/text/prompt-extractor/code/output";
+import { PromptExtractorMainInterface } from "./_tools/text/prompt-extractor/MainInterface";
 import { ScriptBuffetMainInterface } from "./_tools/design/script-buffet/MainInterface";
 import { indexCreatorCopy } from "./_tools/text/index-creator/copy";
 import { IndexCreatorMainInterface } from "./_tools/text/index-creator/MainInterface";
@@ -55,16 +55,24 @@ import {
 import { graphUi } from "./_tools/image/graph-generator/copy";
 import { createCoverArtboardPdf } from "./_tools/image/cover-generator/code/cover-artboard";
 import { localizedCoverUi } from "./_tools/image/cover-generator/copy";
+import { LayerSplitterMainInterface } from "./_tools/image/layer-splitter/MainInterface";
+import { layerSplitterUi } from "./_tools/image/layer-splitter/copy";
+import type {
+  LayerSplitterQuality,
+  LayerSplitterResult,
+} from "./_tools/image/layer-splitter/types";
 import { ImageGeneratorMainInterface } from "./_tools/image/image-generator/MainInterface";
 import {
   CoverGeneratorMainInterface,
   CoverLightbox,
-  type CoverAnalysis,
+  type CoverAudience,
   type CoverGeneration,
+  type CoverModel,
   type CoverReference,
-  type CoverStock,
+  type CoverSubject,
   type CoverUsage,
 } from "./_tools/image/cover-generator/MainInterface";
+import type { CoverPlannerMetadata } from "./_tools/image/cover-generator/code/types";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
 import {
   completedApps,
@@ -148,7 +156,6 @@ export default function Workspace({
   const [promptUrl, setPromptUrl] = useState<string | null>(null);
   const [promptResult, setPromptResult] = useState("");
   const [isExtractingPrompts, setIsExtractingPrompts] = useState(false);
-  const [promptProgress, setPromptProgress] = useState(0);
   const [promptError, setPromptError] = useState("");
   const [promptCopied, setPromptCopied] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -168,33 +175,33 @@ export default function Workspace({
   const [isGeneratingFigure, setIsGeneratingFigure] = useState(false);
   const [figureSecondsLeft, setFigureSecondsLeft] = useState(30);
   const [coverReferences, setCoverReferences] = useState<CoverReference[]>([]);
-  const [coverBrief, setCoverBrief] = useState("");
+  const [coverAudience, setCoverAudience] = useState<CoverAudience | "">("");
+  const [coverSubject, setCoverSubject] = useState<CoverSubject | "">("");
+  const [coverCustomSubject, setCoverCustomSubject] = useState("");
+  const [coverKeywords, setCoverKeywords] = useState("");
   const [coverSketches, setCoverSketches] = useState<CoverGeneration[]>([]);
-  const [coverLayers, setCoverLayers] = useState<CoverGeneration[]>([]);
   const [coverSelectedId, setCoverSelectedId] = useState<string | null>(null);
-  const [coverDetectedAssets, setCoverDetectedAssets] = useState<
-    Array<{ name: string; description: string }>
-  >([]);
-  const [coverAnalysis, setCoverAnalysis] = useState<CoverAnalysis | null>(
+  const [coverPlanner, setCoverPlanner] = useState<CoverPlannerMetadata | null>(
     null,
   );
-  const [coverProductionStage, setCoverProductionStage] = useState<
-    "analyzing" | "master" | "assets" | "complete" | null
-  >(null);
-  const [coverUseShutterstock, setCoverUseShutterstock] = useState(false);
-  const [coverStockInputs, setCoverStockInputs] = useState([""]);
-  const [coverMedium, setCoverMedium] = useState<
-    "match" | "photo" | "illustration" | "3d"
-  >("match");
-  const [coverSketchQuality, setCoverSketchQuality] = useState<
-    "fast" | "fidelity"
-  >("fidelity");
+  const [coverModel, setCoverModel] = useState<CoverModel>(
+    "black-forest-labs/flux.2-klein-4b",
+  );
   const [coverArtOnlyReferences, setCoverArtOnlyReferences] = useState(true);
   const [coverGenerationCount, setCoverGenerationCount] = useState<2 | 4>(4);
   const [coverError, setCoverError] = useState("");
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
-  const [isGeneratingLayers, setIsGeneratingLayers] = useState(false);
   const [zoomedCover, setZoomedCover] = useState<CoverGeneration | null>(null);
+  const [layerSplitterImage, setLayerSplitterImage] = useState<string | null>(
+    null,
+  );
+  const [layerSplitterImageName, setLayerSplitterImageName] = useState("");
+  const [layerSplitterQuality, setLayerSplitterQuality] =
+    useState<LayerSplitterQuality>("fidelity");
+  const [layerSplitterResult, setLayerSplitterResult] =
+    useState<LayerSplitterResult | null>(null);
+  const [layerSplitterError, setLayerSplitterError] = useState("");
+  const [isSplittingLayers, setIsSplittingLayers] = useState(false);
   const [timelineYear, setTimelineYear] = useState(1914);
   const [timelineYearInput, setTimelineYearInput] = useState("1914");
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
@@ -224,12 +231,14 @@ export default function Workspace({
   const figureReferenceInputRef = useRef<HTMLInputElement>(null);
   const figurePaletteInputRef = useRef<HTMLInputElement>(null);
   const coverReferenceInputRef = useRef<HTMLInputElement>(null);
+  const layerSplitterInputRef = useRef<HTMLInputElement>(null);
   const promptFileInputRef = useRef<HTMLInputElement>(null);
   const indexFileInputRef = useRef<HTMLInputElement>(null);
   const t = copy[language];
   const barcodeT = barcodeUi[language];
   const figureT = graphUi[language];
   const coverT = localizedCoverUi[language];
+  const layerSplitterT = layerSplitterUi[language];
   const textExtractorT = textExtractorCopy[language];
   const indexCreatorT = indexCreatorCopy[language];
   const promptExtractorT = promptExtractorCopy[language];
@@ -284,7 +293,7 @@ export default function Workspace({
     };
     window.addEventListener("keydown", handleCoverLightboxKey);
     return () => window.removeEventListener("keydown", handleCoverLightboxKey);
-  }, [zoomedCover, coverSketches, coverLayers]);
+  }, [zoomedCover, coverSketches]);
 
   useEffect(
     () => () => {
@@ -356,16 +365,25 @@ export default function Workspace({
 
   useEffect(() => {
     function handlePaste(event: ClipboardEvent) {
-      if (selected !== "extraction") return;
-      const file = Array.from(event.clipboardData?.files ?? []).find(
-        (item) =>
-          item.type.startsWith("image/") || item.type === "application/pdf",
+      if (
+        selected !== "extraction" &&
+        selected !== "index" &&
+        selected !== "prompt"
+      )
+        return;
+      const file = Array.from(event.clipboardData?.files ?? []).find((item) =>
+        selected === "extraction"
+          ? item.type.startsWith("image/") || item.type === "application/pdf"
+          : item.type === "application/pdf",
       );
       if (file) {
         event.preventDefault();
-        void processFile(file);
+        if (selected === "index") selectIndexFile(file);
+        else if (selected === "prompt") void extractPrompts(file);
+        else void processFile(file);
         return;
       }
+      if (selected !== "extraction") return;
       const pastedText = event.clipboardData?.getData("text/plain").trim();
       if (pastedText && !(event.target instanceof HTMLTextAreaElement)) {
         event.preventDefault();
@@ -820,14 +838,11 @@ export default function Workspace({
     setPromptUrl(URL.createObjectURL(file));
     setPromptResult("");
     setPromptError("");
-    setPromptProgress(1);
     setIsExtractingPrompts(true);
     try {
       const renderer =
-        await import("./_tools/design/prompt-extractor/code/pdf-images");
-      const pages = await renderer.renderPdfPages(file, (done, total) =>
-        setPromptProgress(Math.round((done / total) * 38)),
-      );
+        await import("./_tools/text/prompt-extractor/code/pdf-images");
+      const pages = await renderer.renderPdfPages(file);
       const illustrations: IllustrationPrompt[] = [];
       const batchSize = 1;
       const batches = Array.from(
@@ -847,12 +862,8 @@ export default function Workspace({
         if (!response.ok || !Array.isArray(result.illustrations))
           throw new Error(result.error || "Prompt extraction failed.");
         illustrations.push(...result.illustrations);
-        setPromptProgress(
-          38 + Math.round(((batchIndex + 1) / batches.length) * 62),
-        );
       }
       setPromptResult(formatPromptOutput(illustrations));
-      setPromptProgress(100);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Prompt extraction failed.";
@@ -1209,8 +1220,90 @@ export default function Workspace({
     }
   }
 
+  async function selectLayerSplitterFile(file: File) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setLayerSplitterError(layerSplitterT.error);
+      return;
+    }
+    if (file.size > 18_000_000) {
+      setLayerSplitterError(
+        language === "cs"
+          ? "Obrázek je příliš velký (maximum je 18 MB)."
+          : "The image is too large (the maximum is 18 MB).",
+      );
+      return;
+    }
+    try {
+      setLayerSplitterImage(await fileToDataUrl(file));
+      setLayerSplitterImageName(file.name);
+      setLayerSplitterResult(null);
+      setLayerSplitterError("");
+    } catch (error) {
+      setLayerSplitterError(
+        error instanceof Error ? error.message : layerSplitterT.error,
+      );
+    }
+  }
+
+  function removeLayerSplitterImage() {
+    setLayerSplitterImage(null);
+    setLayerSplitterImageName("");
+    setLayerSplitterResult(null);
+    setLayerSplitterError("");
+  }
+
+  async function splitLayerSplitterImage() {
+    if (!layerSplitterImage || isSplittingLayers) return;
+    setIsSplittingLayers(true);
+    setLayerSplitterResult(null);
+    setLayerSplitterError("");
+    try {
+      const response = await fetch("/api/layers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: layerSplitterImage,
+          quality: layerSplitterQuality,
+        }),
+      });
+      const result = (await response.json()) as LayerSplitterResult & {
+        error?: string;
+      };
+      if (!response.ok || !result.psdBase64)
+        throw new Error(result.error || layerSplitterT.error);
+      setLayerSplitterResult(result);
+    } catch (error) {
+      setLayerSplitterError(
+        error instanceof Error ? error.message : layerSplitterT.error,
+      );
+    } finally {
+      setIsSplittingLayers(false);
+    }
+  }
+
+  function downloadLayerSplitterPsd() {
+    if (!layerSplitterResult) return;
+    const bytes = Uint8Array.from(
+      atob(layerSplitterResult.psdBase64),
+      (character) => character.charCodeAt(0),
+    );
+    const url = URL.createObjectURL(
+      new Blob([bytes], { type: "image/vnd.adobe.photoshop" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = layerSplitterResult.filename;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function generateCoverSketches(generationCount: 2 | 4) {
-    if (coverReferences.length < 2 || !coverBrief.trim() || isGeneratingCover)
+    if (
+      !coverAudience ||
+      !coverSubject ||
+      (coverSubject === "other" && !coverCustomSubject.trim()) ||
+      isGeneratingCover
+    )
       return;
     if (
       coverSketches.filter((item) => item.status !== "rejected").length +
@@ -1224,7 +1317,7 @@ export default function Workspace({
     setIsGeneratingCover(true);
     setCoverError("");
     try {
-      const direction = coverSelectedId
+      const preference = coverSelectedId
         ? coverSketches.find((item) => item.id === coverSelectedId)?.data
         : undefined;
       const response = await fetch("/api/covers", {
@@ -1233,31 +1326,34 @@ export default function Workspace({
         body: JSON.stringify({
           mode: "sketch",
           generationCount,
-          brief: coverBrief,
+          audience: coverAudience,
+          subject: coverSubject,
+          customSubject: coverCustomSubject,
+          keywords: coverKeywords,
           references: coverReferences.map((item) =>
             coverArtOnlyReferences ? item.artData : item.data,
           ),
-          direction,
-          useShutterstock: coverUseShutterstock,
-          stockInputs: coverStockInputs,
-          medium: coverMedium,
-          sketchQuality: coverSketchQuality,
+          preference,
+          model: coverModel,
         }),
       });
       const result = (await response.json()) as {
         images?: Array<{
           data: string;
-          seed: number;
+          seed: number | null;
           model: string;
+          direction?: string;
+          concept: CoverGeneration["concept"];
           generationId?: string;
           usage: CoverUsage;
-          stock?: CoverStock;
         }>;
+        planner?: CoverPlannerMetadata;
         warnings?: string[];
         error?: string;
       };
       if (!response.ok || !result.images?.length)
         throw new Error(result.error || coverT.sketchError);
+      setCoverPlanner(result.planner || null);
       setCoverSketches((current) => [
         ...current,
         ...result.images!.map((item) => ({
@@ -1299,10 +1395,7 @@ export default function Workspace({
   }
   function moveZoomedCover(offset: number) {
     if (!zoomedCover) return;
-    const items = [
-      ...coverSketches.filter((item) => item.status !== "rejected"),
-      ...coverLayers,
-    ];
+    const items = coverSketches.filter((item) => item.status !== "rejected");
     if (items.length < 2) return;
     const index = items.findIndex((item) => item.id === zoomedCover.id);
     setZoomedCover(
@@ -1310,189 +1403,47 @@ export default function Workspace({
     );
   }
 
-  async function generateCoverLayers() {
-    const selected = coverSketches.find((item) => item.id === coverSelectedId);
-    if (!selected || isGeneratingLayers) return;
-    setIsGeneratingLayers(true);
-    setCoverError("");
-    setCoverLayers([]);
-    setCoverDetectedAssets([]);
-    setCoverAnalysis(null);
-    setCoverProductionStage("analyzing");
-    try {
-      const references = coverReferences.map((item) =>
-        coverArtOnlyReferences ? item.artData : item.data,
-      );
-      const common = {
-        brief: coverBrief,
-        references,
-        direction: selected.data,
-        useShutterstock: coverUseShutterstock,
-        stockInputs: coverStockInputs,
-        medium: coverMedium,
-      };
-      const analysisResponse = await fetch("/api/covers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...common, mode: "analyze" }),
-      });
-      const analysis = (await analysisResponse.json()) as CoverAnalysis & {
-        error?: string;
-      };
-      if (!analysisResponse.ok || !analysis.assets?.length)
-        throw new Error(analysis.error || coverT.detectionError);
-      setCoverAnalysis(analysis);
-      setCoverDetectedAssets(analysis.assets);
-      setCoverProductionStage("master");
-
-      const masterResponse = await fetch("/api/covers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...common, mode: "master" }),
-      });
-      const master = (await masterResponse.json()) as {
-        images?: Array<{
-          data: string;
-          seed: number;
-          name?: string;
-          model: string;
-          generationId?: string;
-          usage: CoverUsage;
-        }>;
-        error?: string;
-      };
-      if (!masterResponse.ok || !master.images?.length)
-        throw new Error(master.error || coverT.masterError);
-      setCoverLayers(
-        master.images.map((item) => ({
-          ...item,
-          id: crypto.randomUUID(),
-          status: "layer",
-          createdAt: new Date().toISOString(),
-        })),
-      );
-      setCoverProductionStage("assets");
-
-      const assetResponse = await fetch("/api/covers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...common,
-          mode: "layers",
-          layers: analysis.assets.map(
-            (asset) => `${asset.name}: ${asset.description}`,
-          ),
-        }),
-      });
-      const assets = (await assetResponse.json()) as {
-        images?: Array<{
-          data: string;
-          seed: number;
-          name?: string;
-          model: string;
-          generationId?: string;
-          usage: CoverUsage;
-          stock?: CoverStock;
-        }>;
-        warnings?: string[];
-        error?: string;
-      };
-      if (!assetResponse.ok || !assets.images?.length)
-        throw new Error(assets.error || coverT.assetError);
-      setCoverLayers((current) => [
-        ...current,
-        ...assets.images!.map((item) => ({
-          ...item,
-          id: crypto.randomUUID(),
-          status: "layer" as const,
-          createdAt: new Date().toISOString(),
-        })),
-      ]);
-      if (assets.warnings?.length) setCoverError(assets.warnings.join(" · "));
-      setCoverProductionStage("complete");
-    } catch (error) {
-      setCoverProductionStage(null);
-      setCoverError(
-        error instanceof Error ? error.message : coverT.productionError,
-      );
-    } finally {
-      setIsGeneratingLayers(false);
-    }
-  }
-
   async function downloadCoverZip() {
     const entries: Array<{ name: string; data: Uint8Array }> = [];
     const toBytes = async (dataUrl: string) =>
       new Uint8Array(await (await fetch(dataUrl)).arrayBuffer());
-    for (const [index, item] of coverSketches.entries())
+    const tasks = coverSketches.filter((item) => item.status !== "rejected");
+    for (const [index, item] of tasks.entries())
       entries.push({
-        name: `concepts/${item.status === "selected" ? "selected" : item.status === "rejected" ? "rejected" : "alternatives"}/concept-${String(index + 1).padStart(2, "0")}.jpg`,
+        name: `concepts/${item.status === "selected" ? "selected" : "alternatives"}/concept-${String(index + 1).padStart(2, "0")}.jpg`,
         data: await toBytes(item.data),
       });
-    for (const [index, item] of coverLayers.entries())
-      entries.push({
-        name:
-          item.name === "2K cover master"
-            ? "production/master/cover-master-2k.jpg"
-            : `production/stems/${safeFilename(item.name || `asset-${index + 1}`)}.jpg`,
-        data: await toBytes(item.data),
-      });
-    const tasks = [...coverSketches, ...coverLayers];
-    const knownTotal = tasks.reduce(
-      (sum, item) => sum + (item.usage.cost || 0),
-      coverAnalysis?.usage.cost || 0,
-    );
+    const plannerCost = coverPlanner?.usage.cost || 0;
+    const knownTotal =
+      plannerCost +
+      tasks.reduce((sum, item) => sum + (item.usage.cost || 0), 0);
     const unknownCosts =
       tasks.filter((item) => item.usage.cost === null).length +
-      (coverAnalysis?.usage.cost === null ? 1 : 0);
-    const stockSources = [
-      ...new Map(
-        tasks
-          .filter((item) => item.stock)
-          .map((item) => [item.stock!.id, item.stock!]),
-      ).values(),
-    ];
+      (coverPlanner && coverPlanner.usage.cost === null ? 1 : 0);
     const report = [
       `# ${coverT.reportTitle}`,
       "",
       `- Exported: ${new Date().toISOString()}`,
-      `- Brief: ${coverBrief}`,
+      `- Audience: ${coverAudience}`,
+      `- Subject: ${coverSubject === "other" ? coverCustomSubject : coverSubject}`,
+      `- Keywords: ${coverKeywords || "none"}`,
+      `- Planner model: ${coverPlanner?.model || "not reported"}`,
+      `- Reference guidance: ${coverPlanner?.referenceGuidance ? JSON.stringify(coverPlanner.referenceGuidance) : "not reported"}`,
       `- Artwork-only reference crops: ${coverArtOnlyReferences ? "yes" : "no"}`,
-      `- Shutterstock research inputs: ${
-        coverUseShutterstock
-          ? coverStockInputs
-              .map((input) => input.trim())
-              .filter(Boolean)
-              .join("; ") || "main brief"
-          : "disabled"
-      }`,
-      `- Generation tasks: ${tasks.length + (coverAnalysis ? 1 : 0)}`,
+      `- Generation tasks: ${tasks.length}`,
       `- Total credits: ${knownTotal.toFixed(6)}${unknownCosts ? ` (${unknownCosts} task${unknownCosts === 1 ? "" : "s"} did not report a cost)` : ""}`,
       "",
-      "## Separate generation tasks",
+      "## Generation tasks",
       "",
-      "| # | Type | Output | Model | Seed | Credits | OpenRouter generation | Shutterstock |",
-      "|---:|---|---|---|---:|---:|---|---|",
-      ...(coverAnalysis
-        ? [
-            `| 1 | object analysis | ${coverAnalysis.assets.map((asset) => asset.name).join(", ")} | ${coverAnalysis.model} | — | ${coverAnalysis.usage.cost === null ? "not reported" : coverAnalysis.usage.cost.toFixed(6)} | ${coverAnalysis.generationId || "not reported"} | — |`,
-          ]
-        : []),
+      `| # | Type | Concept | Viewpoint | Rendering | Model | Seed | Credits | OpenRouter generation |`,
+      `|---:|---|---|---|---|---|---:|---:|---|`,
+      `| — | planner | ${coverPlanner?.model || "not reported"} | — | ${coverPlanner?.usedFallback ? "local fallback" : "Mistral structured plan"} | ${coverPlanner?.model || "not reported"} | — | ${coverPlanner?.usage.cost === null || coverPlanner?.usage.cost === undefined ? "not reported" : coverPlanner.usage.cost.toFixed(6)} | ${coverPlanner?.generationId || "not reported"} |`,
       ...tasks.map(
         (item, index) =>
-          `| ${index + 1 + (coverAnalysis ? 1 : 0)} | ${item.status === "layer" ? (item.name === "2K cover master" ? "2K master" : "regenerated stem") : "concept"} | ${item.name || `concept-${String(coverSketches.indexOf(item) + 1).padStart(2, "0")}`} | ${item.model} | ${item.seed} | ${item.usage.cost === null ? "not reported" : item.usage.cost.toFixed(6)} | ${item.generationId || "not reported"} | ${item.stock ? `[${item.stock.id}](${item.stock.sourceUrl})` : "—"} |`,
+          `| ${index + 1} | concept | ${item.concept.coreIdea} | ${item.concept.viewpoint} | ${item.concept.renderingApproach} | ${item.model} | ${item.seed ?? "not supported"} | ${item.usage.cost === null ? "not reported" : item.usage.cost.toFixed(6)} | ${item.generationId || "not reported"} |`,
       ),
       "",
-      "## Shutterstock sources",
-      "",
-      ...(stockSources.length
-        ? stockSources.map(
-            (source) =>
-              `- [${source.id}: ${source.description}](${source.sourceUrl})`,
-          )
-        : ["No Shutterstock previews were used."]),
-      "",
-      "> WARNING: Shutterstock previews are watermarked, unlicensed research references. They are not production assets. Open and license every linked source before publication, and verify that the final artwork does not reproduce a preview or its watermark.",
+      "> These images are text-free cover-art directions. Add typography and publisher elements later in InDesign.",
       "",
     ].join("\n");
     entries.push({
@@ -1505,15 +1456,15 @@ export default function Workspace({
         JSON.stringify(
           {
             project: "Taktik Robot",
-            brief: coverBrief,
+            audience: coverAudience,
+            subject: coverSubject,
+            customSubject: coverCustomSubject,
+            keywords: coverKeywords,
             references: coverReferences.map(({ name }) => name),
             artworkOnlyReferenceCrops: coverArtOnlyReferences,
             selectedSketch: coverSelectedId,
-            useShutterstock: coverUseShutterstock,
-            shutterstockResearchInputs: coverStockInputs
-              .map((input) => input.trim())
-              .filter(Boolean),
-            objectAnalysis: coverAnalysis,
+            model: coverModel,
+            planner: coverPlanner,
             sketches: coverSketches.map(
               ({
                 id,
@@ -1521,37 +1472,20 @@ export default function Workspace({
                 status,
                 createdAt,
                 model,
+                direction,
+                concept,
                 generationId,
                 usage,
-                stock,
               }) => ({
                 id,
                 seed,
                 status,
                 createdAt,
                 model,
+                direction,
+                concept,
                 generationId,
                 usage,
-                stock,
-              }),
-            ),
-            layers: coverLayers.map(
-              ({
-                name,
-                seed,
-                createdAt,
-                model,
-                generationId,
-                usage,
-                stock,
-              }) => ({
-                name,
-                seed,
-                createdAt,
-                model,
-                generationId,
-                usage,
-                stock,
               }),
             ),
             totalCredits: knownTotal,
@@ -1864,7 +1798,8 @@ export default function Workspace({
     selected === "map" ||
     selected === "bio" ||
     selected === "graph" ||
-    selected === "cover"
+    selected === "cover" ||
+    selected === "layerSplitter"
       ? selected
       : "general";
   const help = infoDrawers[language][helpKey];
@@ -2053,21 +1988,17 @@ export default function Workspace({
             language={language}
             inputRef={coverReferenceInputRef}
             references={coverReferences}
-            brief={coverBrief}
+            audience={coverAudience}
+            subject={coverSubject}
+            customSubject={coverCustomSubject}
+            keywords={coverKeywords}
             sketches={coverSketches}
-            layers={coverLayers}
             selectedId={coverSelectedId}
-            detectedAssets={coverDetectedAssets}
-            productionStage={coverProductionStage}
-            useShutterstock={coverUseShutterstock}
-            stockInputs={coverStockInputs}
-            medium={coverMedium}
-            quality={coverSketchQuality}
+            model={coverModel}
             artOnlyReferences={coverArtOnlyReferences}
             generationCount={coverGenerationCount}
             error={coverError}
             isGenerating={isGeneratingCover}
-            isGeneratingLayers={isGeneratingLayers}
             onReferenceInput={(event) => void addCoverReferences(event)}
             onAddReferenceFiles={(files) => void addCoverReferenceFiles(files)}
             onRemoveReference={(index) =>
@@ -2075,35 +2006,37 @@ export default function Workspace({
                 current.filter((_, itemIndex) => itemIndex !== index),
               )
             }
-            onBrief={setCoverBrief}
+            onAudience={setCoverAudience}
+            onSubject={(value) => {
+              setCoverSubject(value);
+              if (value !== "other") setCoverCustomSubject("");
+            }}
+            onCustomSubject={setCoverCustomSubject}
+            onKeywords={setCoverKeywords}
             onSelectSketch={selectCoverSketch}
             onRejectSketch={rejectCoverSketch}
             onZoom={setZoomedCover}
             onExportArtboard={() => void exportCoverArtboard()}
             onDownload={() => void downloadCoverZip()}
-            onUseShutterstock={setCoverUseShutterstock}
-            onStockInput={(index, value) =>
-              setCoverStockInputs((current) =>
-                current.map((item, itemIndex) =>
-                  itemIndex === index ? value : item,
-                ),
-              )
-            }
-            onRemoveStockInput={(index) =>
-              setCoverStockInputs((current) =>
-                current.length === 1
-                  ? [""]
-                  : current.filter((_, itemIndex) => itemIndex !== index),
-              )
-            }
-            onAddStockInput={() =>
-              setCoverStockInputs((current) => [...current, ""])
-            }
-            onMedium={setCoverMedium}
-            onQuality={setCoverSketchQuality}
+            onModel={setCoverModel}
             onArtOnlyReferences={setCoverArtOnlyReferences}
             onGenerateSketches={(count) => void generateCoverSketches(count)}
-            onGenerateLayers={() => void generateCoverLayers()}
+          />
+        ) : selected === "layerSplitter" ? (
+          <LayerSplitterMainInterface
+            language={language}
+            inputRef={layerSplitterInputRef}
+            imageData={layerSplitterImage}
+            imageName={layerSplitterImageName}
+            quality={layerSplitterQuality}
+            result={layerSplitterResult}
+            error={layerSplitterError}
+            isSplitting={isSplittingLayers}
+            onFile={(file) => void selectLayerSplitterFile(file)}
+            onRemove={removeLayerSplitterImage}
+            onQuality={setLayerSplitterQuality}
+            onSplit={() => void splitLayerSplitterImage()}
+            onDownload={downloadLayerSplitterPsd}
           />
         ) : selected === "barcode" ? (
           <BarcodeMainInterface
@@ -2127,7 +2060,6 @@ export default function Workspace({
         ) : selected === "extraction" ? (
           <TextExtractorMainInterface
             language={language}
-            section={selectedSection}
             inputRef={fileInputRef}
             sourceKind={sourceKind}
             sourceFile={sourceFile}
@@ -2149,7 +2081,6 @@ export default function Workspace({
         ) : selected === "index" ? (
           <IndexCreatorMainInterface
             language={language}
-            section={selectedSection}
             inputRef={indexFileInputRef}
             file={indexFile}
             url={indexUrl}
@@ -2177,12 +2108,10 @@ export default function Workspace({
         ) : selected === "prompt" ? (
           <PromptExtractorMainInterface
             language={language}
-            section={selectedSection}
             inputRef={promptFileInputRef}
             file={promptFile}
             url={promptUrl}
             result={promptResult}
-            progress={promptProgress}
             error={promptError}
             copied={promptCopied}
             isExtracting={isExtractingPrompts}
@@ -2325,9 +2254,6 @@ export default function Workspace({
           <div className={`welcome ${selectedLabel ? "has-selection" : ""}`}>
             {selectedLabel ? (
               <>
-                <div className="module-code">
-                  {selectedSection} / {selected?.toUpperCase()}
-                </div>
                 <h1>{selectedLabel}</h1>
                 <button className="start-button">
                   {t.ready}
@@ -2461,15 +2387,6 @@ function formatIndexOutput(
       return `${word}\t${formatPageRanges(printedPages)}`;
     })
     .join("\n");
-}
-
-function safeFilename(value: string) {
-  return (
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "asset"
-  );
 }
 
 function createZip(entries: Array<{ name: string; data: Uint8Array }>) {

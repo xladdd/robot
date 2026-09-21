@@ -58,9 +58,17 @@ type InputKind = "clean" | "manuscript" | "idml";
 type ReviewFilter = "all" | "ready" | "review";
 type SolutionFont = "Arial" | "Noto Sans" | "Times New Roman";
 
-export function SolutionsImporterMainInterface({ language }: { language: Language }) {
+export function SolutionsImporterMainInterface({
+  language,
+}: {
+  language: Language;
+}) {
   const t = solutionsImporterUi[language];
-  const [files, setFiles] = useState<Record<InputKind, File | null>>({ clean: null, manuscript: null, idml: null });
+  const [files, setFiles] = useState<Record<InputKind, File | null>>({
+    clean: null,
+    manuscript: null,
+    idml: null,
+  });
   const [manifest, setManifest] = useState<SolutionsManifest | null>(null);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<ReviewFilter>("all");
@@ -75,14 +83,20 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   const cleanInput = useRef<HTMLInputElement>(null);
   const manuscriptInput = useRef<HTMLInputElement>(null);
   const idmlInput = useRef<HTMLInputElement>(null);
-  const inputRefs = { clean: cleanInput, manuscript: manuscriptInput, idml: idmlInput };
+  const inputRefs = {
+    clean: cleanInput,
+    manuscript: manuscriptInput,
+    idml: idmlInput,
+  };
 
   const filteredPages = useMemo(() => {
     if (!manifest) return [];
     return manifest.pages
       .map((page) => ({
         ...page,
-        operations: page.operations.filter((operation) => filter === "all" || operation.status === filter),
+        operations: page.operations.filter(
+          (operation) => filter === "all" || operation.status === filter,
+        ),
       }))
       .filter((page) => page.operations.length > 0);
   }, [manifest, filter]);
@@ -140,21 +154,35 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
       addLog(`${t.idml}: ${files.idml.name}`);
       if (printersMarks) addLog(t.printersMarksLog);
       addLog("Extracting positioned text from the clean PDF…");
-      const cleanText = await extractPositionedPdfText(files.clean, (page, total) => {
-        setProgress(3 + Math.round((page / total) * 12));
-        addLog(`Clean PDF text: page ${page}/${total}`);
-      });
+      const cleanText = await extractPositionedPdfText(
+        files.clean,
+        (page, total) => {
+          setProgress(3 + Math.round((page / total) * 12));
+          addLog(`Clean PDF text: page ${page}/${total}`);
+        },
+      );
       addLog("Extracting positioned text from the manuscript PDF…");
-      const manuscriptText = await extractPositionedPdfText(files.manuscript, (page, total) => {
-        setProgress(15 + Math.round((page / total) * 12));
-        addLog(`Manuscript PDF text: page ${page}/${total}`);
-      });
+      const manuscriptText = await extractPositionedPdfText(
+        files.manuscript,
+        (page, total) => {
+          setProgress(15 + Math.round((page / total) * 12));
+          addLog(`Manuscript PDF text: page ${page}/${total}`);
+        },
+      );
       const json = await new Promise<string>(async (resolve, reject) => {
         const worker = new Worker("/solutions/pyodide-worker.js");
-        worker.onmessage = (event: MessageEvent<{ type: string; message?: string; progress?: number; json?: string }>) => {
+        worker.onmessage = (
+          event: MessageEvent<{
+            type: string;
+            message?: string;
+            progress?: number;
+            json?: string;
+          }>,
+        ) => {
           const message = event.data;
           if (message.type === "log" && message.message) {
-            if (typeof message.progress === "number") setProgress(message.progress);
+            if (typeof message.progress === "number")
+              setProgress(message.progress);
             addLog(message.message);
           } else if (message.type === "result" && message.json) {
             worker.terminate();
@@ -192,7 +220,15 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
       const parsed = JSON.parse(json) as SolutionsManifest;
       if (parsed.format !== "indesign-solutions-v2") throw new Error(t.failed);
       setManifest(parsed);
-      setExcluded(new Set(parsed.pages.flatMap((page) => page.operations.filter((operation) => operation.enabled === false).map((operation) => operation.id))));
+      setExcluded(
+        new Set(
+          parsed.pages.flatMap((page) =>
+            page.operations
+              .filter((operation) => operation.enabled === false)
+              .map((operation) => operation.id),
+          ),
+        ),
+      );
       setProgress(100);
       addLog(t.ready);
     } catch (problem) {
@@ -218,14 +254,25 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
     const output: SolutionsManifest = JSON.parse(JSON.stringify(manifest));
     output.settings = { font_family: solutionFont, point_size: solutionSize };
     for (const page of output.pages) {
-      for (const operation of page.operations) operation.enabled = !excluded.has(operation.id);
+      for (const operation of page.operations)
+        operation.enabled = !excluded.has(operation.id);
     }
-    const sourceName = (files.manuscript?.name || manifest.manuscript_pdf).replace(/\.[^.]+$/, "") || "chapter";
-    downloadText(`${JSON.stringify(output, null, 2)}\n`, `${sourceName}_Solutions.json`, "application/json");
+    const sourceName =
+      (files.manuscript?.name || manifest.manuscript_pdf).replace(
+        /\.[^.]+$/,
+        "",
+      ) || "chapter";
+    downloadText(
+      `${JSON.stringify(output, null, 2)}\n`,
+      `${sourceName}_Solutions.json`,
+      "application/json",
+    );
   }
 
   function downloadText(text: string, filename: string, type: string) {
-    const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
+    const url = URL.createObjectURL(
+      new Blob([text], { type: `${type};charset=utf-8` }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
@@ -244,41 +291,83 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
   }
 
   const hasAllFiles = Boolean(files.clean && files.manuscript && files.idml);
-  const solutionPreviewFont = solutionFont === "Times New Roman" ? solutionFont : "Arial";
+  const solutionPreviewFont =
+    solutionFont === "Times New Roman" ? solutionFont : "Arial";
   const analysisComplete = Boolean(manifest && !processing);
 
   return (
     <div className="solutions-module solutions-detail-module">
-      <ToolHeader className="solutions-header" code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"} title={t.heading} subtitle={t.subtitle} mode="local" language={language} />
+      <ToolHeader
+        className="solutions-header"
+        code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"}
+        title={t.heading}
+        mode="local"
+        language={language}
+      />
 
       <section className="solutions-generator">
-        <input ref={cleanInput} type="file" accept="application/pdf,.pdf" onChange={(event) => handleInput("clean", event)} hidden />
-        <input ref={manuscriptInput} type="file" accept="application/pdf,.pdf" onChange={(event) => handleInput("manuscript", event)} hidden />
-        <input ref={idmlInput} type="file" accept=".idml,application/octet-stream" onChange={(event) => handleInput("idml", event)} hidden />
+        <input
+          ref={cleanInput}
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={(event) => handleInput("clean", event)}
+          hidden
+        />
+        <input
+          ref={manuscriptInput}
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={(event) => handleInput("manuscript", event)}
+          hidden
+        />
+        <input
+          ref={idmlInput}
+          type="file"
+          accept=".idml,application/octet-stream"
+          onChange={(event) => handleInput("idml", event)}
+          hidden
+        />
         <div className="solutions-file-grid solutions-detail-files">
-          {(["clean", "manuscript", "idml"] as InputKind[]).map((kind, index) => (
-            <button
-              key={kind}
-              className={files[kind] ? "has-file" : ""}
-              onClick={() => inputRefs[kind].current?.click()}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => handleDrop(kind, event)}
-            >
-              <span>{String(index + 1).padStart(2, "0")} / {t[kind]}</span>
-              <strong>{files[kind]?.name || t.choose}</strong>
-              <b>{files[kind] ? "✓" : "+"}</b>
-            </button>
-          ))}
+          {(["clean", "manuscript", "idml"] as InputKind[]).map(
+            (kind, index) => (
+              <button
+                key={kind}
+                className={files[kind] ? "has-file" : ""}
+                onClick={() => inputRefs[kind].current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => handleDrop(kind, event)}
+              >
+                <span>
+                  {String(index + 1).padStart(2, "0")} / {t[kind]}
+                </span>
+                <strong>{files[kind]?.name || t.choose}</strong>
+                <b>{files[kind] ? "✓" : "+"}</b>
+              </button>
+            ),
+          )}
         </div>
         <div className="solutions-detail-options-row">
-          <section className="solutions-detail-type-settings" aria-label={t.solutionTypography}>
+          <section
+            className="solutions-detail-type-settings"
+            aria-label={t.solutionTypography}
+          >
             <div className="solutions-detail-type-intro">
               <i style={{ fontFamily: solutionPreviewFont }}>Aa</i>
-              <span><b>{t.solutionTypography}</b><small>{solutionFont} · {solutionSize} pt</small></span>
+              <span>
+                <b>{t.solutionTypography}</b>
+                <small>
+                  {solutionFont} · {solutionSize} pt
+                </small>
+              </span>
             </div>
             <label>
               <span>{t.solutionFont}</span>
-              <select value={solutionFont} onChange={(event) => setSolutionFont(event.target.value as SolutionFont)}>
+              <select
+                value={solutionFont}
+                onChange={(event) =>
+                  setSolutionFont(event.target.value as SolutionFont)
+                }
+              >
                 <option value="Arial">Arial</option>
                 <option value="Noto Sans">Noto Sans</option>
                 <option value="Times New Roman">Times New Roman</option>
@@ -286,7 +375,12 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
             </label>
             <label>
               <span>{t.solutionSize}</span>
-              <select value={solutionSize} onChange={(event) => setSolutionSize(Number(event.target.value) as 12 | 14)}>
+              <select
+                value={solutionSize}
+                onChange={(event) =>
+                  setSolutionSize(Number(event.target.value) as 12 | 14)
+                }
+              >
                 <option value={12}>12 pt</option>
                 <option value={14}>14 pt</option>
               </select>
@@ -301,26 +395,58 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
                 resetResult();
               }}
             />
-            <span><b>{t.printersMarks}</b><small>{t.printersMarksHelp}</small></span>
+            <span>
+              <b>{t.printersMarks}</b>
+              <small>{t.printersMarksHelp}</small>
+            </span>
           </label>
         </div>
-        {error && <p className="extraction-error" role="alert">{error}</p>}
-        <button className={`solutions-create${analysisComplete ? " is-complete" : ""}`} onClick={() => void analyse()} disabled={!hasAllFiles || processing}>
-          <span>{processing ? `${t.analysing} ${progress}%` : manifest ? t.analyseAgain : t.analyse}</span>
+        {error && (
+          <p className="extraction-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          className={`solutions-create${analysisComplete ? " is-complete" : ""}`}
+          onClick={() => void analyse()}
+          disabled={!hasAllFiles || processing}
+        >
+          <span>
+            {processing
+              ? `${t.analysing} ${progress}%`
+              : manifest
+                ? t.analyseAgain
+                : t.analyse}
+          </span>
           <b>{processing ? "…" : "→"}</b>
         </button>
         {(processing || log.length > 0) && (
-          <div className={`solutions-progress${analysisComplete ? " is-complete" : ""}`} aria-live="polite">
-            <div className="solutions-progress-head"><span>{t.processLog}</span><b>{progress}%</b></div>
-            <div className="solutions-progress-track"><i style={{ width: `${progress}%` }} /></div>
-            <div className="solutions-console">{log.map((line, index) => <code key={`${index}-${line}`}>{line}</code>)}</div>
+          <div
+            className={`solutions-progress${analysisComplete ? " is-complete" : ""}`}
+            aria-live="polite"
+          >
+            <div className="solutions-progress-head">
+              <span>{t.processLog}</span>
+              <b>{progress}%</b>
+            </div>
+            <div className="solutions-progress-track">
+              <i style={{ width: `${progress}%` }} />
+            </div>
+            <div className="solutions-console">
+              {log.map((line, index) => (
+                <code key={`${index}-${line}`}>{line}</code>
+              ))}
+            </div>
           </div>
         )}
         <p className="solutions-privacy">{t.privacy}</p>
       </section>
 
       {manifest && (
-        <section className="solutions-detail-review" aria-label={t.reviewHeading}>
+        <section
+          className="solutions-detail-review"
+          aria-label={t.reviewHeading}
+        >
           <div className="solutions-detail-review-head">
             <h2 className="solutions-detail-review-heading">
               <button
@@ -332,48 +458,118 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
               >
                 <span className="solutions-detail-review-title">
                   <span>{t.reviewKicker}</span>
-                  <span className="solutions-detail-review-name">{t.reviewHeading}</span>
+                  <span className="solutions-detail-review-name">
+                    {t.reviewHeading}
+                  </span>
                 </span>
                 <b aria-hidden="true">{reviewExpanded ? "−" : "+"}</b>
               </button>
             </h2>
-            <button type="button" className="solutions-detail-download" onClick={downloadManifest}>
-              <span>{t.downloadJson}</span><b>↓</b>
+            <button
+              type="button"
+              className="solutions-detail-download"
+              onClick={downloadManifest}
+            >
+              <span>{t.downloadJson}</span>
+              <b>↓</b>
             </button>
           </div>
           <dl className="solutions-detail-stats">
-            <div><dt>{t.pages}</dt><dd>{manifest.summary.pages}</dd></div>
-            <div><dt>{t.textOperations}</dt><dd>{manifest.summary.text}</dd></div>
-            <div><dt>{t.visualMarks}</dt><dd>{manifest.summary.crosses + manifest.summary.circles + manifest.summary.color_marks}</dd></div>
-            <div><dt>{t.idmlTables}</dt><dd>{manifest.summary.idml_tables}</dd></div>
-            <div><dt>{t.needsReview}</dt><dd>{manifest.summary.review}</dd></div>
-            <div><dt>{t.excluded}</dt><dd>{excluded.size}</dd></div>
+            <div>
+              <dt>{t.pages}</dt>
+              <dd>{manifest.summary.pages}</dd>
+            </div>
+            <div>
+              <dt>{t.textOperations}</dt>
+              <dd>{manifest.summary.text}</dd>
+            </div>
+            <div>
+              <dt>{t.visualMarks}</dt>
+              <dd>
+                {manifest.summary.crosses +
+                  manifest.summary.circles +
+                  manifest.summary.color_marks}
+              </dd>
+            </div>
+            <div>
+              <dt>{t.idmlTables}</dt>
+              <dd>{manifest.summary.idml_tables}</dd>
+            </div>
+            <div>
+              <dt>{t.needsReview}</dt>
+              <dd>{manifest.summary.review}</dd>
+            </div>
+            <div>
+              <dt>{t.excluded}</dt>
+              <dd>{excluded.size}</dd>
+            </div>
           </dl>
           {reviewExpanded && (
-            <div id="solutions-report-details" className="solutions-detail-review-body">
-              <div className="solutions-detail-filter" role="tablist" aria-label={t.reviewFilter}>
+            <div
+              id="solutions-report-details"
+              className="solutions-detail-review-body"
+            >
+              <div
+                className="solutions-detail-filter"
+                role="tablist"
+                aria-label={t.reviewFilter}
+              >
                 {(["all", "ready", "review"] as ReviewFilter[]).map((value) => (
-                  <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)} role="tab" aria-selected={filter === value}>{t.filters[value]}</button>
+                  <button
+                    key={value}
+                    className={filter === value ? "active" : ""}
+                    onClick={() => setFilter(value)}
+                    role="tab"
+                    aria-selected={filter === value}
+                  >
+                    {t.filters[value]}
+                  </button>
                 ))}
               </div>
               <div className="solutions-detail-pages">
                 {filteredPages.map((page) => {
-                  const reviewCount = page.operations.filter((operation) => operation.status === "review").length;
+                  const reviewCount = page.operations.filter(
+                    (operation) => operation.status === "review",
+                  ).length;
                   return (
                     <details key={page.page}>
                       <summary>
-                        <span>{t.pdfPage} {page.page}</span>
-                        <strong>{t.bookPage} {page.document_page}</strong>
-                        <small>{page.operations.length} {t.operations}{reviewCount ? ` · ${reviewCount} ${t.reviewShort}` : ""}</small>
+                        <span>
+                          {t.pdfPage} {page.page}
+                        </span>
+                        <strong>
+                          {t.bookPage} {page.document_page}
+                        </strong>
+                        <small>
+                          {page.operations.length} {t.operations}
+                          {reviewCount
+                            ? ` · ${reviewCount} ${t.reviewShort}`
+                            : ""}
+                        </small>
                         <i>+</i>
                       </summary>
                       <div className="solutions-detail-operation-list">
                         {page.operations.map((operation) => (
-                          <label key={operation.id} className={excluded.has(operation.id) ? "excluded" : ""}>
-                            <input type="checkbox" checked={!excluded.has(operation.id)} onChange={() => toggleOperation(operation.id)} />
-                            <span className={`solutions-detail-kind ${operation.status}`}>{operationTitle(operation)}</span>
+                          <label
+                            key={operation.id}
+                            className={
+                              excluded.has(operation.id) ? "excluded" : ""
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!excluded.has(operation.id)}
+                              onChange={() => toggleOperation(operation.id)}
+                            />
+                            <span
+                              className={`solutions-detail-kind ${operation.status}`}
+                            >
+                              {operationTitle(operation)}
+                            </span>
                             <strong>{operationDetail(operation)}</strong>
-                            <small>{Math.round(operation.confidence * 100)}%</small>
+                            <small>
+                              {Math.round(operation.confidence * 100)}%
+                            </small>
                           </label>
                         ))}
                       </div>
@@ -389,38 +585,71 @@ export function SolutionsImporterMainInterface({ language }: { language: Languag
 
       <details className="solutions-guide">
         <summary>
-          <span>{language === "cs" ? "Návod k instalaci a použití" : "Installation and usage guide"}</span>
+          <span>
+            {language === "cs"
+              ? "Návod k instalaci a použití"
+              : "Installation and usage guide"}
+          </span>
           <b aria-hidden="true">＋</b>
         </summary>
         <div className="solutions-content">
-        <aside className="solutions-summary">
-          <span>{t.download}</span>
-          <div className="solutions-downloads">
-            <a href="/solutions/import_solutions.jsx" download>
-              <b>JSX</b><span><strong>{t.importer}</strong><small>import_solutions.jsx</small></span><i>↓</i>
-            </a>
-          </div>
-          <p className="solutions-script-help">{t.scriptChoice}</p>
-          <span>{t.need}</span>
-          <ul>{t.needs.map((item) => <li key={item}>{item}</li>)}</ul>
-          <div className="solutions-note"><b>{t.warningTitle}</b><br />{t.warning}</div>
-        </aside>
+          <aside className="solutions-summary">
+            <span>{t.download}</span>
+            <div className="solutions-downloads">
+              <a href="/solutions/import_solutions.jsx" download>
+                <b>JSX</b>
+                <span>
+                  <strong>{t.importer}</strong>
+                  <small>import_solutions.jsx</small>
+                </span>
+                <i>↓</i>
+              </a>
+            </div>
+            <p className="solutions-script-help">{t.scriptChoice}</p>
+            <span>{t.need}</span>
+            <ul>
+              {t.needs.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <div className="solutions-note">
+              <b>{t.warningTitle}</b>
+              <br />
+              {t.warning}
+            </div>
+          </aside>
 
-        <div className="solutions-steps">
-          {t.steps.map(([title, body], index) => (
-            <section className="solution-step" key={title}>
-              <span className="step-number">{String(index + 1).padStart(2, "0")}</span>
-              <div>
-                <h2>{title}</h2><p>{body}</p>
-                {index === t.steps.length - 1 && <ul className="check-list">{t.checks.map((item) => <li key={item}>{item}</li>)}</ul>}
-              </div>
+          <div className="solutions-steps">
+            {t.steps.map(([title, body], index) => (
+              <section className="solution-step" key={title}>
+                <span className="step-number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <h2>{title}</h2>
+                  <p>{body}</p>
+                  {index === t.steps.length - 1 && (
+                    <ul className="check-list">
+                      {t.checks.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
+            ))}
+            <section className="solutions-troubleshooting">
+              <h2>{t.trouble}</h2>
+              <dl>
+                {t.troubles.map(([title, body]) => (
+                  <div key={title}>
+                    <dt>{title}</dt>
+                    <dd>{body}</dd>
+                  </div>
+                ))}
+              </dl>
             </section>
-          ))}
-          <section className="solutions-troubleshooting">
-            <h2>{t.trouble}</h2>
-            <dl>{t.troubles.map(([title, body]) => <div key={title}><dt>{title}</dt><dd>{body}</dd></div>)}</dl>
-          </section>
-        </div>
+          </div>
         </div>
       </details>
     </div>

@@ -44,9 +44,9 @@ type PromptResponseFormat = {
   };
 };
 
-const systemPrompt = loadPrompt("design/prompt-extractor/prompts/system.md");
+const systemPrompt = loadPrompt("text/prompt-extractor/prompts/system.md");
 const verificationPrompt = loadPrompt(
-  "design/prompt-extractor/prompts/verify.md",
+  "text/prompt-extractor/prompts/verify.md",
 );
 
 const responseFormat: PromptResponseFormat = {

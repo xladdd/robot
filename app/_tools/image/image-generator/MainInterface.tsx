@@ -413,9 +413,11 @@ export function ImageGeneratorMainInterface({
         className={`cover-stage ${!jobs.length && !isGenerating ? "initial" : ""}`}
       >
         <header className="cover-stage-head">
-          <ToolMeta code={t.code} mode="ai" language={language} />
-          <div className="cover-title-row">
-            <h1>{t.heading}</h1>
+          <div className="tool-header-copy">
+            <ToolMeta code={t.code} mode="ai" language={language} />
+            <div className="cover-title-row">
+              <h1>{t.heading}</h1>
+            </div>
           </div>
         </header>
         <div

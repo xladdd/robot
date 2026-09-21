@@ -1,1 +1,1 @@
-export { POST } from "../../_tools/design/prompt-extractor/code/server";
+export { POST } from "../../_tools/text/prompt-extractor/code/server";

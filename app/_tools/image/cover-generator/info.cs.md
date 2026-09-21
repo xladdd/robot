@@ -1,17 +1,13 @@
 ### Co to je?
 
-Generátor obálek vytváří nové obrazové podklady obálek učebnic podle dvou nebo tří existujících obálek, které určují vzhled řady.
+Generátor obálek je levný nástroj pro zkoušení odlišných obrazových směrů obálek učebnic bez textu.
 
-Zvolte styl a kvalitu generování, popište nový námět a vytvořte dva nebo čtyři koncepty. Koncept, pro který hlasujete, se v další sadě použije jako dodatečná směrová reference; nechtěné koncepty můžete smazat.
+Zvolte cílovou skupinu a předmět a případně přidejte několik klíčových slov s tématem nebo stylem. Nemusíte psát podrobné výtvarné zadání: malý plánovací model s podporou obrazu převede stručné vstupy na několik různých vizuálních konceptů. Referenční obálky jsou volitelné a určují obecný charakter pro cílovou skupinu, paletu, dokončení a energii, ale nekopírují se jako rozvržení.
 
-Volba Ignorovat text v referenčních obrázcích odešle modelu výřezy zaměřené na obrazovou část, aby se méně kopírovaly názvy knih, označení ročníků a loga nakladatele. To může pomoci vytvořit čistší obrazovou část obálky.
+Výstupem je pouze obrazový motiv. Nežádejte názvy, označení ročníků, loga, popisky, odznaky ani další typografii; tyto prvky se doplní později v InDesignu. Tlačítko `?` nad klíčovými slovy vysvětluje, jak napsat krátký a účinný vstup.
 
-Volitelná rešerše Shutterstock přijímá na každém řádku jeden vyhledávací dotaz nebo přímý odkaz Shutterstock. Náhledy jsou opatřené vodoznakem a bez licence; každý použitý zdroj je nutné před publikováním licencovat.
-
-Po výběru konceptu automatické vytváření podkladů rozpozná hlavní objekty, nově vytvoří hlavní obálku ve 2K a každý rozpoznaný objekt vygeneruje jako samostatný izolovaný 2K podklad. Jde o nové výstupy AI, nikoli o přesně vytažené vrstvy z původních pixelů.
-
-ZIP obsahuje koncepty, hlavní obálku ve 2K, samostatné podklady, metadata projektu a report v Markdownu s modelem, seedem, cenou a odkazy Shutterstock pro každou úlohu.
+K dispozici jsou dva levné obrazové modely: výchozí FLUX.2 Klein v rozlišení 512 px a alternativní Gemini Flash Lite v rozlišení 1K s odlišným vizuálním stylem. Plánovač používá `mistralai/mistral-small-2603`, rozumí českému i anglickému textu a umí prohlédnout volitelné referenční obrázky. Tento nástroj vytváří pouze nápady; oddělení vrstev zajišťuje Layer Splitter.
 
 ### Jak to funguje?
 
-Referenční obrázky a zadání procházejí chráněnou serverovou cestou. Rychlé koncepty používají FLUX.2 Klein 4B v rozlišení 512 px, kvalitnější koncepty FLUX.2 Pro v 1K. Automatické rozpoznání objektů používá Mistral Small 2603; hlavní obálku a izolované podklady ve 2K vytváří FLUX.2 Pro. Neúspěšný koncept se jednou zkusí nahradit a úspěšné výsledky souběžných úloh zůstanou zachované. Cena a identifikátory generování z OpenRouteru se ukládají do reportu v ZIP.
+Cílová skupina, předmět, volitelná klíčová slova, výřezy referenčních obálek zaměřené na obraz a případný oblíbený předchozí koncept nejdříve projdou chráněným plánovačem. Ten shrne reference jako obecné stylové vodítko a vrátí přesně dva nebo čtyři strukturálně odlišné plány. Obrazový model pak dostane pro každý obrázek jiný plán a ve výchozím nastavení nedostává surové reference, takže se z referenční obálky nestane opakovaná předloha. FLUX používá pro každý výsledek nezávislý náhodný seed; Gemini nastavení seedu neposkytuje. Neúspěšné obrazové úlohy se jednou zkusí nahradit a cena i identifikátory plánovače a obrazového generování jsou součástí reportu v ZIP.

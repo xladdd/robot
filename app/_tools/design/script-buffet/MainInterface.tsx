@@ -12,50 +12,73 @@ const scripts = [
   {
     id: "make-silhouette-fill",
     name: "Make Silhouette Fill",
-    description: "Creates a filled silhouette from selected vector page items while preserving the originals.",
-    descriptionCs: "Vytvoří vyplněnou siluetu z vybraných vektorových objektů a zachová originály.",
+    description:
+      "Creates a filled silhouette from selected vector page items while preserving the originals.",
+    descriptionCs:
+      "Vytvoří vyplněnou siluetu z vybraných vektorových objektů a zachová originály.",
     apps: ["indesign"] as AdobeApp[],
     href: "/script-buffet/Make Silhouette Fill.jsx",
   },
   {
     id: "opacity-set",
     name: "Opacity Set",
-    description: "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
-    descriptionCs: "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
+    description:
+      "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
+    descriptionCs:
+      "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
     apps: ["indesign"] as AdobeApp[],
     href: "/script-buffet/Opacity Set.jsx",
   },
   {
     id: "split-text-frames-characters",
     name: "Split Text Frames into Characters",
-    description: "Splits selected text frames into individually positioned character frames in one undoable action.",
-    descriptionCs: "Rozdělí vybrané textové rámečky na samostatně umístěné rámečky znaků v jednom vratném kroku.",
+    description:
+      "Splits selected text frames into individually positioned character frames in one undoable action.",
+    descriptionCs:
+      "Rozdělí vybrané textové rámečky na samostatně umístěné rámečky znaků v jednom vratném kroku.",
     apps: ["indesign"] as AdobeApp[],
     href: "/script-buffet/Split Text Frames into Characters.jsx",
   },
 ] as const;
 
 const appNames: Record<Language, Record<AdobeApp, string>> = {
-  en: { indesign: "InDesign", illustrator: "Illustrator", photoshop: "Photoshop" },
-  cs: { indesign: "InDesign", illustrator: "Illustrator", photoshop: "Photoshop" },
+  en: {
+    indesign: "InDesign",
+    illustrator: "Illustrator",
+    photoshop: "Photoshop",
+  },
+  cs: {
+    indesign: "InDesign",
+    illustrator: "Illustrator",
+    photoshop: "Photoshop",
+  },
 };
 
 const installPaths: Record<AdobeApp, Record<Platform, string>> = {
   indesign: {
-    macos: "~/Library/Preferences/Adobe InDesign/Version [version]/[language]/Scripts/Scripts Panel",
-    windows: "%APPDATA%\\Adobe\\InDesign\\Version [version]\\[language]\\Scripts\\Scripts Panel",
+    macos:
+      "~/Library/Preferences/Adobe InDesign/Version [version]/[language]/Scripts/Scripts Panel",
+    windows:
+      "%APPDATA%\\Adobe\\InDesign\\Version [version]\\[language]\\Scripts\\Scripts Panel",
   },
   illustrator: {
-    macos: "/Applications/Adobe Illustrator [version]/Presets/[language]/Scripts",
-    windows: "C:\\Program Files\\Adobe\\Adobe Illustrator [version]\\Presets\\[language]\\Scripts",
+    macos:
+      "/Applications/Adobe Illustrator [version]/Presets/[language]/Scripts",
+    windows:
+      "C:\\Program Files\\Adobe\\Adobe Illustrator [version]\\Presets\\[language]\\Scripts",
   },
   photoshop: {
     macos: "/Applications/Adobe Photoshop [version]/Presets/Scripts",
-    windows: "C:\\Program Files\\Adobe\\Adobe Photoshop [version]\\Presets\\Scripts",
+    windows:
+      "C:\\Program Files\\Adobe\\Adobe Photoshop [version]\\Presets\\Scripts",
   },
 };
 
-export function ScriptBuffetMainInterface({ language }: { language: Language }) {
+export function ScriptBuffetMainInterface({
+  language,
+}: {
+  language: Language;
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [installApp, setInstallApp] = useState<AdobeApp>("indesign");
@@ -66,7 +89,9 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
   useEffect(() => {
     const next: Record<string, number> = {};
     for (const script of scripts) {
-      next[script.id] = Number(window.localStorage.getItem(`script-buffet:${script.id}`) || 0);
+      next[script.id] = Number(
+        window.localStorage.getItem(`script-buffet:${script.id}`) || 0,
+      );
     }
     setCounts(next);
   }, []);
@@ -80,47 +105,105 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
   }
 
   async function copyInstallPath() {
-    await navigator.clipboard.writeText(installPaths[installApp][installPlatform]);
+    await navigator.clipboard.writeText(
+      installPaths[installApp][installPlatform],
+    );
     setCopiedInstallPath(true);
     window.setTimeout(() => setCopiedInstallPath(false), 1800);
   }
 
-  const visible = scripts.filter((script) => filter === "all" || script.apps.includes(filter));
+  const visible = scripts.filter(
+    (script) => filter === "all" || script.apps.includes(filter),
+  );
   const filters: Filter[] = ["all", "indesign", "illustrator", "photoshop"];
 
   return (
     <div className="buffet-module">
       <header className="buffet-header">
         <div>
-          <ToolMeta code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"} mode="local" language={language} />
+          <ToolMeta
+            code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"}
+            mode="local"
+            language={language}
+          />
           <h1>Script Buffet</h1>
-          <p>{cs ? "Užitečné produkční skripty pro aplikace Adobe na jednom místě." : "Useful production scripts for Adobe applications, kept in one place."}</p>
         </div>
       </header>
 
       <details className="buffet-installation">
-        <summary><span>{cs ? "Kam skripty nainstalovat" : "Where to install scripts"}</span><i>+</i></summary>
+        <summary>
+          <span>
+            {cs ? "Kam skripty nainstalovat" : "Where to install scripts"}
+          </span>
+          <i>+</i>
+        </summary>
         <div className="buffet-install-picker">
-          <div className="buffet-install-row" aria-label={cs ? "Aplikace Adobe" : "Adobe application"}>
-            {(["indesign", "illustrator", "photoshop"] as AdobeApp[]).map((app) => (
-              <button className={`${app} ${installApp === app ? "active" : ""}`} type="button" key={app} onClick={() => { setInstallApp(app); setCopiedInstallPath(false); }}>{appNames[language][app]}</button>
-            ))}
+          <div
+            className="buffet-install-row"
+            aria-label={cs ? "Aplikace Adobe" : "Adobe application"}
+          >
+            {(["indesign", "illustrator", "photoshop"] as AdobeApp[]).map(
+              (app) => (
+                <button
+                  className={`${app} ${installApp === app ? "active" : ""}`}
+                  type="button"
+                  key={app}
+                  onClick={() => {
+                    setInstallApp(app);
+                    setCopiedInstallPath(false);
+                  }}
+                >
+                  {appNames[language][app]}
+                </button>
+              ),
+            )}
           </div>
-          <div className="buffet-install-row platforms" aria-label={cs ? "Operační systém" : "Operating system"}>
+          <div
+            className="buffet-install-row platforms"
+            aria-label={cs ? "Operační systém" : "Operating system"}
+          >
             {(["macos", "windows"] as Platform[]).map((platform) => (
-              <button className={installPlatform === platform ? "active" : ""} type="button" key={platform} onClick={() => { setInstallPlatform(platform); setCopiedInstallPath(false); }}>{platform === "macos" ? "macOS" : "Windows"}</button>
+              <button
+                className={installPlatform === platform ? "active" : ""}
+                type="button"
+                key={platform}
+                onClick={() => {
+                  setInstallPlatform(platform);
+                  setCopiedInstallPath(false);
+                }}
+              >
+                {platform === "macos" ? "macOS" : "Windows"}
+              </button>
             ))}
           </div>
           <div className="buffet-install-path">
             <code>{installPaths[installApp][installPlatform]}</code>
-            <button type="button" onClick={() => void copyInstallPath()}><span>{copiedInstallPath ? (cs ? "Zkopírováno" : "Copied") : (cs ? "Kopírovat cestu" : "Copy path")}</span><b>{copiedInstallPath ? "✓" : "▣"}</b></button>
+            <button type="button" onClick={() => void copyInstallPath()}>
+              <span>
+                {copiedInstallPath
+                  ? cs
+                    ? "Zkopírováno"
+                    : "Copied"
+                  : cs
+                    ? "Kopírovat cestu"
+                    : "Copy path"}
+              </span>
+              <b>{copiedInstallPath ? "✓" : "▣"}</b>
+            </button>
           </div>
         </div>
       </details>
 
-      <nav className="buffet-filters" aria-label={cs ? "Filtrovat podle aplikace" : "Filter by application"}>
+      <nav
+        className="buffet-filters"
+        aria-label={cs ? "Filtrovat podle aplikace" : "Filter by application"}
+      >
         {filters.map((value) => (
-          <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>
+          <button
+            key={value}
+            className={filter === value ? "active" : ""}
+            onClick={() => setFilter(value)}
+          >
             {value === "all" ? (cs ? "Vše" : "All") : appNames[language][value]}
           </button>
         ))}
@@ -129,16 +212,42 @@ export function ScriptBuffetMainInterface({ language }: { language: Language }) 
       <section className="buffet-grid" aria-live="polite">
         {visible.map((script) => (
           <article className="buffet-card" key={script.id}>
-            <img src="/script-buffet/preview-placeholder.svg" alt={cs ? `Dočasná ukázka skriptu ${script.name}` : `${script.name} placeholder preview`} />
+            <img
+              src="/script-buffet/preview-placeholder.svg"
+              alt={
+                cs
+                  ? `Dočasná ukázka skriptu ${script.name}`
+                  : `${script.name} placeholder preview`
+              }
+            />
             <div className="buffet-card-body">
-              <div className="buffet-tags">{script.apps.map((app) => <span className={app} key={app}>{appNames[language][app]}</span>)}</div>
+              <div className="buffet-tags">
+                {script.apps.map((app) => (
+                  <span className={app} key={app}>
+                    {appNames[language][app]}
+                  </span>
+                ))}
+              </div>
               <h2>{script.name}</h2>
               <p>{cs ? script.descriptionCs : script.description}</p>
               <footer>
-                <a href={script.href} download onClick={() => recordDownload(script.id)}>
-                  <span>{cs ? "Stáhnout" : "Download"}</span><b aria-hidden="true">↓</b>
+                <a
+                  href={script.href}
+                  download
+                  onClick={() => recordDownload(script.id)}
+                >
+                  <span>{cs ? "Stáhnout" : "Download"}</span>
+                  <b aria-hidden="true">↓</b>
                 </a>
-                <small title={cs ? "Stažení v tomto prohlížeči" : "Downloads in this browser"}>↓ {counts[script.id] || 0}</small>
+                <small
+                  title={
+                    cs
+                      ? "Stažení v tomto prohlížeči"
+                      : "Downloads in this browser"
+                  }
+                >
+                  ↓ {counts[script.id] || 0}
+                </small>
               </footer>
             </div>
           </article>

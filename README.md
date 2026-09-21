@@ -12,6 +12,10 @@ Reads text from a pasted image, PNG/JPEG, or short PDF. The result can be correc
 
 Reads a live-text textbook PDF locally, finds requested terms and their language forms, and prepares a tab-separated index with printed page numbers. [English info drawer](app/_tools/text/index-creator/info.en.md)
 
+### Prompt Extractor
+
+Looks through a manuscript PDF and prepares simple and complex illustration prompts for meaningful visual content. [English info drawer](app/_tools/text/prompt-extractor/info.en.md)
+
 ## Image
 
 ### Map Generator
@@ -32,7 +36,11 @@ Creates up to 15 square images from prompts queued in order, with a choice of on
 
 ### Cover Generator
 
-Creates new textbook cover directions from reference covers and a brief. A selected direction can be recreated as a 2K master with separate generated assets. [English info drawer](app/_tools/image/cover-generator/info.en.md)
+Creates low-cost, text-free textbook cover-art directions from an audience, subject, optional keywords, and optional reference covers. A small vision-capable planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
+
+### Layer Splitter
+
+Reconstructs one supplied image as editable Photoshop layers. OpenRouter analyses the scene and generates a complete text-free background plus complete foreground objects with plausible hidden portions; the PSD is assembled and keyed locally. [English info drawer](app/_tools/image/layer-splitter/info.en.md)
 
 ## Design
 
@@ -55,10 +63,6 @@ Collects useful InDesign, Illustrator, and Photoshop scripts as filterable downl
 ### Barcode Generator
 
 Checks ISBN-10 or ISBN-13 and creates a print-ready vector EAN-13 PDF locally. [English info drawer](app/_tools/design/barcode-generator/info.en.md)
-
-### Prompt Extractor
-
-Looks through a manuscript PDF and prepares simple and complex illustration prompts for meaningful visual content. [English info drawer](app/_tools/design/prompt-extractor/info.en.md)
 
 ### Typesetter
 
@@ -129,11 +133,11 @@ Create the app keys automatically:
 npm run openrouter:provision
 ```
 
-The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their nine inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
+The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their ten inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
 
 Only add the generated per-app inference variables to production deployment secrets. Do not deploy `OPENROUTER_MANAGEMENT_API_KEY`; it is deliberately kept in the nonstandard local file so the Next.js runtime does not load it.
 
-`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all nine per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
+`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all ten per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
 
 Stable instructions sent to OpenRouter live as readable Markdown in each app's `prompts/` folder. TypeScript adds only current user data and other values that change per request.
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ToolMeta } from "../../../_components/ToolChrome";
+import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
@@ -447,7 +447,7 @@ export function CoverSplitterMainInterface({
   const uploadDisabled = isPreparing || isProcessing;
 
   return (
-    <div className={`cover-splitter-module ${hasFiles ? "has-files" : ""}`}>
+    <div className="cover-splitter-module has-files">
       <input
         ref={inputRef}
         type="file"
@@ -457,135 +457,105 @@ export function CoverSplitterMainInterface({
         hidden
       />
 
-      {!hasFiles && (
-      <div className="cover-splitter-head">
-          <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" language={language} />
-          <h1>{t.heading}</h1>
+      <main className="cover-splitter-workbench">
+        <aside
+          className="cover-splitter-controls editor-sidebar"
+          aria-label={t.controls}
+        >
           <button
             type="button"
-            className="start-button upload-button"
+            className="start-button upload-button cover-splitter-add"
             onClick={() => inputRef.current?.click()}
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleDrop}
             disabled={uploadDisabled}
-            aria-label={t.upload}
           >
-            <span>{t.upload}</span>
+            <span>{hasFiles ? t.addMore : t.upload}</span>
             <b aria-hidden="true">＋</b>
           </button>
+
           {isPreparing && (
-            <p role="status" aria-live="polite">
+            <p className="cover-splitter-preparing" role="status">
               {t.preparingPreviews}
             </p>
           )}
+
+          <div className="cover-splitter-inside-option">
+            <label>
+              <input
+                type="checkbox"
+                checked={includeInside}
+                onChange={(event) => {
+                  setIncludeInside(event.target.checked);
+                  resetGeneratedResult();
+                }}
+                disabled={isProcessing}
+              />
+              <span>{t.splitInside}</span>
+            </label>
+            <p>{t.firstPageOnly}</p>
+            <small>{t.insideMapping}</small>
+          </div>
+
+          <section className="cover-splitter-file-controls">
+            <span>{t.files}</span>
+            {files.map((entry) => (
+              <div key={entry.id}>
+                <p>
+                  <b>{entry.file.name}</b>
+                  <small>
+                    {entry.sizeChoice === "half"
+                      ? t.splitInHalf
+                      : entry.sizeChoice}
+                  </small>
+                </p>
+              </div>
+            ))}
+          </section>
+
           {error && (
             <p className="extraction-error" role="alert">
               {error}
             </p>
           )}
-        </div>
-      )}
 
-      {hasFiles && (
-        <main className="cover-splitter-workbench">
-          <aside className="cover-splitter-controls editor-sidebar" aria-label={t.controls}>
+          <button
+            type="button"
+            className="solutions-create cover-splitter-run"
+            onClick={() => void splitCovers()}
+            disabled={!hasFiles || isProcessing || isPreparing}
+          >
+            <span>{isProcessing ? t.splitting : t.split}</span>
+            <b aria-hidden="true">→</b>
+          </button>
+
+          {result && (
             <button
               type="button"
-              className="start-button upload-button cover-splitter-add"
-              onClick={() => inputRef.current?.click()}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={handleDrop}
-              disabled={uploadDisabled}
+              className="solutions-create is-complete cover-splitter-download"
+              onClick={downloadResult}
+              aria-label={t.downloadLabel}
             >
-              <span>{t.addMore}</span>
-              <b aria-hidden="true">＋</b>
+              <span>{t.download}</span>
+              <b aria-hidden="true">↓</b>
             </button>
+          )}
 
-            {isPreparing && (
-              <p className="cover-splitter-preparing" role="status">
-                {t.preparingPreviews}
-              </p>
-            )}
+          <p className="solutions-privacy">{t.localProcessing}</p>
 
-            <div className="cover-splitter-inside-option">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={includeInside}
-                  onChange={(event) => {
-                    setIncludeInside(event.target.checked);
-                    resetGeneratedResult();
-                  }}
-                  disabled={isProcessing}
-                />
-                <span>{t.splitInside}</span>
-              </label>
-              <p>{t.firstPageOnly}</p>
-              <small>{t.insideMapping}</small>
-            </div>
-
-            <section className="cover-splitter-file-controls">
-              <span>{t.files}</span>
-              {files.map((entry) => (
-                <div key={entry.id}>
-                  <p>
-                    <b>{entry.file.name}</b>
-                    <small>
-                      {entry.sizeChoice === "half"
-                        ? t.splitInHalf
-                        : entry.sizeChoice}
-                    </small>
-                  </p>
-                </div>
-              ))}
-            </section>
-
-            {error && (
-              <p className="extraction-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <button
-              type="button"
-              className="solutions-create cover-splitter-run"
-              onClick={() => void splitCovers()}
-              disabled={isProcessing || isPreparing}
-            >
-              <span>{isProcessing ? t.splitting : t.split}</span>
-              <b aria-hidden="true">→</b>
-            </button>
-
-            {result && (
-              <button
-                type="button"
-                className="solutions-create is-complete cover-splitter-download"
-                onClick={downloadResult}
-                aria-label={t.downloadLabel}
-              >
-                <span>{t.download}</span>
-                <b aria-hidden="true">↓</b>
-              </button>
-            )}
-
-            <p className="solutions-privacy">{t.localProcessing}</p>
-
+          {consoleLines.length > 0 && (
             <section className="cover-splitter-console" aria-label={t.console}>
               <header>
                 <span>{t.console}</span>
                 <b>{progress}%</b>
               </header>
               <div aria-live="polite">
-                {consoleLines.length > 0 ? (
-                  consoleLines.map((line, index) => (
-                    <p key={`${line}-${index}`}>
-                      <i aria-hidden="true">›</i>
-                      {line}
-                    </p>
-                  ))
-                ) : (
-                  <p className="is-idle">{t.consoleIdle}</p>
-                )}
+                {consoleLines.map((line, index) => (
+                  <p key={`${line}-${index}`}>
+                    <i aria-hidden="true">›</i>
+                    {line}
+                  </p>
+                ))}
               </div>
               <div
                 className="cover-splitter-progress"
@@ -599,73 +569,88 @@ export function CoverSplitterMainInterface({
                 <i style={{ width: `${progress}%` }} />
               </div>
             </section>
-          </aside>
+          )}
+        </aside>
 
-          <section className="cover-splitter-preview-column">
-            <header className="cover-stage-head cover-splitter-active-head">
-              <ToolMeta code={`${section ? `${section} / ` : ""}${t.moduleCode}`} mode="local" language={language} />
+        <section className="cover-splitter-preview-column">
+          <header className="cover-stage-head cover-splitter-active-head">
+            <div className="tool-header-copy">
+              <ToolMeta
+                code={`${section ? `${section} / ` : ""}${t.moduleCode}`}
+                mode="local"
+                language={language}
+              />
               <div className="cover-title-row">
                 <h1>{t.heading}</h1>
               </div>
-            </header>
-
-            <div className="cover-splitter-grid">
-              {files.map((entry) => (
-                <article key={entry.id} className="cover-splitter-card">
-                  <div className="cover-splitter-preview">
-                    <Image
-                      src={entry.previewUrl}
-                      alt={t.previewAlt(entry.file.name)}
-                      width={Math.max(1, Math.round(entry.widthPoints))}
-                      height={Math.max(1, Math.round(entry.heightPoints))}
-                      className="cover-splitter-preview-image"
-                      unoptimized
-                    />
-                  </div>
-                  <h2>{entry.file.name}</h2>
-                  <p
-                    className="cover-splitter-details"
-                    title={`${entry.widthPoints.toFixed(2)} × ${entry.heightPoints.toFixed(2)} pt`}
-                  >
-                    {formatFileSize(entry.file.size, language)} ·{" "}
-                    {formatDimensions(
-                      entry.widthPoints,
-                      entry.heightPoints,
-                      language,
-                    )}
-                  </p>
-                  <button
-                    type="button"
-                    className="cover-splitter-remove"
-                    onClick={() => removeFile(entry)}
-                    disabled={uploadDisabled}
-                    aria-label={t.removeFile(entry.file.name)}
-                  >
-                    {t.remove}
-                  </button>
-                  <select
-                    value={entry.sizeChoice}
-                    onChange={(event) =>
-                      updateSize(
-                        entry.id,
-                        event.target.value as CoverSizeChoice,
-                      )
-                    }
-                    disabled={isProcessing}
-                    aria-label={`${t.sizeLabel}: ${entry.file.name}`}
-                    className="cover-splitter-size"
-                  >
-                    <option value="A5">A5</option>
-                    <option value="A4">A4</option>
-                    <option value="B5">B5</option>
-                    <option value="half">{t.splitInHalf}</option>
-                  </select>
-                </article>
-              ))}
             </div>
-          </section>
-        </main>
-      )}
+          </header>
+
+          <div className="cover-splitter-grid">
+            {files.length === 0 && (
+              <button
+                type="button"
+                className="cover-splitter-empty"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleDrop}
+                disabled={uploadDisabled}
+              >
+                <EmptyViewportState>{t.upload}</EmptyViewportState>
+              </button>
+            )}
+            {files.map((entry) => (
+              <article key={entry.id} className="cover-splitter-card">
+                <div className="cover-splitter-preview">
+                  <Image
+                    src={entry.previewUrl}
+                    alt={t.previewAlt(entry.file.name)}
+                    width={Math.max(1, Math.round(entry.widthPoints))}
+                    height={Math.max(1, Math.round(entry.heightPoints))}
+                    className="cover-splitter-preview-image"
+                    unoptimized
+                  />
+                </div>
+                <h2>{entry.file.name}</h2>
+                <p
+                  className="cover-splitter-details"
+                  title={`${entry.widthPoints.toFixed(2)} × ${entry.heightPoints.toFixed(2)} pt`}
+                >
+                  {formatFileSize(entry.file.size, language)} ·{" "}
+                  {formatDimensions(
+                    entry.widthPoints,
+                    entry.heightPoints,
+                    language,
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className="cover-splitter-remove"
+                  onClick={() => removeFile(entry)}
+                  disabled={uploadDisabled}
+                  aria-label={t.removeFile(entry.file.name)}
+                >
+                  {t.remove}
+                </button>
+                <select
+                  value={entry.sizeChoice}
+                  onChange={(event) =>
+                    updateSize(entry.id, event.target.value as CoverSizeChoice)
+                  }
+                  disabled={isProcessing}
+                  aria-label={`${t.sizeLabel}: ${entry.file.name}`}
+                  className="cover-splitter-size"
+                >
+                  <option value="A5">A5</option>
+                  <option value="A4">A4</option>
+                  <option value="B5">B5</option>
+                  <option value="half">{t.splitInHalf}</option>
+                </select>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

@@ -133,5 +133,5 @@ console.log(
   `Provisioning complete: ${created} created, ${retained} already configured.`,
 );
 console.log(
-  "Only copy the nine OPENROUTER_*_API_KEY values from .env.local into your production deployment secrets. Do not deploy OPENROUTER_MANAGEMENT_API_KEY.",
+  "Only copy the ten OPENROUTER_*_API_KEY values from .env.local into your production deployment secrets. Do not deploy OPENROUTER_MANAGEMENT_API_KEY.",
 );

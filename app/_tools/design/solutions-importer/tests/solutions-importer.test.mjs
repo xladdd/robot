@@ -206,7 +206,7 @@ test("keeps the completed Solutions report compact by default", async () => {
 
   assert.match(
     component,
-    /solutionPreviewFont = solutionFont === "Times New Roman" \? solutionFont : "Arial"/,
+    /solutionPreviewFont\s*=\s*solutionFont === "Times New Roman" \? solutionFont : "Arial"/,
   );
   assert.match(component, /`\$\{sourceName\}_Solutions\.json`/);
   assert.match(

@@ -117,7 +117,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
       "utf8",
     ),
     readFile(
-      new URL("app/_tools/design/prompt-extractor/MainInterface.tsx", root),
+      new URL("app/_tools/text/prompt-extractor/MainInterface.tsx", root),
       "utf8",
     ),
     readFile(
@@ -173,9 +173,66 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
   assert.match(imageGenerator, /image-generator-module/);
   assert.match(imageGenerator, /if \(!active\) return null/);
   assert.doesNotMatch(imageGenerator, /hidden=\{!active\}/);
-  assert.match(graphGenerator, /figure-module/);
-  assert.match(diagramGenerator, /figure-module/);
+  assert.match(
+    graphGenerator,
+    /cover-module visual-single-module graph-module/,
+  );
+  assert.match(
+    diagramGenerator,
+    /cover-module visual-single-module diagram-module/,
+  );
   assert.match(mapGenerator, /map-module/);
+});
+
+test("opens text document tools directly in their main workspaces", async () => {
+  const [registry, textExtractor, indexCreator, promptExtractor] =
+    await Promise.all([
+      readFile(new URL("app/_tools/registry.ts", root), "utf8"),
+      readFile(
+        new URL("app/_tools/text/text-extractor/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/text/index-creator/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/text/prompt-extractor/MainInterface.tsx", root),
+        "utf8",
+      ),
+    ]);
+
+  assert.match(
+    registry,
+    /id: "prompt",\s+category: "text",\s+folder: "text\/prompt-extractor"/,
+  );
+  assert.match(textExtractor, /className="extraction-module has-source"/);
+  assert.match(textExtractor, /document-active-head document-app-head/);
+  assert.match(indexCreator, /document-active-head document-app-head/);
+  assert.ok(
+    textExtractor.indexOf("extraction-source-pane") <
+      textExtractor.indexOf("extraction-side-column"),
+  );
+  assert.ok(
+    textExtractor.indexOf("extraction-head") <
+      textExtractor.indexOf("extraction-text-pane") &&
+      textExtractor.indexOf("extraction-text-pane") <
+        textExtractor.indexOf("correction-box"),
+  );
+  assert.match(indexCreator, /className="index-module has-file"/);
+  assert.match(promptExtractor, /className="prompt-module has-file"/);
+  assert.match(promptExtractor, /document-active-head document-app-head/);
+  assert.doesNotMatch(promptExtractor, /PDF → TXT|progress/);
+  for (const source of [textExtractor, indexCreator, promptExtractor]) {
+    assert.match(
+      source,
+      /<CrosshairInstruction>\{t\.emptySource\}<\/CrosshairInstruction>/,
+    );
+    assert.match(source, /text-workbench-crosshair-button/);
+  }
+  assert.doesNotMatch(textExtractor, /\{sourceKind &&/);
+  assert.doesNotMatch(indexCreator, /\{!file \?/);
+  assert.doesNotMatch(promptExtractor, /\{!file \?/);
 });
 
 test("parses Design Manual Markdown into the existing chapter view", async () => {
@@ -340,8 +397,9 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       "image/graph-generator",
       "image/image-generator",
       "image/cover-generator",
+      "image/layer-splitter",
       "design/grep-builder",
-      "design/prompt-extractor",
+      "text/prompt-extractor",
     ],
     local: [
       "image/map-generator",
@@ -413,7 +471,7 @@ test("keeps the documented document and visual workspace families", async () => 
         "utf8",
       ),
       readFile(
-        new URL("app/_tools/design/prompt-extractor/MainInterface.tsx", root),
+        new URL("app/_tools/text/prompt-extractor/MainInterface.tsx", root),
         "utf8",
       ),
       readFile(new URL("app/globals.css", root), "utf8"),
@@ -426,14 +484,19 @@ test("keeps the documented document and visual workspace families", async () => 
   assert.doesNotMatch(splitter, /ToolHeader/);
   assert.doesNotMatch(map, /ToolHeader/);
   assert.match(cover, /cover-toolbar-exports/);
-  for (const source of [graph, diagram]) {
-    assert.ok(
-      source.indexOf("figure-header") < source.indexOf("figure-workbench"),
-    );
+  for (const source of [barcode, graph, diagram]) {
+    assert.match(source, /cover-module visual-single-module/);
+    assert.match(source, /cover-stage visual-single-stage/);
+    assert.match(source, /cover-toolbar editor-sidebar visual-single-toolbar/);
+    assert.match(source, /className="pane-label"/);
+    assert.match(source, /1000 × 700 \/ SVG 1\.1/);
   }
+  assert.match(graph, /cover-toolbar-exports/);
+  assert.match(diagram, /cover-toolbar-exports/);
   for (const source of [index, prompt]) {
     assert.match(source, /document-active-workspace/);
   }
+  assert.doesNotMatch(css, /\.prompt-active-head div > span/);
   assert.ok(
     barcode.indexOf("barcode-preview-card") <
       barcode.indexOf("barcode-controls"),
@@ -455,5 +518,10 @@ test("keeps the documented document and visual workspace families", async () => 
   assert.match(
     css,
     /\.cover-toolbar\.editor-sidebar\s*\{[^}]*box-shadow:\s*5px 5px 0 var\(--ink\)/s,
+  );
+  assert.match(css, /\.visual-single-toolbar\.editor-sidebar/);
+  assert.match(
+    css,
+    /\.visual-single-stage > \.cover-stage-head\.tool-header\s*\{[^}]*padding:\s*7px 0 0;[^}]*border:\s*0;/s,
   );
 });

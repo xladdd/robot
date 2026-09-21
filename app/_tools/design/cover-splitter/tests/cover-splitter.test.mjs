@@ -5,6 +5,7 @@ import test from "node:test";
 const splitterPath = new URL("../public/split_cover.py", import.meta.url);
 const workerPath = new URL("../public/pyodide-worker.js", import.meta.url);
 const interfacePath = new URL("../MainInterface.tsx", import.meta.url);
+const stylesPath = new URL("../../../../globals.css", import.meta.url);
 
 test("uses a validated size choice from every worker file record", async () => {
   const [worker, splitter] = await Promise.all([
@@ -76,7 +77,20 @@ test("registers browser-local multi-file processing and the stable public path",
     component,
     /className="cover-splitter-controls[^"\n]*editor-sidebar"/,
   );
+  assert.match(component, /consoleLines\.length > 0 &&/);
   assert.match(component, /className="cover-splitter-console"/);
+  assert.match(component, /files\.length === 0 &&/);
+  assert.match(
+    component,
+    /<EmptyViewportState>\{t\.upload\}<\/EmptyViewportState>/,
+  );
+  assert.match(component, /className="cover-splitter-empty"/);
+  assert.match(component, /className="cover-splitter-module has-files"/);
+  assert.doesNotMatch(component, /!hasFiles &&|hasFiles &&/);
+  assert.match(
+    component,
+    /disabled=\{!hasFiles \|\| isProcessing \|\| isPreparing\}/,
+  );
   assert.match(component, /className="cover-splitter-preview-column"/);
   assert.match(component, /className="cover-splitter-remove"/);
   assert.match(worker, /PYODIDE_VERSION = "0\.28\.3"/);
@@ -84,4 +98,34 @@ test("registers browser-local multi-file processing and the stable public path",
   assert.match(worker, /include_inside=bool\(browser_include_inside\)/);
   assert.match(worker, /micropip\.install\("pypdf==/);
   assert.match(worker, /self\.postMessage\(\{ type: "result", buffer/);
+});
+
+test("keeps the multiple-workbench controls clear of the nameday footer", async () => {
+  const styles = await readFile(stylesPath, "utf8");
+
+  assert.match(
+    styles,
+    /\.cover-toolbar\.editor-sidebar\s*\{[^}]*height:\s*calc\(\s*100% - var\(--nameday-clearance\) \+ var\(--wide-app-gutter\) - 5px\s*\)/s,
+  );
+  assert.match(
+    styles,
+    /\.cover-splitter-controls\.editor-sidebar\s*\{[^}]*height:\s*calc\(\s*100% - var\(--nameday-clearance\) \+ var\(--wide-app-gutter\) - 5px\s*\)/s,
+  );
+});
+
+test("keeps the crosshair target borderless and highlights the full viewport", async () => {
+  const styles = await readFile(stylesPath, "utf8");
+
+  assert.match(
+    styles,
+    /\.cover-splitter-empty\s*\{[^}]*border:\s*0;[^}]*outline:\s*0;/s,
+  );
+  assert.match(
+    styles,
+    /\.cover-splitter-module\.has-files:has\([\s\S]*?\.cover-splitter-empty:is\(:hover, :focus-visible\)[\s\S]*?box-shadow:\s*inset 0 0 0 2px var\(--teal\)/,
+  );
+  assert.doesNotMatch(
+    styles,
+    /\.cover-splitter-empty:(?:hover|focus-visible)[^{]*\{[^}]*box-shadow:/s,
+  );
 });
