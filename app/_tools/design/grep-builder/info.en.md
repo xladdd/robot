@@ -1,11 +1,7 @@
 ### What is this?
 
-GREP Builder turns a plain-language Find what / Change to instruction into code for Adobe InDesign’s GREP tab.
-
-Describe what should be found in the first field and what should replace it in the second. Generated fields turn orange and can be copied individually.
-
-Choose Try again to return to your original editable instructions. Always test the result on a copy or a small selection before changing an entire document.
+Describe what Adobe InDesign should find and what should replace it in plain language. You will get separate GREP strings for the Find What and Change To fields, ready to copy into InDesign.
 
 ### How does it work?
 
-The protected server route first handles a small set of clear, common text operations deterministically for consistent English and Czech results. Other requests go to the fixed Ministral 3 8B 2512 model on OpenRouter. It returns separate InDesign Find What and Change To strings. Formatting-only requests are directed to InDesign Find Format. No InDesign document or document text is uploaded.
+Robot resolves a small set of common, unambiguous operations with deterministic rules. Other instructions are sent through OpenRouter to `mistralai/ministral-8b-2512 🇪🇺`, which returns the two InDesign GREP strings; Robot then validates known unsafe patterns before displaying them. Only your written instructions are sent, never an InDesign document or its text.

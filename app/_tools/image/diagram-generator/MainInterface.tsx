@@ -20,12 +20,6 @@ export type DiagramOutput = {
   spec: DiagramSpec;
 };
 
-function formatCountdown(seconds: number) {
-  const sign = seconds < 0 ? "−" : "";
-  const absolute = Math.abs(seconds);
-  return `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, "0")}`;
-}
-
 export function DiagramMainInterface({
   language,
   section,
@@ -37,7 +31,7 @@ export function DiagramMainInterface({
   output,
   error,
   isGenerating,
-  secondsLeft,
+
   referenceInputRef,
   paletteInputRef,
   onPaletteInput,
@@ -59,7 +53,7 @@ export function DiagramMainInterface({
   output: DiagramOutput | null;
   error: string;
   isGenerating: boolean;
-  secondsLeft: number;
+
   referenceInputRef: RefObject<HTMLInputElement | null>;
   paletteInputRef: RefObject<HTMLInputElement | null>;
   onPaletteInput: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -202,15 +196,11 @@ export function DiagramMainInterface({
           </p>
         )}
         <button
-          className="cover-generate"
+          className="cover-generate action-button action-button-primary"
           onClick={onGenerate}
           disabled={!request.trim() || isGenerating}
         >
-          <span>
-            {isGenerating
-              ? `${t.generating} · ${formatCountdown(secondsLeft)}`
-              : t.generate}
-          </span>
+          <span>{isGenerating ? t.generating : t.generate}</span>
           <b>{isGenerating ? "…" : "→"}</b>
         </button>
         <p className="cover-note">{t.warning}</p>
@@ -228,7 +218,7 @@ export function DiagramMainInterface({
         {output && (
           <div className="cover-export-actions cover-toolbar-exports diagram-export-actions">
             <button
-              className="cover-export"
+              className="cover-export action-button action-button-success"
               onClick={() =>
                 onDownload(
                   output.svg,
@@ -245,7 +235,7 @@ export function DiagramMainInterface({
               {t.downloadSvg}
             </button>
             <button
-              className="cover-export"
+              className="cover-export action-button action-button-success"
               onClick={() =>
                 onDownload(
                   onVerificationMarkdown(output.report),

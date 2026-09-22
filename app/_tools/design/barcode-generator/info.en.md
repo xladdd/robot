@@ -1,9 +1,7 @@
 ### What is this?
 
-Barcode Generator validates ISBN-10 and ISBN-13 numbers and creates the corresponding EAN-13 publication barcode.
-
-The PDF is vector artwork at the standard nominal size, with outlined Verdana digits and pure process black throughout.
+Enter an ISBN-10 or ISBN-13 to validate it and create the corresponding EAN-13 publication barcode. You will get a print-ready vector PDF with outlined Verdana digits and pure process-black artwork.
 
 ### How does it work?
 
-The ISBN, checksum, bars, digit outlines and PDF are produced locally in this browser. Nothing is uploaded and no external barcode service is used.
+Robot checks the ISBN and checksum, converts ISBN-10 to ISBN-13 when needed, builds the EAN-13 bar pattern, outlines the digits, and writes the PDF entirely in the browser. Nothing is uploaded and no external barcode service is used.

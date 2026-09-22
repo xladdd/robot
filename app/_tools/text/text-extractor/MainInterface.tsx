@@ -100,7 +100,7 @@ export function TextExtractorMainInterface({
                 <h1>{t.heading}</h1>
               </div>
               <button
-                className="start-button upload-button"
+                className="start-button action-button upload-button"
                 onClick={() => inputRef.current?.click()}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={onDrop}
@@ -130,7 +130,7 @@ export function TextExtractorMainInterface({
                   <span>{copied ? t.copied : t.copyText}</span>
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() =>
                     onDownload(text, "extracted-text.md", "text/markdown")
                   }
@@ -139,7 +139,7 @@ export function TextExtractorMainInterface({
                   MD
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() =>
                     onDownload(text, "extracted-text.txt", "text/plain")
                   }

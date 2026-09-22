@@ -464,7 +464,7 @@ export function CoverSplitterMainInterface({
         >
           <button
             type="button"
-            className="start-button upload-button cover-splitter-add"
+            className="start-button action-button upload-button cover-splitter-add"
             onClick={() => inputRef.current?.click()}
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleDrop}
@@ -521,7 +521,7 @@ export function CoverSplitterMainInterface({
 
           <button
             type="button"
-            className="solutions-create cover-splitter-run"
+            className="solutions-create cover-splitter-run action-button action-button-primary"
             onClick={() => void splitCovers()}
             disabled={!hasFiles || isProcessing || isPreparing}
           >
@@ -532,7 +532,7 @@ export function CoverSplitterMainInterface({
           {result && (
             <button
               type="button"
-              className="solutions-create is-complete cover-splitter-download"
+              className="solutions-create is-complete cover-splitter-download action-button action-button-success"
               onClick={downloadResult}
               aria-label={t.downloadLabel}
             >

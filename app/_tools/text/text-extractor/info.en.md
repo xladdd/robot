@@ -1,13 +1,7 @@
 ### What is this?
 
-Text Extraction extracts text 🤯
-
-It can do so from a short PDF (just a few pages) or a JPG/PNG file. The file can be dragged and dropped, pasted directly, or uploaded by clicking the button.
-
-Once you receive the text, you can copy it with the orange button, download it as an MD or TXT file, or refine it further using the prompt box underneath.
-
-Always check the output text against the input file. AI can make mistakes.
+Upload, paste, or drop a short PDF, JPG, or PNG to turn its visible text into editable plain text. You can correct the result with an instruction, then copy it or download it as an MD or TXT file.
 
 ### How does it work?
 
-Your file travels through a protected server route, so the OpenRouter key never appears in the browser. Images are read by a fixed Mistral vision model; short PDFs are processed with Mistral OCR. The service returns plain text to the editor. If you refine it, the current text and your instruction are sent to a smaller fixed Ministral model, and its corrected version replaces the text in the editor.
+The file is sent through OpenRouter. Images are read by `mistralai/mistral-small-2603 🇪🇺`; PDFs are first read with `Mistral OCR 🇪🇺` and then transcribed by the same model. The returned text is displayed in the editor. If you request a correction, the text and your instruction are sent to `mistralai/ministral-8b-2512 🇪🇺`, and the returned revision replaces the editor content.

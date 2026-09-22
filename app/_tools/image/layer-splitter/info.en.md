@@ -1,15 +1,7 @@
-# What is this?
+### What is this?
 
-Layer Splitter turns one supplied image into an approximate, generatively reconstructed Photoshop document. OpenRouter first analyses the scene, then generates a complete background and one complete transparent layer for each useful foreground object.
+Upload one image and choose Fast or Fidelity reconstruction. You will get a layered PSD with a full background and separate transparent foreground-object layers, including generated approximations of parts hidden in the source.
 
-The lowest PSD layer is a full-canvas background with foreground objects and visible text removed. Object layers include plausible hidden portions, so hiding a pen can reveal a completed book underneath it instead of a cut-out hole.
+### How does it work?
 
-## Quality and cost
-
-Fast uses `black-forest-labs/flux.2-klein-4b` at a lower resolution and is the economical option. Fidelity uses `black-forest-labs/flux.2-pro` at a higher resolution. The cost scales with the number of detected objects because each object and the background require a separate image generation.
-
-## Important limitation
-
-Hidden content is invented from the visible evidence; it is not recovered from the source. The generated composite will therefore not be pixel-identical to the supplied image. Text, labels, logos, and watermarks are excluded from the layer plan and generation prompts, but image models can occasionally leave small lettering or marks behind.
-
-FLUX returns images rather than layered PSD files or guaranteed transparent PNGs. The app creates transparency locally from the generated chroma-key object plates and assembles the final PSD locally. If an object cannot be isolated reliably, the export is rejected rather than silently producing a broken layer.
+The source image is sent through OpenRouter to `mistralai/mistral-small-2603 🇪🇺`, which identifies the useful layers. Robot then asks either `black-forest-labs/flux.2-klein-4b 🇩🇪` or `black-forest-labs/flux.2-pro 🇩🇪` to reconstruct the background and each object separately. `sharp` removes the generated chroma-key backgrounds, Robot validates and composites the layers, and `ag-psd` assembles the downloadable PSD.

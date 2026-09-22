@@ -1,11 +1,7 @@
 ### Co to je?
 
-Generátor grafů převádí dodaná číselná data na upravitelný sloupcový, spojnicový, kombinovaný, bodový nebo prstencový graf ve formátu SVG.
-
-Graf popište v poli Pokyn. Hodnoty napište nebo vložte do pole Data, případně do něj přetáhněte soubor Excel (`.xlsx`) či CSV; první list se převede na upravitelnou tabulku Markdown. Můžete doplnit pojmenované zdroje a importovat vzorník Adobe Swatch Exchange.
-
-Generátor zachová zadaná čísla. Před publikováním graf vždy porovnejte s původním zdrojem.
+Popište graf a dodejte číselná data napsáním, vložením nebo importem prvního listu souboru Excel či CSV. Získáte upravitelný sloupcový, spojnicový, kombinovaný, bodový nebo prstencový graf ve formátu SVG, případně se zdroji a paletou Adobe Swatch Exchange.
 
 ### Jak to funguje?
 
-Pokyn a data procházejí chráněnou serverovou cestou do pevně zvoleného modelu, který smí pouze strukturovat výslovně dodané hodnoty a zdroje. Nesmí data vyhledávat, odhadovat ani doplňovat. Vrácená specifikace se ověří pro bezpečné vykreslení a deterministický kód vypočítá osy a vykreslí požadovaný graf. Sloupcové a spojnicové grafy používají zaokrouhlené automatické značky; kombinované grafy mohou mít nezávislé osy y a regresní přímky i geometrie prstenců se počítají lokálně.
+Soubory Excel a CSV i barvy palety se načtou v prohlížeči. Pokyn pro graf a data se odešlou přes OpenRouter modelu `mistralai/mistral-large-2512 🇪🇺`, který strukturuje pouze vámi dodané hodnoty a zdroje. Robot vrácenou specifikaci ověří, deterministicky vypočítá měřítka a geometrii a vykreslí SVG, aniž by model data vyhledával nebo vymýšlel.

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { copy } from "../../content/ui";
-import { ProcessingBadge } from "../../_components/ToolChrome";
+
 import type { Language } from "../registry";
 import type {
   ManualContent,
@@ -186,7 +186,7 @@ export function DesignManualMainInterface({
           </div>
         </div>
         <a
-          className="manual-download"
+          className="manual-download action-button action-button-success"
           href={`/design-manual/downloads/design-manual.${language}.pdf`}
           download
         >
@@ -194,13 +194,6 @@ export function DesignManualMainInterface({
         </a>
       </nav>
       <article className="manual-article" ref={articleRef}>
-        <header className="manual-hero">
-          <ProcessingBadge mode="local" language={language} />
-          <small>
-            {String(chapterIndex + 1).padStart(2, "0")} /{" "}
-            {String(chapters.length).padStart(2, "0")}
-          </small>
-        </header>
         <section
           className="manual-chapter"
           key={`${language}-${chapter.title}`}

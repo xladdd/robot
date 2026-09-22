@@ -178,7 +178,11 @@ export function ScriptBuffetMainInterface({
           </div>
           <div className="buffet-install-path">
             <code>{installPaths[installApp][installPlatform]}</code>
-            <button type="button" onClick={() => void copyInstallPath()}>
+            <button
+              className="action-button action-button-primary action-button-compact"
+              type="button"
+              onClick={() => void copyInstallPath()}
+            >
               <span>
                 {copiedInstallPath
                   ? cs
@@ -232,6 +236,7 @@ export function ScriptBuffetMainInterface({
               <p>{cs ? script.descriptionCs : script.description}</p>
               <footer>
                 <a
+                  className="action-button action-button-success"
                   href={script.href}
                   download
                   onClick={() => recordDownload(script.id)}

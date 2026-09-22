@@ -80,7 +80,7 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
         </p>
       )}
       <button
-        className="grep-generate"
+        className="grep-generate action-button action-button-primary"
         onClick={result ? props.onReset : props.onGenerate}
         disabled={
           !result &&

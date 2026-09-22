@@ -77,7 +77,7 @@ export function PromptExtractorMainInterface({
                 <h1>{t.heading}</h1>
               </div>
               <button
-                className="start-button upload-button"
+                className="start-button action-button upload-button"
                 onClick={() => inputRef.current?.click()}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={onDrop}
@@ -108,7 +108,7 @@ export function PromptExtractorMainInterface({
                   <span>{copied ? t.copied : t.copyText}</span>
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() =>
                     onDownload(
                       result,
@@ -121,7 +121,7 @@ export function PromptExtractorMainInterface({
                   MD
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() =>
                     onDownload(result, "illustration-prompts.txt", "text/plain")
                   }

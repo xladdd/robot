@@ -226,8 +226,8 @@ test("keeps the completed Solutions report compact by default", async () => {
     /solutions-console\s*\{\s*display:\s*flex;\s*max-height:\s*190px/,
   );
   assert.match(
-    styles,
-    /solutions-create\.is-complete\s*\{\s*background:\s*var\(--teal\)/,
+    component,
+    /analysisComplete \? "action-button-success" : "action-button-primary"/,
   );
   assert.match(
     styles,

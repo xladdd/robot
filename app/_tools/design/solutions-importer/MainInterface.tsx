@@ -407,7 +407,7 @@ export function SolutionsImporterMainInterface({
           </p>
         )}
         <button
-          className={`solutions-create${analysisComplete ? " is-complete" : ""}`}
+          className={`solutions-create${analysisComplete ? " is-complete" : ""} action-button ${analysisComplete ? "action-button-success" : "action-button-primary"}`}
           onClick={() => void analyse()}
           disabled={!hasAllFiles || processing}
         >
@@ -467,7 +467,7 @@ export function SolutionsImporterMainInterface({
             </h2>
             <button
               type="button"
-              className="solutions-detail-download"
+              className="solutions-detail-download action-button action-button-success"
               onClick={downloadManifest}
             >
               <span>{t.downloadJson}</span>
@@ -596,7 +596,11 @@ export function SolutionsImporterMainInterface({
           <aside className="solutions-summary">
             <span>{t.download}</span>
             <div className="solutions-downloads">
-              <a href="/solutions/import_solutions.jsx" download>
+              <a
+                className="action-button action-button-success"
+                href="/solutions/import_solutions.jsx"
+                download
+              >
                 <b>JSX</b>
                 <span>
                   <strong>{t.importer}</strong>

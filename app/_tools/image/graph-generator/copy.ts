@@ -41,7 +41,7 @@ export const graphUi = {
     dataFileError:
       "Could not read the file. Choose an Excel (.xlsx) or CSV (.csv) file containing data.",
     dataFileSizeError: "Choose an Excel or CSV file up to 10 MB.",
-    generate: "Generate SVG (about 30 seconds)",
+    generate: "Generate SVG",
     generating: "Generating SVG",
     preview: "SVG PREVIEW",
     downloadSvg: "Download SVG",
@@ -69,7 +69,7 @@ export const graphUi = {
       "Soubor se nepodařilo přečíst. Vyberte soubor Excel (.xlsx) nebo CSV (.csv) s daty.",
     dataFileSizeError:
       "Vyberte soubor Excel nebo CSV o velikosti nejvýše 10 MB.",
-    generate: "Vytvořit SVG (asi 30 sekund)",
+    generate: "Vytvořit SVG",
     generating: "Vytváření SVG",
     preview: "NÁHLED SVG",
     downloadSvg: "Stáhnout SVG",

@@ -1,11 +1,7 @@
 ### Co to je?
 
-Generátor diagramů vytváří zjednodušená popsaná biologická schémata jako upravitelné SVG.
-
-Popište objekt a struktury, které se mají zobrazit. Můžete přidat až tři referenční obrázky PNG, JPEG nebo WebP a importovat vzorník Adobe Swatch Exchange.
-
-Výsledkem je SVG a protokol kontroly, biologické popisky a vztahy však musí vždy ověřit redaktor nebo odborník. Diagramy jsou schematické a nejsou v měřítku.
+Popište biologický objekt a struktury, které se mají zobrazit, případně přidejte až tři referenční obrázky a paletu Adobe Swatch Exchange. Získáte upravitelné popsané SVG schéma a protokol kontroly.
 
 ### Jak to funguje?
 
-Pokyn, volitelné referenční obrázky a barvy z místně načtené palety procházejí chráněnou serverovou cestou. Pevně zvolený model vrátí omezenou specifikaci diagramu, nikoli hotový kód SVG. Server specifikaci ověří a deterministicky vykreslí tvary, popisky a odkazové čáry.
+Pokyn, referenční obrázky a barvy palety načtené v prohlížeči se odešlou přes OpenRouter modelu `mistralai/mistral-large-2512 🇪🇺`. Model vrátí omezenou specifikaci diagramu, nikoli kód SVG. Robot specifikaci ověří, vykreslí ji deterministickými tvary, popisky a odkazovými čarami a zobrazí SVG i protokol.

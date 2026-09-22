@@ -1,11 +1,7 @@
 ### What is this?
 
-Graph Generator turns supplied numeric data into an editable bar, line, combined, scatter, or donut chart in SVG format.
-
-Describe the chart in the Prompt field. Type or paste values into the Data field, or drop an Excel (`.xlsx`) or CSV file there to convert its first sheet into an editable Markdown table. You may add named sources and import an Adobe Swatch Exchange palette.
-
-The generator preserves the numbers you provide. Always compare the chart with the original source before publication.
+Describe a chart and supply its numeric data by typing, pasting, or importing the first sheet of an Excel or CSV file. You will get an editable bar, line, combined, scatter, or donut chart as SVG, with optional sources and an Adobe Swatch Exchange palette.
 
 ### How does it work?
 
-Your prompt and data are sent through a protected server route to a fixed model, which may only structure the explicit values and sources you supplied. It cannot research, estimate or add data. The returned specification is validated for safe rendering, then deterministic code calculates the axes and renders the requested chart. Bar and line charts use rounded automatic ticks; combined charts can use independent y-axes; scatter trend lines and donut geometry are calculated locally.
+Excel and CSV files and palette colours are read in the browser. The chart instruction and data are sent through OpenRouter to `mistralai/mistral-large-2512 🇪🇺`, which structures only the values and sources you supplied. Robot validates the returned specification, calculates scales and geometry deterministically, and renders the SVG without asking the model to research or invent data.

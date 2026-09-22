@@ -1,15 +1,7 @@
 ### What is this?
 
-Index Creator finds requested words—and their grammatical forms—throughout a large textbook PDF.
-
-Upload a live-text PDF, paste one index word or phrase per line, and create the index. The browser recommends likely index pages and keeps uncertain matches available for review. Accept or remove pages before copying or downloading the tab-separated index.
-
-Copy the finished index with the orange button, or download it directly as an MD or TXT file.
-
-Check the automatically detected page-number mapping before using the result. You can correct the PDF-page and printed-page anchor underneath the output.
-
-Always review the finished index. Languages are wonderfully untidy, and the local ranking can miss or over-include an unusual form. The final output contains only pages you have accepted; consecutive pages are written as ranges.
+Upload a live-text textbook PDF and enter one index term or phrase per line. You will get a reviewable index of matching printed pages, ready to copy or download as a tab-separated MD or TXT file.
 
 ### How does it work?
 
-PDF.js reads the live text locally, one page at a time, and looks for printed page numbers near the page edges. If a page has very little usable text, Index Creator also renders that page locally and runs Czech OCR in your browser; OCR matches are shown as possible pages and are never sent to OpenRouter. Only your short word list goes through OpenRouter to fixed Mistral Medium 3.5, which proposes Czech, English, Slovak or Romanian grammatical forms. The browser validates those complete forms, searches them on every page, ranks the evidence locally, and lets you review the result before assembling the tab-separated index.
+`PDF.js` reads the PDF text and detects printed page numbers in the browser. Pages with too little text are rendered locally and checked with Czech `Tesseract.js` OCR. Only the term list is sent through OpenRouter to `mistralai/mistral-medium-3-5 🇪🇺`, which proposes grammatical forms. The browser validates and searches those forms, ranks the matching pages, applies your review choices, and formats consecutive pages as ranges.

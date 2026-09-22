@@ -1,13 +1,7 @@
 ### Co to je?
 
-Generátor map je interaktivní editor mapy světa se současnými i historickými politickými hranicemi.
-
-Zvolte rok od 3400 př. n. l. do roku 2026 n. l., mapu posouvejte a přibližujte, zapínejte geografické vrstvy a případně vybarvujte státy barvami z importovaného vzorníku Adobe Swatch Exchange.
-
-Oranžový rám 10:7 vymezuje exportovanou oblast. Stažené SVG zachová ořez, přiblížení, barvy, velikost popisků i viditelnost vrstev v pojmenovaných skupinách pro další úpravy v Illustratoru.
-
-Některé datové sady mají licenční nebo časová omezení. Před komerčním použitím si přečtěte upozornění v editoru a pamatujte, že současné fyzickogeografické vrstvy se s historickou osou nemění.
+Zvolte rok, posouvejte a přibližujte mapu světa, zapínejte geografické vrstvy a případně použijte paletu Adobe Swatch Exchange. Získáte upravitelné SVG, které zachová viditelný výřez, barvy, popisky a pojmenované vrstvy.
 
 ### Jak to funguje?
 
-Geografické tvary pocházejí z místně uložených dat Natural Earth, licencované sady CShapes 2.0 a Cliopatria. Mapu vykresluje deterministický kód, nikoli AI. Zvolený rok určí příslušný katalog hranic a prohlížeč aplikuje výřez, paletu a nastavení vrstev. Pole pro prompt je připraveno pro budoucí omezený editor a mapu zatím nemění.
+Robot vybere odpovídající politické hranice z přibalených dat `CShapes 2.0`, `Cliopatria`, `Natural Earth` a `world-atlas`. `d3-geo` a deterministický vykreslovací kód sestaví mapu pro zvolený rok a editor před exportem použije váš výřez, paletu, nastavení popisků a vrstev. Nepoužívá se žádný model AI a pole pro prompt zatím mapu nemění.

@@ -173,7 +173,6 @@ export default function Workspace({
   const [figureOutput, setFigureOutput] = useState<FigureOutput | null>(null);
   const [figureError, setFigureError] = useState("");
   const [isGeneratingFigure, setIsGeneratingFigure] = useState(false);
-  const [figureSecondsLeft, setFigureSecondsLeft] = useState(30);
   const [coverReferences, setCoverReferences] = useState<CoverReference[]>([]);
   const [coverAudience, setCoverAudience] = useState<CoverAudience | "">("");
   const [coverSubject, setCoverSubject] = useState<CoverSubject | "">("");
@@ -917,15 +916,6 @@ export default function Workspace({
 
   async function generateFigure() {
     setIsGeneratingFigure(true);
-    setFigureSecondsLeft(30);
-    const generationStarted = Date.now();
-    const countdown = window.setInterval(
-      () =>
-        setFigureSecondsLeft(
-          Math.max(0, 30 - Math.floor((Date.now() - generationStarted) / 1000)),
-        ),
-      1000,
-    );
     setFigureError("");
     setFigureOutput(null);
     try {
@@ -969,7 +959,6 @@ export default function Workspace({
         error instanceof Error ? error.message : "Figure generation failed.",
       );
     } finally {
-      window.clearInterval(countdown);
       setIsGeneratingFigure(false);
     }
   }
@@ -2134,7 +2123,6 @@ export default function Workspace({
             output={figureOutput as GraphOutput | null}
             error={figureError}
             isGenerating={isGeneratingFigure}
-            secondsLeft={figureSecondsLeft}
             paletteInputRef={figurePaletteInputRef}
             onPaletteInput={(event) => void addFigurePalette(event)}
             onClearPalette={() => {
@@ -2160,7 +2148,6 @@ export default function Workspace({
             output={figureOutput as DiagramOutput | null}
             error={figureError}
             isGenerating={isGeneratingFigure}
-            secondsLeft={figureSecondsLeft}
             referenceInputRef={figureReferenceInputRef}
             paletteInputRef={figurePaletteInputRef}
             onPaletteInput={(event) => void addFigurePalette(event)}
@@ -2255,7 +2242,7 @@ export default function Workspace({
             {selectedLabel ? (
               <>
                 <h1>{selectedLabel}</h1>
-                <button className="start-button">
+                <button className="start-button action-button">
                   {t.ready}
                   <span>→</span>
                 </button>
@@ -2271,11 +2258,9 @@ export default function Workspace({
             )}
           </div>
         )}
-        {!(
-          ["extraction", "index", "prompt", "cover", "image"] as Array<
-            string | null
-          >
-        ).includes(selected) && (
+        {!(["extraction", "index", "prompt"] as Array<string | null>).includes(
+          selected,
+        ) && (
           <div className="workspace-status">
             <span className="live-clock">
               {clockHours}

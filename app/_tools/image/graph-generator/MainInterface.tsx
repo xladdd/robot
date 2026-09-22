@@ -25,12 +25,6 @@ export type GraphOutput = {
   };
 };
 
-function formatCountdown(seconds: number) {
-  const sign = seconds < 0 ? "−" : "";
-  const absolute = Math.abs(seconds);
-  return `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, "0")}`;
-}
-
 export function GraphMainInterface({
   language,
   section,
@@ -43,7 +37,7 @@ export function GraphMainInterface({
   output,
   error,
   isGenerating,
-  secondsLeft,
+
   paletteInputRef,
   onPaletteInput,
   onClearPalette,
@@ -64,7 +58,7 @@ export function GraphMainInterface({
   output: GraphOutput | null;
   error: string;
   isGenerating: boolean;
-  secondsLeft: number;
+
   paletteInputRef: RefObject<HTMLInputElement | null>;
   onPaletteInput: (event: ChangeEvent<HTMLInputElement>) => void;
   onClearPalette: () => void;
@@ -284,21 +278,17 @@ export function GraphMainInterface({
           </p>
         )}
         <button
-          className={`cover-generate graph-generate${output ? " has-output" : ""}`}
+          className="cover-generate graph-generate action-button action-button-primary"
           onClick={onGenerate}
           disabled={!prompt.trim() || !data.trim() || isGenerating}
         >
-          <span>
-            {isGenerating
-              ? `${t.generating} · ${formatCountdown(secondsLeft)}`
-              : t.generate}
-          </span>
+          <span>{isGenerating ? t.generating : t.generate}</span>
           <b>{isGenerating ? "…" : "→"}</b>
         </button>
         {output && (
           <div className="cover-export-actions cover-toolbar-exports">
             <button
-              className="cover-export"
+              className="cover-export action-button action-button-success"
               type="button"
               onClick={downloadSvg}
             >

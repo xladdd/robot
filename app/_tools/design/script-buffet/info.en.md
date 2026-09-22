@@ -1,7 +1,7 @@
-# What is this?
+### What is this?
 
-Script Buffet is the shared shelf for production scripts used in InDesign, Illustrator, and Photoshop.
+Filter a catalogue of production scripts by InDesign, Illustrator, or Photoshop, then download the script you need. The drawer also shows where to install Adobe scripts on macOS and Windows.
 
-Filter the cards by Adobe application. Each download count records downloads in this browser only; it is not a global usage statistic.
+### How does it work?
 
-Open **Where to install scripts** for the standard macOS and Windows locations. Adobe version and language folder names vary between installations.
+The catalogue and downloadable script files are bundled with Robot. Filtering and downloading happen directly in the browser, and each card’s download count is stored only in that browser with `localStorage`; no usage data is sent to a server.

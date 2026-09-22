@@ -443,7 +443,7 @@ export function CoverGeneratorMainInterface({
             </select>
           </label>
           <button
-            className="cover-generate"
+            className="cover-generate action-button action-button-primary"
             onClick={() => onGenerateSketches(requestedCount)}
             disabled={
               !audience ||
@@ -470,14 +470,14 @@ export function CoverGeneratorMainInterface({
         <p className="cover-note">{t.note}</p>
         <div className="cover-export-actions cover-toolbar-exports">
           <button
-            className="cover-export cover-artboard-export"
+            className="cover-export cover-artboard-export action-button action-button-success"
             onClick={onExportArtboard}
             disabled={!activeSketches.length}
           >
             {t.exportArtboard}
           </button>
           <button
-            className="cover-export"
+            className="cover-export action-button action-button-success"
             onClick={onDownload}
             disabled={!sketches.length}
           >

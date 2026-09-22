@@ -1,9 +1,7 @@
 ### Co to je?
 
-Generátor ověří ISBN-10 nebo ISBN-13 a vytvoří odpovídající publikační čárový kód EAN-13.
-
-PDF obsahuje vektorovou kresbu ve standardní jmenovité velikosti, číslice Verdana převedené do křivek a čistou procesní černou.
+Zadejte ISBN-10 nebo ISBN-13, ověřte je a vytvořte odpovídající publikační čárový kód EAN-13. Získáte tiskové vektorové PDF s číslicemi Verdana převedenými do křivek a kresbou v čisté procesní černé.
 
 ### Jak to funguje?
 
-ISBN, kontrolní číslice, pruhy, obrysy číslic i PDF vznikají místně v tomto prohlížeči. Nic se neodesílá a nepoužívá se žádná externí služba.
+Robot zkontroluje ISBN a kontrolní číslici, podle potřeby převede ISBN-10 na ISBN-13, sestaví pruhy EAN-13, převede číslice do křivek a vytvoří PDF přímo v prohlížeči. Nic se neodesílá a nepoužívá se žádná externí služba pro čárové kódy.

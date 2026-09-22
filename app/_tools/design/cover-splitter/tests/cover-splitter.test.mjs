@@ -113,7 +113,7 @@ test("keeps the multiple-workbench controls clear of the nameday footer", async 
   );
 });
 
-test("keeps the crosshair target borderless and highlights the full viewport", async () => {
+test("keeps crosshair targets borderless without hover or focus outlines", async () => {
   const styles = await readFile(stylesPath, "utf8");
 
   assert.match(
@@ -122,10 +122,9 @@ test("keeps the crosshair target borderless and highlights the full viewport", a
   );
   assert.match(
     styles,
-    /\.cover-splitter-module\.has-files:has\([\s\S]*?\.cover-splitter-empty:is\(:hover, :focus-visible\)[\s\S]*?box-shadow:\s*inset 0 0 0 2px var\(--teal\)/,
+    /\.layer-splitter-upload:not\(\.has-file\)\s*\{[^}]*border:\s*0;/s,
   );
-  assert.doesNotMatch(
-    styles,
-    /\.cover-splitter-empty:(?:hover|focus-visible)[^{]*\{[^}]*box-shadow:/s,
-  );
+  assert.doesNotMatch(styles, /\.cover-splitter-module\.has-files:has\(/);
+  assert.doesNotMatch(styles, /\.layer-splitter-module:has\(/);
+  assert.doesNotMatch(styles, /\.text-workbench-crosshair-button:hover/);
 });

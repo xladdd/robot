@@ -142,7 +142,7 @@ export function LayerSplitterMainInterface({
 
         <button
           type="button"
-          className="layer-splitter-start"
+          className="layer-splitter-start action-button action-button-primary"
           onClick={onSplit}
           disabled={!imageData || isSplitting}
         >
@@ -214,7 +214,7 @@ export function LayerSplitterMainInterface({
         {result && (
           <button
             type="button"
-            className="layer-splitter-download"
+            className="layer-splitter-download action-button action-button-success"
             onClick={onDownload}
           >
             <span>{t.download}</span>

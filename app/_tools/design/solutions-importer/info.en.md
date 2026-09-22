@@ -1,17 +1,7 @@
 ### What is this?
 
-Solutions Importer reads a clean PDF, an editor's annotated manuscript PDF, and matching IDML to prepare text, table, mark, and colour operations for InDesign.
-
-The review screen separates confident operations from ambiguous annotations. Untick false detections before downloading the JSON.
-
-When either PDF contains bleed or printer's marks, enable the printer-mark option. The embedded TrimBox then defines the InDesign page coordinates.
-
-The reviewed `indesign-solutions-v2` JSON is imported with one canonical InDesign script. After you select the JSON and the script validates it, an InDesign ScriptUI dialog lets you choose **Advanced** layout-aware placement or **Simple** direct PDF-coordinate placement.
-
-Advanced is recommended when the chapter has tables or structured answer boxes. If Advanced fails or produces a poor result, undo it and run the canonical script again in Simple mode; Simple has fewer assumptions and is more failsafe.
-
-Non-text annotations and linked Illustrator, Photoshop, and raster artwork are intentionally left for manual editing.
+Add a clean PDF, the matching annotated manuscript PDF, and matching IDML, then review the detected text, table, mark, and colour operations. You will get an `indesign-solutions-v2` JSON file that the downloadable InDesign script can place with Advanced layout-aware mode or Simple direct-coordinate mode.
 
 ### How does it work?
 
-Python, pdfplumber, and an IDML parser run locally in Pyodide. Clean and annotated PDF text are compared by position, PDF annotation geometry is classified conservatively, and IDML supplies page, table, style, swatch, and link metadata. No document is uploaded and no AI service is used.
+`PDF.js`, `Pyodide`, Python, `pdfplumber`, and an IDML parser run in the browser to compare the PDFs by position and combine the differences with page, table, style, swatch, and link metadata. Your review choices are written into the JSON; no document is uploaded and no AI model is used. The InDesign script validates that JSON before applying the selected mode. Use Advanced for tables and aligned answer boxes; if it fails, undo the import and rerun the script in the more failsafe Simple mode.

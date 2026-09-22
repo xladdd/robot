@@ -1,13 +1,7 @@
 ### Co to je?
 
-Generátor obálek je levný nástroj pro zkoušení odlišných obrazových směrů obálek učebnic bez textu.
-
-Zvolte cílovou skupinu a předmět a případně přidejte několik klíčových slov s tématem nebo stylem. Nemusíte psát podrobné výtvarné zadání: malý plánovací model s podporou obrazu převede stručné vstupy na několik různých vizuálních konceptů. Referenční obálky jsou volitelné a určují obecný charakter pro cílovou skupinu, paletu, dokončení a energii, ale nekopírují se jako rozvržení.
-
-Výstupem je pouze obrazový motiv. Nežádejte názvy, označení ročníků, loga, popisky, odznaky ani další typografii; tyto prvky se doplní později v InDesignu. Tlačítko `?` nad klíčovými slovy vysvětluje, jak napsat krátký a účinný vstup.
-
-K dispozici jsou dva levné obrazové modely: výchozí FLUX.2 Klein v rozlišení 512 px a alternativní Gemini Flash Lite v rozlišení 1K s odlišným vizuálním stylem. Plánovač používá `mistralai/mistral-small-2603`, rozumí českému i anglickému textu a umí prohlédnout volitelné referenční obrázky. Tento nástroj vytváří pouze nápady; oddělení vrstev zajišťuje Layer Splitter.
+Zvolte cílovou skupinu a předmět učebnice, přidejte volitelná klíčová slova a referenční obálky a vyžádejte si dva nebo čtyři koncepty. Získáte odlišné obrazové motivy obálek bez textu pro pozdější typografii a sazbu v InDesignu.
 
 ### Jak to funguje?
 
-Cílová skupina, předmět, volitelná klíčová slova, výřezy referenčních obálek zaměřené na obraz a případný oblíbený předchozí koncept nejdříve projdou chráněným plánovačem. Ten shrne reference jako obecné stylové vodítko a vrátí přesně dva nebo čtyři strukturálně odlišné plány. Obrazový model pak dostane pro každý obrázek jiný plán a ve výchozím nastavení nedostává surové reference, takže se z referenční obálky nestane opakovaná předloha. FLUX používá pro každý výsledek nezávislý náhodný seed; Gemini nastavení seedu neposkytuje. Neúspěšné obrazové úlohy se jednou zkusí nahradit a cena i identifikátory plánovače a obrazového generování jsou součástí reportu v ZIP.
+Vaše volby a případné reference se nejprve odešlou přes OpenRouter plánovacímu modelu `mistralai/mistral-small-2603 🇪🇺`, který z nich připraví strukturálně odlišné obrazové plány a obecné stylové vodítko z referencí. Každý plán se poté odešle vybranému obrazovému modelu: `black-forest-labs/flux.2-klein-4b 🇩🇪` pro výsledek 512 px nebo `google/gemini-3.1-flash-lite-image 🇺🇸` pro výsledek 1K. Vygenerované obrázky a report se následně zobrazí a lze je společně stáhnout.

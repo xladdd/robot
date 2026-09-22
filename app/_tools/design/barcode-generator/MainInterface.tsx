@@ -126,7 +126,7 @@ export function BarcodeMainInterface({
         <p className="cover-note">{copy.privacy}</p>
         <div className="cover-export-actions cover-toolbar-exports">
           <button
-            className="cover-export"
+            className="cover-export action-button action-button-success"
             onClick={onDownload}
             disabled={!result}
           >

@@ -464,7 +464,7 @@ export function ImageGeneratorMainInterface({
                 {job.image ? (
                   <div className="image-generator-card-actions">
                     <button
-                      className="cover-upvote"
+                      className="cover-upvote action-button action-button-success action-button-compact"
                       onClick={() => downloadImage(job, index)}
                     >
                       ↓ {t.download}
@@ -658,7 +658,7 @@ export function ImageGeneratorMainInterface({
           {completedJobs.length > 0 && (
             <div className="cover-export-actions cover-toolbar-exports">
               <button
-                className="cover-export cover-artboard-export"
+                className="cover-export image-generator-clear action-button"
                 onClick={() => {
                   setJobs([]);
                   setError("");
@@ -668,7 +668,7 @@ export function ImageGeneratorMainInterface({
                 {t.clear}
               </button>
               <button
-                className="cover-export"
+                className="cover-export action-button action-button-success"
                 onClick={() => void downloadAll()}
               >
                 {t.downloadAll}
@@ -677,7 +677,7 @@ export function ImageGeneratorMainInterface({
           )}
           <div className="cover-generate-group image-generator-generate-group">
             <button
-              className={`cover-generate ${isGenerating ? "image-generator-stop" : ""}`}
+              className={`cover-generate action-button action-button-primary ${isGenerating ? "image-generator-stop" : ""}`}
               onClick={() => void startGeneration()}
               disabled={!isGenerating && !queuedPrompts.length}
             >

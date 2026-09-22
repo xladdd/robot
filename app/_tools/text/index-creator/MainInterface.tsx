@@ -7,7 +7,7 @@ import {
   type DragEvent,
   type RefObject,
 } from "react";
-import { LoadingText } from "../../../_components/LoadingText";
+
 import {
   CrosshairInstruction,
   ProcessingBadge,
@@ -189,7 +189,7 @@ export function IndexCreatorMainInterface({
                 <h1>{t.heading}</h1>
               </div>
               <button
-                className="start-button upload-button"
+                className="start-button action-button upload-button"
                 onClick={() => inputRef.current?.click()}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={onDrop}
@@ -213,7 +213,7 @@ export function IndexCreatorMainInterface({
                 />
               </div>
               <button
-                className="index-run"
+                className="index-run action-button action-button-primary"
                 onClick={onCreate}
                 disabled={!file || !words.trim() || isIndexing}
               >
@@ -238,7 +238,7 @@ export function IndexCreatorMainInterface({
                   <span>{copied ? t.copied : t.copyText}</span>
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() =>
                     onDownload(result, "index.md", "text/markdown")
                   }
@@ -247,7 +247,7 @@ export function IndexCreatorMainInterface({
                   MD
                 </button>
                 <button
-                  className="download-button"
+                  className="download-button action-button action-button-success action-button-compact"
                   onClick={() => onDownload(result, "index.txt", "text/plain")}
                   disabled={!result}
                 >
@@ -255,7 +255,9 @@ export function IndexCreatorMainInterface({
                 </button>
               </div>
               {isIndexing ? (
-                <LoadingText items={t.processing} />
+                <div className="measured-progress" role="status">
+                  {t.createIndex} · {progress}%
+                </div>
               ) : matches.length ? (
                 <div className="index-result-view" aria-label={t.indexOutput}>
                   {matches.map(

@@ -1,13 +1,7 @@
 ### What is this?
 
-Map Generator is an interactive world-map editor for current and historical political boundaries.
-
-Choose a year from 3400 BCE to 2026 CE, pan and zoom the map, switch geographic layers on or off, and optionally fill countries with an imported Adobe Swatch Exchange palette.
-
-The orange 10:7 frame is the exported area. Downloaded SVGs preserve the current crop, zoom, colours, label scale and layer visibility in named groups for further editing in Illustrator.
-
-Some datasets have licence or time-period limitations. Read the warnings shown in the editor before commercial use, and remember that present-day physical overlays do not change with the historical timeline.
+Choose a year, move and zoom the world map, switch geographic layers, and optionally apply an Adobe Swatch Exchange palette. You will get an editable SVG that preserves the visible crop, colours, labels, and named layers.
 
 ### How does it work?
 
-Geographic shapes come from locally bundled Natural Earth, licensed CShapes 2.0 and Cliopatria datasets. The map is rendered deterministically rather than drawn by AI. The selected year chooses the appropriate boundary catalogue, and the browser applies viewport, palette and layer edits. The prompt field is reserved for a future constrained map-editing resolver and does not currently change the map.
+Robot selects the matching political boundaries from its bundled `CShapes 2.0`, `Cliopatria`, `Natural Earth`, and `world-atlas` data. `d3-geo` and deterministic rendering code build the map for the chosen year, and the editor applies your viewport, palette, label, and layer settings before export. No AI model is used, and the prompt field does not currently change the map.
