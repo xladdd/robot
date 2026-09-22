@@ -1854,8 +1854,9 @@ export default function Workspace({
           </button>
           <button
             className={`utility icon-button ${infoOpen ? "pressed" : ""}`}
-            onClick={() => setInfoOpen(true)}
+            onClick={() => setInfoOpen((value) => !value)}
             aria-label={t.openInformation}
+            aria-expanded={infoOpen}
           >
             <span aria-hidden="true">i</span>
           </button>
@@ -2300,7 +2301,7 @@ export default function Workspace({
         />
       )}
       <aside
-        className={`info-drawer ${infoOpen ? "open" : ""}`}
+        className={`info-drawer${infoOpen ? " open" : ""}`}
         aria-hidden={!infoOpen}
       >
         <div className="drawer-header">
@@ -2310,7 +2311,6 @@ export default function Workspace({
           </button>
         </div>
         <div className="drawer-content">
-          <span className="drawer-kicker">TAKTIK ROBOT</span>
           <h2>{selectedLabel || t.about}</h2>
           <ReactMarkdown>{help}</ReactMarkdown>
         </div>
