@@ -50,6 +50,27 @@ export const coverSplitterCopy = {
       "The local cover splitter could not be started. Please try again.",
     download: "Download ZIP",
     downloadLabel: "Download the ZIP archive with split covers",
+    downloadFilesLabel: (format: string) =>
+      `Download a ZIP archive with the split cover ${format} files`,
+    packagingFormat: (format: string) =>
+      `Packaging the ${format} download archive…`,
+    formatArchiveReady: (format: string) =>
+      `The ${format} download archive is ready.`,
+    exportStarting: (format: string, count: number) =>
+      `Preparing ${count} ${format} file${count === 1 ? "" : "s"} locally…`,
+    renderingFile: (
+      format: string,
+      current: number,
+      total: number,
+      name: string,
+    ) => `Rendering ${format} ${current}/${total}: ${name}`,
+    updatingArchive: "Updating the ZIP archive with the requested exports…",
+    exportReady: (format: string) =>
+      `${format} files are ready and the ZIP archive has been updated.`,
+    exportFailed: (format: string) =>
+      `${format} files could not be created. Please try again.`,
+    exportFailureDetail: (message: string) => `Export error: ${message}`,
+    exporting: "Working…",
     progressLabel: "Cover splitting progress",
     console: "LOCAL CONSOLE",
     consoleIdle: "Ready. Add settings, then split the covers.",
@@ -107,6 +128,26 @@ export const coverSplitterCopy = {
       "Místní nástroj pro dělení obálek se nepodařilo spustit. Zkuste to znovu.",
     download: "Stáhnout ZIP",
     downloadLabel: "Stáhnout archiv ZIP s rozdělenými obálkami",
+    downloadFilesLabel: (format: string) =>
+      `Stáhnout archiv ZIP s rozdělenými soubory obálky ${format}`,
+    packagingFormat: (format: string) => `Balím archiv pro stažení ${format}…`,
+    formatArchiveReady: (format: string) =>
+      `Archiv ${format} pro stažení je připravený.`,
+    exportStarting: (format: string, count: number) =>
+      `Místně připravuji ${count} soubor${count === 1 ? "" : "ů"} ${format}…`,
+    renderingFile: (
+      format: string,
+      current: number,
+      total: number,
+      name: string,
+    ) => `Vytvářím ${format} ${current}/${total}: ${name}`,
+    updatingArchive: "Aktualizuji archiv ZIP o požadované výstupy…",
+    exportReady: (format: string) =>
+      `Soubory ${format} jsou připravené a archiv ZIP je aktualizovaný.`,
+    exportFailed: (format: string) =>
+      `Soubory ${format} se nepodařilo vytvořit. Zkuste to prosím znovu.`,
+    exportFailureDetail: (message: string) => `Chyba exportu: ${message}`,
+    exporting: "Pracuji…",
     progressLabel: "Průběh dělení obálek",
     console: "MÍSTNÍ KONZOLE",
     consoleIdle: "Připraveno. Zvolte nastavení a rozdělte obálky.",

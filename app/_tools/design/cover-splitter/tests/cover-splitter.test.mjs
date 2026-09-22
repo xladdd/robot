@@ -52,9 +52,10 @@ test("keeps vector panel crops and the optional inside-cover mapping", async () 
 });
 
 test("registers browser-local multi-file processing and the stable public path", async () => {
-  const [component, worker] = await Promise.all([
+  const [component, worker, pdfPreview] = await Promise.all([
     readFile(interfacePath, "utf8"),
     readFile(workerPath, "utf8"),
+    readFile(new URL("../code/pdf-preview.ts", import.meta.url), "utf8"),
     access(
       new URL(
         "../../../../../public/cover-splitter/pyodide-worker.js",
@@ -71,7 +72,14 @@ test("registers browser-local multi-file processing and the stable public path",
     /new Worker\("\/cover-splitter\/pyodide-worker\.js"\)/,
   );
   assert.match(component, /size: entry\.sizeChoice/);
-  assert.match(component, /includeInside: splitInside/);
+  assert.match(component, /action: "split", files: workerFiles, includeInside/);
+  assert.match(component, /action: "package"/);
+  assert.match(component, /cover-splits-\$\{format\.toLowerCase\(\)\}\.zip/);
+  assert.match(component, /renderSplitPdfPanel/);
+  assert.match(pdfPreview, /new Uint8Array\(buffer\.slice\(0\)\)/);
+  assert.match(component, /exportRasterFiles\("png"\)/);
+  assert.match(component, /exportRasterFiles\("jpg"\)/);
+  assert.match(component, /className="cover-splitter-export-actions"/);
   assert.match(component, /type="checkbox"/);
   assert.match(
     component,
@@ -87,17 +95,18 @@ test("registers browser-local multi-file processing and the stable public path",
   assert.match(component, /className="cover-splitter-empty"/);
   assert.match(component, /className="cover-splitter-module has-files"/);
   assert.doesNotMatch(component, /!hasFiles &&|hasFiles &&/);
-  assert.match(
-    component,
-    /disabled=\{!hasFiles \|\| isProcessing \|\| isPreparing\}/,
-  );
+  assert.match(component, /!hasFiles \|\|\s*isProcessing \|\|\s*isPreparing/);
   assert.match(component, /className="cover-splitter-preview-column"/);
   assert.match(component, /className="cover-splitter-remove"/);
   assert.match(worker, /PYODIDE_VERSION = "0\.28\.3"/);
+  assert.match(worker, /validateSplitRequest/);
   assert.match(worker, /data\?\.includeInside === true/);
   assert.match(worker, /include_inside=bool\(browser_include_inside\)/);
+  assert.match(worker, /validateArchiveRequest/);
+  assert.match(worker, /action === "package"/);
+  assert.match(worker, /ZipFile\(_archive_root/);
   assert.match(worker, /micropip\.install\("pypdf==/);
-  assert.match(worker, /self\.postMessage\(\{ type: "result", buffer/);
+  assert.match(worker, /self\.postMessage\(\{ type: "result", \.\.\.result \}/);
 });
 
 test("keeps the multiple-workbench controls clear of the nameday footer", async () => {
@@ -110,6 +119,14 @@ test("keeps the multiple-workbench controls clear of the nameday footer", async 
   assert.match(
     styles,
     /\.cover-splitter-controls\.editor-sidebar\s*\{[^}]*height:\s*calc\(\s*100% - var\(--nameday-clearance\) \+ var\(--wide-app-gutter\) - 5px\s*\)/s,
+  );
+  assert.match(
+    styles,
+    /\.cover-splitter-export-actions\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);[^}]*gap:\s*5px;/s,
+  );
+  assert.match(
+    styles,
+    /\.cover-splitter-downloads\s*\{[^}]*gap:\s*10px;[^}]*width:\s*100%;/s,
   );
 });
 

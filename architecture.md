@@ -173,9 +173,9 @@ Design apps:
 - `app/_tools/design/grep-builder/tests/validation.test.mts`: deterministic validator regressions.
 - `app/_tools/design/grep-builder/tests/intent.test.mts`: bilingual deterministic-intent and fail-closed regressions.
 - `app/_tools/design/grep-builder/tests/prompt.test.mts`: regression coverage for the exact four-pass conditional date-padding guidance.
-- `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, and a Graph-style sidebar containing file actions, optional inside-cover splitting, the local console, progress, and ZIP download.
-- `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders only the outside-cover page locally with PDF.js.
-- `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python and package separate back/front PDFs into a ZIP.
+- `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, optional inside-cover splitting, format-specific PDF/PNG/JPG ZIP exports, a local console, progress, and a ZIP that accumulates requested formats.
+- `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders the outside-cover preview and requested completed PDF panels locally with PDF.js.
+- `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python, return individual panels, and package PDFs plus any requested raster exports into a ZIP.
 - `app/_tools/design/cover-splitter/tests/`: protects panel dimensions, per-file presets, first-page-only processing, output names, and vector output.
 - `app/_tools/design/barcode-generator/code/ean13.ts`: validates ISBN, builds EAN-13 bars, outlines the digits, and writes a vector PDF.
 - `app/_tools/design/barcode-generator/copy.ts`: bilingual Barcode Generator UI copy.

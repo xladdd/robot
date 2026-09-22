@@ -1,4 +1,4 @@
-/* Splits cover PDFs entirely inside a classic browser Worker. */
+/* Splits cover PDFs and packages requested exports inside a classic browser Worker. */
 const PYODIDE_VERSION = "0.28.3";
 const PYODIDE_ROOT = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 const PYPDF_VERSION = "6.18.0";
@@ -25,10 +25,10 @@ function asArrayBuffer(value, fileName) {
       value.byteOffset + value.byteLength,
     );
   }
-  throw new TypeError(`${fileName} is missing its PDF ArrayBuffer.`);
+  throw new TypeError(`${fileName} is missing its file ArrayBuffer.`);
 }
 
-function validateRequest(data) {
+function validateSplitRequest(data) {
   if (!Array.isArray(data?.files) || data.files.length === 0) {
     throw new TypeError("At least one PDF is required.");
   }
@@ -49,6 +49,25 @@ function validateRequest(data) {
     };
   });
   return { files, includeInside };
+}
+
+function validateArchiveRequest(data) {
+  if (!Array.isArray(data?.files) || data.files.length === 0) {
+    throw new TypeError("At least one output file is required.");
+  }
+
+  const names = new Set();
+  return data.files.map((file, index) => {
+    const name = String(file?.name ?? "").trim();
+    if (!name || name.includes("/") || name.includes("\\")) {
+      throw new TypeError(`Output file ${index + 1} has an invalid name.`);
+    }
+    if (names.has(name.toLocaleLowerCase())) {
+      throw new TypeError(`More than one output is named ${name}.`);
+    }
+    names.add(name.toLocaleLowerCase());
+    return { name, buffer: asArrayBuffer(file?.buffer, name) };
+  });
 }
 
 async function loadRuntime() {
@@ -87,23 +106,24 @@ function removeTree(fileSystem, path) {
   }
 }
 
-self.onmessage = async (event) => {
-  if (busy) {
-    self.postMessage({
-      type: "error",
-      message: "The cover splitter is already processing a request.",
-    });
-    return;
-  }
+function resultBuffer(fileSystem, path) {
+  const output = fileSystem.readFile(path);
+  return output.buffer.slice(
+    output.byteOffset,
+    output.byteOffset + output.byteLength,
+  );
+}
 
-  busy = true;
-  let pyodide = null;
-  let jobRoot = null;
+function jobPath(prefix) {
+  return `/tmp/${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function splitCovers(data) {
+  const { files, includeInside } = validateSplitRequest(data);
+  const pyodide = await loadRuntime();
+  let jobRoot = jobPath("cover-splitter");
+
   try {
-    const { files, includeInside } = validateRequest(event.data);
-    pyodide = await loadRuntime();
-
-    jobRoot = `/tmp/cover-splitter-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const inputDir = `${jobRoot}/input`;
     const outputDir = `${jobRoot}/output`;
     const zipPath = `${jobRoot}/${RESULT_FILENAME}`;
@@ -191,17 +211,88 @@ _module.split_covers_to_zip(
 `);
 
     log("Reading the local ZIP archive…", 96);
-    const output = pyodide.FS.readFile(zipPath);
-    const buffer = output.buffer.slice(
-      output.byteOffset,
-      output.byteOffset + output.byteLength,
-    );
-    removeTree(pyodide.FS, jobRoot);
-    jobRoot = null;
+    const generated = pyodide.FS.readdir(outputDir)
+      .filter((name) => name !== "." && name !== "..")
+      .sort()
+      .map((name) => ({
+        name,
+        buffer: resultBuffer(pyodide.FS, `${outputDir}/${name}`),
+      }));
+    const buffer = resultBuffer(pyodide.FS, zipPath);
     log("Cover splits are ready.", 100);
-    self.postMessage({ type: "result", buffer, filename: RESULT_FILENAME }, [
-      buffer,
-    ]);
+    return { buffer, filename: RESULT_FILENAME, files: generated };
+  } finally {
+    removeTree(pyodide.FS, jobRoot);
+    pyodide.globals.delete("browser_job_root");
+    pyodide.globals.delete("browser_include_inside");
+    pyodide.globals.delete("browser_progress");
+    jobRoot = null;
+  }
+}
+
+async function packageExports(data) {
+  const files = validateArchiveRequest(data);
+  const pyodide = await loadRuntime();
+  let jobRoot = jobPath("cover-export-archive");
+
+  try {
+    const inputDir = `${jobRoot}/input`;
+    const zipPath = `${jobRoot}/${RESULT_FILENAME}`;
+    pyodide.FS.mkdirTree(inputDir);
+    const manifest = files.map((file, index) => {
+      const path = `${inputDir}/file-${String(index).padStart(4, "0")}`;
+      pyodide.FS.writeFile(path, new Uint8Array(file.buffer));
+      return { name: file.name, path };
+    });
+    pyodide.FS.writeFile(
+      `${jobRoot}/manifest.json`,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+    );
+
+    log("Updating the local ZIP archive…", 92);
+    pyodide.globals.set("browser_archive_root", jobRoot);
+    await pyodide.runPythonAsync(`
+import json
+from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
+
+_archive_root = Path(str(browser_archive_root))
+_archive_files = json.loads((_archive_root / "manifest.json").read_text(encoding="utf-8"))
+with ZipFile(_archive_root / "${RESULT_FILENAME}", "w", compression=ZIP_DEFLATED) as _archive:
+    for _file in _archive_files:
+        _archive.write(_file["path"], arcname=_file["name"])
+`);
+    const buffer = resultBuffer(pyodide.FS, zipPath);
+    log("The ZIP archive is ready.", 100);
+    return { buffer, filename: RESULT_FILENAME };
+  } finally {
+    removeTree(pyodide.FS, jobRoot);
+    pyodide.globals.delete("browser_archive_root");
+    jobRoot = null;
+  }
+}
+
+self.onmessage = async (event) => {
+  if (busy) {
+    self.postMessage({
+      type: "error",
+      message: "The cover splitter is already processing a request.",
+    });
+    return;
+  }
+
+  busy = true;
+  try {
+    const action = String(event.data?.action ?? "split");
+    const result =
+      action === "package"
+        ? await packageExports(event.data)
+        : await splitCovers(event.data);
+    const transfers = [result.buffer];
+    if (Array.isArray(result.files)) {
+      for (const file of result.files) transfers.push(file.buffer);
+    }
+    self.postMessage({ type: "result", ...result }, transfers);
   } catch (error) {
     self.postMessage({
       type: "error",
@@ -209,12 +300,6 @@ _module.split_covers_to_zip(
       stack: error?.stack,
     });
   } finally {
-    if (pyodide && jobRoot) removeTree(pyodide.FS, jobRoot);
-    if (pyodide) {
-      pyodide.globals.delete("browser_job_root");
-      pyodide.globals.delete("browser_include_inside");
-      pyodide.globals.delete("browser_progress");
-    }
     busy = false;
   }
 };

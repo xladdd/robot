@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
 import {
   renderFirstPdfPage,
+  renderSplitPdfPanel,
+  type CoverRasterFormat,
   type PdfFirstPagePreview,
 } from "./code/pdf-preview";
 import { coverSplitterCopy } from "./copy";
@@ -27,10 +29,16 @@ type CoverFileEntry = {
   sizeChoice: CoverSizeChoice;
 };
 
+type OutputFile = {
+  name: string;
+  buffer: ArrayBuffer;
+};
+
 type ZipResult = {
   buffer: ArrayBuffer;
   filename: string;
   url: string;
+  pdfFiles: OutputFile[];
 };
 
 type WorkerFile = {
@@ -38,6 +46,8 @@ type WorkerFile = {
   buffer: ArrayBuffer;
   size: CoverSizeChoice;
 };
+
+type ExportFormat = CoverRasterFormat | "pdf";
 
 type WorkerLogMessage = {
   type: "log";
@@ -50,7 +60,19 @@ type WorkerResultMessage = {
   type: "result";
   buffer?: ArrayBuffer;
   filename?: string;
+  files?: Array<{ name?: string; buffer?: ArrayBuffer }>;
 };
+
+type WorkerRequest =
+  | {
+      action: "split";
+      files: WorkerFile[];
+      includeInside: boolean;
+    }
+  | {
+      action: "package";
+      files: OutputFile[];
+    };
 
 type WorkerErrorMessage = {
   type: "error";
@@ -168,6 +190,12 @@ export function CoverSplitterMainInterface({
   const [progress, setProgress] = useState<number>(0);
   const [result, setResult] = useState<ZipResult | null>(null);
   const [includeInside, setIncludeInside] = useState<boolean>(false);
+  const [rasterFiles, setRasterFiles] = useState<
+    Partial<Record<CoverRasterFormat, OutputFile[]>>
+  >({});
+  const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(
+    null,
+  );
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
 
   useEffect(() => {
@@ -198,12 +226,19 @@ export function CoverSplitterMainInterface({
 
   function resetGeneratedResult(): void {
     replaceResult(null);
+    setRasterFiles({});
     setProgress(0);
     setConsoleLines([]);
   }
 
   async function addFiles(selectedFiles: File[]): Promise<void> {
-    if (selectedFiles.length === 0 || isPreparing || isProcessing) return;
+    if (
+      selectedFiles.length === 0 ||
+      isPreparing ||
+      isProcessing ||
+      exportingFormat
+    )
+      return;
 
     setIsPreparing(true);
     setError("");
@@ -292,7 +327,7 @@ export function CoverSplitterMainInterface({
   }
 
   function removeFile(entry: CoverFileEntry): void {
-    if (isProcessing || isPreparing) return;
+    if (isProcessing || isPreparing || exportingFormat) return;
     releaseObjectUrl(entry.previewUrl, objectUrlsRef.current);
     resetGeneratedResult();
     setFiles((current) => current.filter((file) => file.id !== entry.id));
@@ -300,7 +335,7 @@ export function CoverSplitterMainInterface({
   }
 
   function updateSize(id: string, sizeChoice: CoverSizeChoice): void {
-    if (isProcessing) return;
+    if (isProcessing || exportingFormat) return;
     resetGeneratedResult();
     setFiles((current) =>
       current.map((entry) =>
@@ -341,8 +376,8 @@ export function CoverSplitterMainInterface({
   }
 
   function runWorker(
-    workerFiles: WorkerFile[],
-    splitInside: boolean,
+    request: WorkerRequest,
+    transfer: Transferable[] = [],
   ): Promise<WorkerResultMessage> {
     return new Promise<WorkerResultMessage>((resolve, reject) => {
       let worker: Worker;
@@ -386,19 +421,41 @@ export function CoverSplitterMainInterface({
         reject(new Error(event.message || "WORKER_FAILED"));
       };
 
-      worker.postMessage(
-        { files: workerFiles, includeInside: splitInside },
-        workerFiles.map((file) => file.buffer),
-      );
+      worker.postMessage(request, transfer);
     });
   }
 
+  function outputFilesFromResponse(
+    response: WorkerResultMessage,
+  ): OutputFile[] {
+    if (!Array.isArray(response.files))
+      throw new Error("INVALID_WORKER_RESULT");
+    const files = response.files.filter(
+      (file): file is { name: string; buffer: ArrayBuffer } =>
+        typeof file.name === "string" && file.buffer instanceof ArrayBuffer,
+    );
+    if (files.length !== response.files.length || files.length === 0) {
+      throw new Error("INVALID_WORKER_RESULT");
+    }
+    return files;
+  }
+
+  function createResultUrl(buffer: ArrayBuffer): string {
+    const url = URL.createObjectURL(
+      new Blob([buffer], { type: "application/zip" }),
+    );
+    objectUrlsRef.current.add(url);
+    return url;
+  }
+
   async function splitCovers(): Promise<void> {
-    if (files.length === 0 || isPreparing || isProcessing) return;
+    if (files.length === 0 || isPreparing || isProcessing || exportingFormat)
+      return;
 
     setIsProcessing(true);
     setError("");
     replaceResult(null);
+    setRasterFiles({});
     setProgress(1);
     setConsoleLines([t.consoleStarting]);
 
@@ -412,16 +469,19 @@ export function CoverSplitterMainInterface({
       );
       if (!mountedRef.current) return;
 
-      const response = await runWorker(workerFiles, includeInside);
+      const response = await runWorker(
+        { action: "split", files: workerFiles, includeInside },
+        workerFiles.map((file) => file.buffer),
+      );
       if (!mountedRef.current || !(response.buffer instanceof ArrayBuffer))
         return;
 
-      const filename = response.filename || "cover-splits.zip";
-      const url = URL.createObjectURL(
-        new Blob([response.buffer], { type: "application/zip" }),
-      );
-      objectUrlsRef.current.add(url);
-      replaceResult({ buffer: response.buffer, filename, url });
+      replaceResult({
+        buffer: response.buffer,
+        filename: response.filename || "cover-splits.zip",
+        url: createResultUrl(response.buffer),
+        pdfFiles: outputFilesFromResponse(response),
+      });
       setProgress(100);
       appendConsole(t.ready);
     } catch (problem) {
@@ -443,8 +503,135 @@ export function CoverSplitterMainInterface({
     link.click();
   }
 
+  function downloadArchive(buffer: ArrayBuffer, filename: string): void {
+    const url = URL.createObjectURL(
+      new Blob([buffer], { type: "application/zip" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  }
+
+  async function downloadFormatArchive(
+    format: string,
+    filesToDownload: OutputFile[],
+  ): Promise<void> {
+    appendConsole(t.packagingFormat(format));
+    const response = await runWorker({
+      action: "package",
+      files: filesToDownload,
+    });
+    if (!mountedRef.current || !(response.buffer instanceof ArrayBuffer))
+      return;
+    downloadArchive(
+      response.buffer,
+      `cover-splits-${format.toLowerCase()}.zip`,
+    );
+    appendConsole(t.formatArchiveReady(format));
+  }
+
+  async function downloadPdfFiles(): Promise<void> {
+    if (!result || exportingFormat) return;
+
+    setExportingFormat("pdf");
+    setError("");
+    try {
+      await downloadFormatArchive("PDF", result.pdfFiles);
+    } catch (problem) {
+      const detail =
+        problem instanceof Error && problem.message
+          ? problem.message
+          : "UNKNOWN_EXPORT_ERROR";
+      setError(t.exportFailed("PDF"));
+      appendConsole(t.exportFailed("PDF"));
+      appendConsole(t.exportFailureDetail(detail));
+    } finally {
+      if (mountedRef.current) setExportingFormat(null);
+    }
+  }
+
+  async function exportRasterFiles(format: CoverRasterFormat): Promise<void> {
+    if (!result || exportingFormat) return;
+
+    setExportingFormat(format);
+    setError("");
+    const formatLabel = format.toUpperCase();
+    const existingFiles = rasterFiles[format];
+
+    try {
+      if (existingFiles) {
+        await downloadFormatArchive(formatLabel, existingFiles);
+        return;
+      }
+
+      setProgress(0);
+      appendConsole(t.exportStarting(formatLabel, result.pdfFiles.length));
+      const generatedFiles: OutputFile[] = [];
+      for (const [index, pdfFile] of result.pdfFiles.entries()) {
+        appendConsole(
+          t.renderingFile(
+            formatLabel,
+            index + 1,
+            result.pdfFiles.length,
+            pdfFile.name,
+          ),
+        );
+        setProgress(Math.round((index / result.pdfFiles.length) * 80));
+        const blob = await renderSplitPdfPanel(pdfFile.buffer, format);
+        generatedFiles.push({
+          name: pdfFile.name.replace(/\.pdf$/i, `.${format}`),
+          buffer: await blob.arrayBuffer(),
+        });
+      }
+
+      const nextRasterFiles = { ...rasterFiles, [format]: generatedFiles };
+      appendConsole(t.updatingArchive);
+      setProgress(84);
+      const archiveFiles = [
+        ...result.pdfFiles,
+        ...Object.values(nextRasterFiles).flatMap(
+          (filesForFormat) => filesForFormat ?? [],
+        ),
+      ];
+      const response = await runWorker({
+        action: "package",
+        files: archiveFiles,
+      });
+      if (!mountedRef.current || !(response.buffer instanceof ArrayBuffer))
+        return;
+
+      replaceResult({
+        ...result,
+        buffer: response.buffer,
+        filename: response.filename || result.filename,
+        url: createResultUrl(response.buffer),
+      });
+      setRasterFiles(nextRasterFiles);
+      setProgress(100);
+      await downloadFormatArchive(formatLabel, generatedFiles);
+      appendConsole(t.exportReady(formatLabel));
+    } catch (problem) {
+      const exportError = t.exportFailed(formatLabel);
+      const detail =
+        problem instanceof Error && problem.message
+          ? problem.message
+          : "UNKNOWN_EXPORT_ERROR";
+      setError(exportError);
+      appendConsole(exportError);
+      appendConsole(t.exportFailureDetail(detail));
+      setProgress(0);
+    } finally {
+      if (mountedRef.current) setExportingFormat(null);
+    }
+  }
+
   const hasFiles = files.length > 0;
-  const uploadDisabled = isPreparing || isProcessing;
+  const uploadDisabled =
+    isPreparing || isProcessing || exportingFormat !== null;
 
   return (
     <div className="cover-splitter-module has-files">
@@ -489,7 +676,7 @@ export function CoverSplitterMainInterface({
                   setIncludeInside(event.target.checked);
                   resetGeneratedResult();
                 }}
-                disabled={isProcessing}
+                disabled={isProcessing || exportingFormat !== null}
               />
               <span>{t.splitInside}</span>
             </label>
@@ -523,22 +710,61 @@ export function CoverSplitterMainInterface({
             type="button"
             className="solutions-create cover-splitter-run action-button action-button-primary"
             onClick={() => void splitCovers()}
-            disabled={!hasFiles || isProcessing || isPreparing}
+            disabled={
+              !hasFiles ||
+              isProcessing ||
+              isPreparing ||
+              exportingFormat !== null
+            }
           >
             <span>{isProcessing ? t.splitting : t.split}</span>
             <b aria-hidden="true">→</b>
           </button>
 
           {result && (
-            <button
-              type="button"
-              className="solutions-create is-complete cover-splitter-download action-button action-button-success"
-              onClick={downloadResult}
-              aria-label={t.downloadLabel}
-            >
-              <span>{t.download}</span>
-              <b aria-hidden="true">↓</b>
-            </button>
+            <div className="cover-splitter-downloads">
+              <div className="cover-splitter-export-actions">
+                <button
+                  type="button"
+                  className="cover-splitter-export action-button"
+                  onClick={() => void downloadPdfFiles()}
+                  disabled={exportingFormat !== null}
+                  aria-label={t.downloadFilesLabel("PDF")}
+                >
+                  <span>{exportingFormat === "pdf" ? t.exporting : "PDF"}</span>
+                  <b aria-hidden="true">↓</b>
+                </button>
+                <button
+                  type="button"
+                  className="cover-splitter-export action-button"
+                  onClick={() => void exportRasterFiles("png")}
+                  disabled={exportingFormat !== null}
+                  aria-label={t.downloadFilesLabel("PNG")}
+                >
+                  <span>{exportingFormat === "png" ? t.exporting : "PNG"}</span>
+                  <b aria-hidden="true">↓</b>
+                </button>
+                <button
+                  type="button"
+                  className="cover-splitter-export action-button"
+                  onClick={() => void exportRasterFiles("jpg")}
+                  disabled={exportingFormat !== null}
+                  aria-label={t.downloadFilesLabel("JPG")}
+                >
+                  <span>{exportingFormat === "jpg" ? t.exporting : "JPG"}</span>
+                  <b aria-hidden="true">↓</b>
+                </button>
+              </div>
+              <button
+                type="button"
+                className="solutions-create is-complete cover-splitter-download action-button action-button-success"
+                onClick={downloadResult}
+                aria-label={t.downloadLabel}
+              >
+                <span>{t.download}</span>
+                <b aria-hidden="true">↓</b>
+              </button>
+            </div>
           )}
 
           <p className="solutions-privacy">{t.localProcessing}</p>
@@ -637,7 +863,7 @@ export function CoverSplitterMainInterface({
                   onChange={(event) =>
                     updateSize(entry.id, event.target.value as CoverSizeChoice)
                   }
-                  disabled={isProcessing}
+                  disabled={isProcessing || exportingFormat !== null}
                   aria-label={`${t.sizeLabel}: ${entry.file.name}`}
                   className="cover-splitter-size"
                 >

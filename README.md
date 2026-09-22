@@ -50,7 +50,7 @@ Turns plain Find and Change instructions into strings for Adobe InDesign's GREP 
 
 ### Cover Splitter
 
-Splits the first outside-cover page of one or more local PDFs into separate vector `_BACK.pdf` and `_FRONT.pdf` files. A5, A4, and B5 presets omit any middle spine; Split in half divides the spread at its midpoint. The second inside-cover page is ignored by default, or an optional checkbox adds matching `_FRONT-inside.pdf` and `_BACK-inside.pdf` files. Results download together as a ZIP. [English info drawer](app/_tools/design/cover-splitter/info.en.md)
+Splits the first outside-cover page of one or more local PDFs into separate vector `_BACK.pdf` and `_FRONT.pdf` files. A5, A4, and B5 presets omit any middle spine; Split in half divides the spread at its midpoint. The second inside-cover page is ignored by default, or an optional checkbox adds matching `_FRONT-inside.pdf` and `_BACK-inside.pdf` files. Format-specific ZIP downloads provide the vector PDFs or requested PNG/JPG panels. PNG and JPG are rendered locally only when requested, and the main ZIP retains PDFs plus every requested raster format. [English info drawer](app/_tools/design/cover-splitter/info.en.md)
 
 ### Solutions Importer
 
