@@ -62,7 +62,7 @@ Cons:
 - `AGENTS.md`: working rules for coding agents. README is written for people; AGENTS contains precise change and verification rules.
 - `package.json`: supported Node version, commands, and direct dependencies.
 - `package-lock.json`: exact installed dependency versions. Do not edit it by hand.
-- `next.config.ts`: Next.js settings. It currently keeps the defaults.
+- `next.config.ts`: Next.js settings. `allowedDevOrigins` permits the configured development-machine origin, currently `10.0.0.83`, and `outputFileTracingIncludes` makes app-owned prompt Markdown available to API routes in deployed server bundles. Review the development origin when the app moves to another network or owner.
 - `scripts/materialize-public-links.mjs`: Vercel-only build preparation. It replaces the tracked `public/` symlinks with disposable copies in Vercel's build workspace, preventing Vercel from attempting to copy an app-owned `public` directory onto itself while retaining app ownership and stable browser URLs in Git.
 - `next-env.d.ts`: generated Next.js TypeScript declarations. Do not edit it by hand.
 - `tsconfig.json`: TypeScript checks and the `@/` path shortcut.
@@ -158,7 +158,7 @@ Image apps:
 - `app/_tools/image/cover-generator/scripts/`: cover workflow checks and evaluation helpers.
 - `app/_tools/image/image-generator/MainInterface.tsx`: square image queue, local prompt-document import, optional references, results, downloads, cancellation, and lightbox.
 - `app/_tools/image/image-generator/code/prompts.ts`: blank-line queue parsing, the 15-image cap, and browser-local DOCX/Markdown/text reading.
-- `app/_tools/image/image-generator/code/server.ts`: private square-image generation through the app-specific OpenRouter key and the same fast/fidelity FLUX models as Cover Generator.
+- `app/_tools/image/image-generator/code/server.ts`: private square-image generation through the app-specific OpenRouter key, with FLUX.2 Klein for fast output, FLUX.2 Pro for fidelity output, and optional FLUX.2 Pro generative upscaling.
 - `app/_tools/image/image-generator/prompts/generate.md`: stable image-generation instruction.
 - `app/_tools/image/image-generator/tests/prompts.test.mts`: queue splitting and limit regressions.
 
@@ -303,13 +303,15 @@ The following completes the folder map by naming every source-file role. Repeate
 
 #### Cover Generator: `app/_tools/image/cover-generator/`
 
-- `MainInterface.tsx`: reference intake, direction selection, production controls, results, and lightbox.
+- `MainInterface.tsx`: optional reference intake, audience/subject/keyword controls, FLUX/Gemini model choice, two-or-four-concept batches, preference and rejection controls, results, exports, and lightbox.
 - `copy.ts`: bilingual in-app UI copy.
-- `code/server.ts`: Shutterstock lookup, model calls, response handling, and cover workflow operations.
+- `code/server.ts`: validates the concept request, coordinates planner fallback and parallel image generation, retries each failed concept once, and returns generated concepts with warnings and usage metadata.
+- `code/concept-plan.ts`: asks Mistral Small for distinct structured concept plans and broad reference guidance, validates the response, and provides deterministic local fallback directions.
+- `code/types.ts`: audience, subject, concept-plan, reference-guidance, and planner metadata types.
 - `code/cover-artboard.ts`: browser-created PDF contact sheet.
-- `prompts/analyse-assets.md`, `asset.md`, `master.md`, `sketch.md`: the main stable workflow instructions.
-- `prompts/medium-3d.md`, `medium-illustration.md`, `medium-match.md`, `medium-photo.md`: medium-specific instruction fragments.
-- `prompts/subject-default.md`, `subject-evolution.md`: subject-specific instruction fragments.
+- `prompts/plan-concepts.md`: stable concept-planning and reference-guidance instructions.
+- `prompts/sketch.md`: stable text-free cover-art generation instructions.
+- `prompts/subject-default.md`, `subject-evolution.md`: retained subject-specific prompt fragments that the current runtime does not load.
 - `scripts/create-cover-artboard-sample.py`, `evaluate-cover-model.mjs`, and `test-cover-workflow.mjs`: local maintenance and evaluation tools, not application runtime code.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
@@ -401,17 +403,17 @@ The output is written to `design-manual/public/design-manual.en.pdf` and `design
 
 ## OpenRouter provisioning and usage attribution
 
-Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the nine app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
+Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the ten app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
 
-Provision the nine app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
+Provision the ten app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
 
 ```bash
 npm run openrouter:provision
 ```
 
-The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the nine generated inference variables copied into its secret environment.
+The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the ten generated inference variables copied into its secret environment.
 
-`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all nine variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
+`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all ten variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
 
 ## Main execution flow
 
@@ -553,31 +555,29 @@ Editable SVG
 
 ### Cover Generator
 
-**Input:** two or three reference covers, brief, style/quality choices, optional Shutterstock searches.
+**Input:** audience and subject, optional custom subject and keywords, zero to three optional reference covers, an optional preferred earlier concept, a batch size of two or four, and a FLUX or Gemini image-model choice.
 
 **Flow:**
 
 ```text
-References, brief, and options
+Audience, subject, optional keywords and references
 ↓
-Optional Shutterstock research
+Mistral Small plans two or four distinct concepts and reference guidance
 ↓
-Parallel OpenRouter concept generation
+Validated plan, or deterministic local directions if planning fails
 ↓
-User selects one direction
+Parallel image generation with FLUX.2 Klein at 512 px or Gemini Flash Lite at 1K
 ↓
-OpenRouter object analysis
+One replacement attempt for each failed image
 ↓
-2K master generation
+User keeps, prefers, or rejects concepts and may generate another batch
 ↓
-Separate 2K asset generation
-↓
-ZIP report or artboard PDF
+ZIP with JPEGs, Markdown report, and project JSON, or artboard PDF
 ```
 
-**Output:** concept images, master, separate assets, ZIP report, and artboard PDF.
+**Output:** text-free concept images, a ZIP containing the active JPEGs plus `generation-report.md` and `project.json`, and a browser-created artboard PDF. A preferred concept can guide a later batch; there is no master-image or separate-asset production stage.
 
-**Dependencies:** OpenRouter image model `black-forest-labs/flux.2-klein-4b` for fast 512 px concepts, `black-forest-labs/flux.2-pro` for high-quality 1K concepts, 2K master, and separate assets, and LLM `mistralai/mistral-small-2603` for object analysis. It can also read optional Shutterstock pages. Browser ZIP/PDF helpers produce downloads. The interface is app-owned; workflow control, ZIP writing, and report creation remain in `Workspace.tsx`.
+**Dependencies:** OpenRouter planner `mistralai/mistral-small-2603`, image model `black-forest-labs/flux.2-klein-4b` for 512 px concepts, or `google/gemini-3.1-flash-lite-image` for 1K concepts. These three current Cover Generator model names are code constants rather than environment overrides. Browser ZIP/PDF helpers produce downloads. The interface and server implementation are app-owned; long-lived workflow state, ZIP writing, and report creation remain in `Workspace.tsx`.
 
 ### GREP Builder
 
@@ -793,7 +793,7 @@ Failed cards can retry their own request. Completed 512 px and 1K cards can be u
 
 **Output:** separate square JPEG images with individual and batch download controls.
 
-**Dependencies:** browser File, Canvas, ZIP decompression, and DOM APIs for local input preparation; OpenRouter image generation using the same FLUX fast/fidelity choices as Cover Generator. The imported source document itself is not uploaded.
+**Dependencies:** browser File, Canvas, ZIP decompression, and DOM APIs for local input preparation; OpenRouter image generation using FLUX.2 Klein for fast 512 px output and FLUX.2 Pro for high-fidelity output and generative upscaling. The imported source document itself is not uploaded.
 
 ### Typesetter
 
@@ -813,29 +813,31 @@ Reserved app folder
 
 ## OpenRouter model map
 
-Model names are defaults from `.env.example`. Each can be changed through its named environment setting without editing code.
+`.env.example` lists the environment setting for each configurable model. A dash means the current model is an intentional code constant and changing it requires a code change.
 
-| App               | Job                   | Setting                             | Default model                       |
-| ----------------- | --------------------- | ----------------------------------- | ----------------------------------- |
-| Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`              | `mistralai/mistral-small-2603`      |
-| Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL`       | `mistralai/ministral-8b-2512`       |
-| Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`            | `mistralai/mistral-medium-3-5`      |
-| Index Creator     | page selection        | `OPENROUTER_INDEX_SELECTION_MODEL`  | `mistralai/mistral-medium-3-5`      |
-| Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
-| Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`           | `mistralai/mistral-large-2512`      |
-| Image Generator   | fast 512 px images    | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
-| Image Generator   | high-quality images   | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
-| Image Generator   | 2× generative upscale | `OPENROUTER_IMAGE_UPSCALE_MODEL`*   | `black-forest-labs/flux.2-pro`      |
-| Cover Generator   | fast 512 px concepts  | `OPENROUTER_COVER_SKETCH_MODEL`     | `black-forest-labs/flux.2-klein-4b` |
-| Cover Generator   | high-quality concepts | `OPENROUTER_COVER_FIDELITY_MODEL`   | `black-forest-labs/flux.2-pro`      |
-| Cover Generator   | 2K master and assets  | `OPENROUTER_COVER_PRODUCTION_MODEL` | `black-forest-labs/flux.2-pro`      |
-| Cover Generator   | object analysis       | `OPENROUTER_COVER_ANALYSIS_MODEL`   | `mistralai/mistral-small-2603`      |
-| GREP Builder      | GREP conversion       | `OPENROUTER_GREP_MODEL`             | `mistralai/ministral-8b-2512`       |
-| Prompt Extractor  | page-image reading    | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b`            |
+| App               | Job                     | Setting                                    | Default model                        |
+| ----------------- | ----------------------- | ------------------------------------------ | ------------------------------------ |
+| Text Extractor    | OCR and image reading   | `OPENROUTER_OCR_MODEL`                     | `mistralai/mistral-small-2603`       |
+| Text Extractor    | correction              | `OPENROUTER_CORRECTION_MODEL`              | `mistralai/ministral-8b-2512`        |
+| Index Creator     | grammatical forms       | `OPENROUTER_INDEX_MODEL`                   | `mistralai/mistral-medium-3-5`       |
+| Diagram Generator | diagram description     | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Graph Generator   | chart structure         | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Map Generator     | optional generated map  | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Cover Generator   | concept planning        | —                                          | `mistralai/mistral-small-2603`       |
+| Cover Generator   | fast 512 px concepts    | —                                          | `black-forest-labs/flux.2-klein-4b`  |
+| Cover Generator   | 1K concepts             | —                                          | `google/gemini-3.1-flash-lite-image` |
+| Image Generator   | fast 512 px images      | `OPENROUTER_COVER_SKETCH_MODEL`            | `black-forest-labs/flux.2-klein-4b`  |
+| Image Generator   | high-quality images     | `OPENROUTER_COVER_FIDELITY_MODEL`          | `black-forest-labs/flux.2-pro`       |
+| Image Generator   | 2× generative upscale   | `OPENROUTER_IMAGE_UPSCALE_MODEL`*          | `black-forest-labs/flux.2-pro`       |
+| Layer Splitter    | scene planning          | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL`     | `mistralai/mistral-small-2603`       |
+| Layer Splitter    | fast reconstruction     | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL`     | `black-forest-labs/flux.2-klein-4b`  |
+| Layer Splitter    | fidelity reconstruction | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro`       |
+| GREP Builder      | GREP conversion         | `OPENROUTER_GREP_MODEL`                    | `mistralai/ministral-8b-2512`        |
+| Prompt Extractor  | page-image reading      | `OPENROUTER_PROMPT_EXTRACTOR_MODEL`        | `qwen/qwen3.5-122b-a10b`             |
 
-`*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`.
+`*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
 
-Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, and Typesetter make no OpenRouter call in their current visible flows. Its optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
+Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, and Typesetter make no OpenRouter call in their current visible flows. Map Generator's optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
 
 ## Important functions
 
@@ -850,7 +852,7 @@ Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, B
 - `generateFigure`, `loadTimelineYear`: model-backed figures and local historical maps.
 - `mapPointerDown`, `mapPointerMove`, `mapPointerUp`, `mapWheel`: map viewport interaction.
 - `applyMapPalette`, `downloadCroppedMap`: final map appearance and SVG export.
-- `generateCoverSketches`, `generateCoverLayers`: cover concept and production calls.
+- `generateCoverSketches`: requests a planned two-or-four-concept Cover Generator batch.
 - `downloadCoverZip`, `exportCoverArtboard`: cover deliverables.
 - `downloadBarcode`: barcode PDF download.
 - `downloadText`, `downloadFigure`: shared browser download helpers.
@@ -862,13 +864,13 @@ The exported functions in `graph-generator/code/graph.ts`, `diagram-generator/co
 ## Where responsibilities are still mixed
 
 - `app/Workspace.tsx` still mixes shell navigation with every app's long-lived browser state, local file work, API calls, and downloads. Interfaces are separated, but controller ownership is now its main extension risk.
-- `app/_tools/image/cover-generator/code/server.ts` mixes Shutterstock page reading, prompt construction, OpenRouter calls, response parsing, and four workflow modes.
+- `app/_tools/image/cover-generator/code/server.ts` still combines request validation, planner fallback orchestration, image-prompt construction, parallel image calls, retry handling, and response assembly; structured concept planning itself is separated into `concept-plan.ts`.
 - `app/Workspace.tsx` preserves image-app state in one controller while rendering three interfaces. This avoids a behavior change during the split, but controller ownership remains to be moved.
 - Some download and upload helpers are repeated rather than shared because they have slightly different limits and output rules.
 
 ## Duplication, dead code, and confusing names
 
-- OpenRouter request headers, error handling, and model selection are repeated across server files. Prompt prose is now app-owned Markdown, but the HTTP request shell is still duplicated.
+- OpenRouter transport, attribution headers, pseudonymous user attachment, JSON parsing, and usage logging are centralized in `requestOpenRouter()`. App handlers still own model selection, request/response validation, and app-specific error interpretation.
 - PDF.js worker setup appears in the index, prompt, and Solutions PDF helpers.
 - File validation, drag/drop, clipboard, and Blob download patterns repeat in the workspace.
 - Solutions has one extractor but two importer strategies. Keep their shared v2 input contract tested while allowing their placement code to remain deliberately different.
@@ -896,7 +898,7 @@ Continue the current structure without adding a framework inside the framework:
 2. Give an interface a small controller hook only when its state and actions are large enough to benefit from it.
 3. Decide explicitly whether each app should preserve or reset its form when switching; moving state changes that behavior.
 4. Move one image-app controller at a time only after a switching-app browser test protects its state behavior.
-5. Add a small shared OpenRouter request helper after tests cover the current error behavior.
+5. Keep application handlers routed through the shared `requestOpenRouter()` transport, and extend its tests when shared error or logging behavior changes.
 6. Remove confirmed dead files and functions in separate changes so behavior changes are easy to review.
 
 Do not create a general “tool engine”, service container, or class hierarchy. The apps have different inputs and outputs; simple modules with explicit functions are easier to own.
