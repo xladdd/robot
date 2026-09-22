@@ -89,6 +89,14 @@ Standard buttons have square corners, a `1px` ink border, and visible pressed or
 
 The top bar, sidebar, information drawer, background grid, colour theme, and Nameday footer belong to the shared workspace. Tool interfaces keep Robot’s square geometry, thin ink borders, Verdana body typography, orange primary actions, and turquoise confirmation states. Text Workbenches may hide the Nameday footer when it would compete with editing controls.
 
+### Information drawer
+
+- The top-bar `i` control toggles the information drawer: it opens a closed drawer and closes an open drawer. Its pressed state reflects whether the drawer is open; the drawer close button and scrim also close it.
+- A drawer presents the current app name only. Do not add a `TAKTIK ROBOT` kicker, subtitle, category code, or other brand line above the name.
+- The app name uses `28px`, weight `400`, line-height `1.08`, and `-0.04em` letter-spacing. It is regular, not bold.
+- Drawer Markdown uses orange `11px` section headings with a top rule and muted `11px/1.7` body copy. App drawer Markdown contains only **What is this?** and **How does it work?** (localized in Czech).
+- Inline code names models, programs, paths, and technical values. It uses `10px/1.5 var(--font-mono)`, ink text, panel background, `1px` line border, and `1px 4px` padding as a compact code snippet. Do not use code styling for ordinary body copy.
+
 Place the AI Indicator directly above the H1 with `var(--title-block-gap)`; do not add category codes or descriptions. Keep explanations in the information drawer or beside the control they clarify.
 
 ## Interface archetypes
