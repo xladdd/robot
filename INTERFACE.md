@@ -1,6 +1,6 @@
 # Robot interface system
 
-Robot uses one visual language and six interface archetypes. New tools start from the closest archetype rather than introduce a new page structure.
+Robot uses one visual language and four main interface archetypes – Text Workbench, Visual Workbench – Single, Visual Workbench – Multiple, and Compact Utility – with four exceptions that do not adhere to the four archetypes. New tools start from the closest archetype rather than introduce a new page structure.
 
 ## Core terms
 
@@ -39,7 +39,7 @@ These class names and properties are stable. App-owned modifiers may alter place
 
 - `.crosshair-instruction` centres a `38px` orange crosshair above muted `13px/1.65` instruction text.
 - Text has a maximum width of `470px`; the complete instruction is interactive when it represents an upload or selection action.
-- The crosshair instruction and its interaction target are borderless. Hover and keyboard focus use a turquoise inset outline around the complete enclosing viewport, never a smaller box around the crosshair element.
+- The crosshair instruction and its interaction target are borderless. They do not add an outline or border to themselves, their enclosing viewport, or the app workspace on hover or keyboard focus.
 
 ### Loading text
 
@@ -119,7 +119,7 @@ The panel carries the standard shadow and keeps `48px` clearance from the Nameda
 
 Use for generating, importing, or reviewing multiple related visual results in one gallery. The workbench is centred, `1160px` wide, and keeps a minimum `24px` gutter. It uses a two-thirds gallery stage and a one-third, `330px` control panel aligned to the title row. The panel scrolls independently, carries the standard shadow, and its outer shadow edge keeps `48px` clear above the Nameday footer. At narrow widths the stage and panel stack and become full width.
 
-The stage begins with the shared title block and shows the centred, borderless crosshair instruction while its gallery is empty. Cover Splitter’s instruction is interactive and reads **“Drag PDFs here or click to select files”**; clicking or dropping files there performs the same upload as the panel action. Hovering or focusing it outlines the complete app viewport in turquoise rather than boxing the instruction. Cover Generator alone shows the active-sketch counter. Cover Splitter and Image Generator omit it. Keep export or download actions at the bottom of the control panel.
+The stage begins with the shared title block at the same `7px` top inset, left stage edge, and title-rule baseline used by Visual Workbench – Single, so its AI Indicator and H1 remain fixed when switching between workbench types. Its title rule aligns with the top edge of a Single workbench preview. It shows the centred, borderless crosshair instruction while its gallery is empty. Cover Splitter’s instruction is interactive and reads **“Drag PDFs here or click to select files”**; clicking or dropping files there performs the same upload as the panel action. Hovering or focusing it does not add an outline to the instruction, gallery, or app workspace. Cover Generator alone shows the active-sketch counter. Cover Splitter and Image Generator omit it. Keep export or download actions at the bottom of the control panel.
 
 ### Compact Utility
 
@@ -129,19 +129,19 @@ Use for a complete, short task with one small input—not as a launcher for a la
 
 Compact utilities use a centred `720px` content width. Their AI Indicator and H1 are horizontally centred above primary controls and the immediate result at that shared width. The H1 uses `clamp(30px, 5vw, 64px)`, a `14px` indicator gap, line-height `1`, weight `400`, and letter-spacing `-0.055em`. Compact Utility has no title description.
 
-GREP Builder uses a persistent input/result pair. Layer Splitter uses one borderless upload area equal to the combined height of GREP’s two `58px` fields, followed by its quality selector and primary action. The empty upload area contains the shared crosshair instruction **“Drop file here, or click to select”**. The crosshair area never gains its own border; hovering or keyboard-focusing it outlines the complete app viewport in turquoise instead. Once selected, the same area becomes a bordered source confirmation with a thumbnail, filename, and replacement controls. Its process console opens below the primary action only after reconstruction starts and reports request, completion, validation, warning, or failure information without presenting estimated server stages as measured progress. The ready-state PSD download uses the turquoise success treatment.
+GREP Builder uses a persistent input/result pair. Layer Splitter uses one borderless upload area equal to the combined height of GREP’s two `58px` fields, followed by its quality selector and primary action. The empty upload area contains the shared crosshair instruction **“Drop file here, or click to select”**. The crosshair area and app workspace remain borderless and gain no outline on hover or keyboard focus. Once selected, the same area becomes a bordered source confirmation with a thumbnail, filename, and replacement controls. Its process console opens below the primary action only after reconstruction starts and reports request, completion, validation, warning, or failure information without presenting estimated server stages as measured progress. The ready-state PSD download uses the turquoise success treatment.
 
 ### Unique Workspaces
 
-> Map Generator · Solutions Importer · Script Buffet
+> Map Generator · Solutions Importer
 
 Use when a task-specific structure cannot follow a standard archetype without making the workflow harder. Keep the shared title block, AI Indicator, viewport, control-panel, button, and responsive rules wherever those elements occur.
 
 Map Generator adapts the Visual Workbench – Single into a canvas editor. Its `330px` control panel scrolls internally and moves below the canvas on narrow screens. Solutions Importer remains a unique multi-file workflow.
 
-### Reference
+### Reference / Library
 
-> Design Manual
+> Design Manual · Script Buffet
 
 Use for browsing reusable assets or reading structured documentation. Libraries use the `1160px` widescreen frame. Put navigation or filters before content, keep each download attached to its item, and place installation guidance above the main toolbar. Static guidance remains flat; interactive selectors and actions may carry shadows.
 
