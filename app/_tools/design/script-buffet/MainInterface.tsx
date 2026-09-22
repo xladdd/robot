@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Language } from "../../registry";
-import { ToolMeta } from "../../../_components/ToolChrome";
+import { ToolHeader } from "../../../_components/ToolChrome";
 
 type AdobeApp = "indesign" | "illustrator" | "photoshop";
 type Filter = "all" | AdobeApp;
@@ -119,23 +119,20 @@ export function ScriptBuffetMainInterface({
 
   return (
     <div className="buffet-module">
-      <header className="buffet-header">
-        <div>
-          <ToolMeta
-            code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"}
-            mode="local"
-            language={language}
-          />
-          <h1>Script Buffet</h1>
-        </div>
-      </header>
+      <ToolHeader
+        className="library-tool-header buffet-header"
+        code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"}
+        title="Script Buffet"
+        mode="local"
+        language={language}
+      />
 
-      <details className="buffet-installation">
+      <details className="library-guide buffet-installation">
         <summary>
           <span>
             {cs ? "Kam skripty nainstalovat" : "Where to install scripts"}
           </span>
-          <i>+</i>
+          <b aria-hidden="true">＋</b>
         </summary>
         <div className="buffet-install-picker">
           <div

@@ -298,7 +298,7 @@ export function SolutionsImporterMainInterface({
   return (
     <div className="solutions-module solutions-detail-module">
       <ToolHeader
-        className="solutions-header"
+        className="library-tool-header solutions-header"
         code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"}
         title={t.heading}
         mode="local"
@@ -583,7 +583,7 @@ export function SolutionsImporterMainInterface({
         </section>
       )}
 
-      <details className="solutions-guide">
+      <details className="library-guide solutions-guide">
         <summary>
           <span>
             {language === "cs"
