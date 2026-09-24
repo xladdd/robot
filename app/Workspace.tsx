@@ -86,14 +86,18 @@ type Theme = "light" | "dark";
 type FigureOutput = GraphOutput | DiagramOutput | MapOutput;
 type FigureCheck = { level: "pass" | "warning"; message: string };
 
+import { BugFeedbackDialog } from "./_components/BugFeedbackDialog";
+import type { FeedbackDiagnostics } from "./_feedback/types";
 import { brandGuidelinesUrl, copy, robotStatusPhrases } from "./content/ui";
 
 export default function Workspace({
   infoDrawers,
   manuals,
+  username,
 }: {
   infoDrawers: InfoDrawers;
   manuals: Record<Language, ManualContent>;
+  username: string;
 }) {
   const manualCzechContent = manuals.cs;
   const manualEnglishContent = manuals.en;
@@ -108,6 +112,10 @@ export default function Workspace({
     caption: string;
   } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackDiagnostics, setFeedbackDiagnostics] =
+    useState<FeedbackDiagnostics | null>(null);
+  const bugReportButtonRef = useRef<HTMLButtonElement>(null);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
   const comingSoonTimer = useRef<number | null>(null);
   const [now, setNow] = useState<Date | null>(null);
@@ -241,6 +249,78 @@ export default function Workspace({
   const textExtractorT = textExtractorCopy[language];
   const indexCreatorT = indexCreatorCopy[language];
   const promptExtractorT = promptExtractorCopy[language];
+
+  function openBugFeedback() {
+    const file = sourceFile || indexFile || promptFile;
+    const isRunning =
+      isProcessing ||
+      isCorrecting ||
+      isIndexing ||
+      isExtractingPrompts ||
+      isGeneratingFigure ||
+      isGeneratingCover ||
+      isSplittingLayers ||
+      isLoadingTimeline;
+    const errorPresent = Boolean(
+      extractionError ||
+      indexError ||
+      promptError ||
+      grepError ||
+      figureError ||
+      coverError ||
+      layerSplitterError,
+    );
+    const hasResult = Boolean(
+      ocrText ||
+      indexResult ||
+      promptResult ||
+      grepResult ||
+      figureOutput ||
+      coverSketches.length ||
+      layerSplitterResult,
+    );
+    const hasInput = Boolean(
+      file ||
+      layerSplitterImage ||
+      figureRequest.trim() ||
+      graphData.trim() ||
+      grepFindPrompt.trim() ||
+      coverSubject ||
+      barcodeInput.trim(),
+    );
+    const selectedToolName = selected
+      ? t.apps[selected as keyof typeof t.apps] || selected
+      : "Taktik Robot";
+    setFeedbackDiagnostics({
+      selectedTool: selected,
+      selectedToolName,
+      language,
+      theme,
+      sidebarOpen,
+      infoOpen,
+      pathname: window.location.pathname,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      userAgent: navigator.userAgent.slice(0, 300),
+      online: navigator.onLine,
+      appStatus: errorPresent
+        ? "error"
+        : isRunning
+          ? "running"
+          : hasResult
+            ? "completed"
+            : "idle",
+      progress: selected === "index" ? indexProgress : null,
+      inputSummary: {
+        hasInput,
+        fileType: file?.type || null,
+        fileSize: file?.size ?? null,
+        referenceCount: figureReferences.length + coverReferences.length,
+        hasResult,
+      },
+      capturedAt: new Date().toISOString(),
+    });
+    setFeedbackOpen(true);
+  }
 
   useEffect(() => {
     if (selected !== "map") return;
@@ -1837,6 +1917,17 @@ export default function Workspace({
             <PageLoadStatus items={robotStatusPhrases[language]} />
           </span>
           <button
+            ref={bugReportButtonRef}
+            className={`utility icon-button bug-report ${feedbackOpen ? "pressed" : ""}`}
+            onClick={openBugFeedback}
+            aria-label={t.bugFeedback.heading}
+            aria-expanded={feedbackOpen}
+          >
+            <span aria-hidden="true" className="material-icons">
+              bug_report
+            </span>
+          </button>
+          <button
             className="utility language"
             onClick={toggleLanguage}
             aria-label={t.changeLanguage}
@@ -2300,6 +2391,14 @@ export default function Workspace({
           onClose={() => setZoomedCover(null)}
         />
       )}
+      <BugFeedbackDialog
+        open={feedbackOpen}
+        language={language}
+        username={username}
+        diagnostics={feedbackDiagnostics}
+        triggerRef={bugReportButtonRef}
+        onCloseAction={() => setFeedbackOpen(false)}
+      />
       <aside
         className={`info-drawer${infoOpen ? " open" : ""}`}
         aria-hidden={!infoOpen}

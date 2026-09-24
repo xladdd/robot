@@ -82,13 +82,16 @@ Cons:
 - `app/page.tsx`: server page. It reads all info Markdown and passes it to the browser workspace.
 - `app/Workspace.tsx`: shared browser shell, navigation, long-lived app state, and action functions. It renders each image app through its explicit app-owned interface; moving controllers is the remaining split.
 - `app/_components/LoadingText.tsx`: shared rotating progress-text component used by several interfaces.
+- `app/_components/BugFeedbackDialog.tsx`: accessible bilingual feedback modal. It sends only an explicit, privacy-safe diagnostic snapshot and the user's description.
+- `app/_feedback/`: server-side feedback validation, Asana OAuth refresh, task formatting, and typed diagnostic data. The authenticated Robot username is read from the signed session on the server.
 - `app/layout.tsx`: page metadata, icons, manifest, and global CSS import.
 - `app/globals.css`: handwritten CSS, divided by labelled sections. Tailwind is not used.
 - `app/login/page.tsx`: login form.
 - `app/content/ui.ts`: bilingual shared shell copy: navigation, categories, availability messaging, and status text. It does not contain individual app copy or info-drawer prose.
 - `app/content/czechNamedays.ts`: local date-to-name lookup used by the footer clock.
 - `app/lib/auth.ts`: session signing, expiry, and credential checks.
-- `app/api/**/route.ts`: thin Next.js URL adapters. Authentication routes remain here; app routes re-export handlers from the owning app folder. Next.js route settings remain declared literally in these files because Turbopack cannot read re-exported settings.
+- `app/api/**/route.ts`: thin Next.js URL adapters. Authentication routes remain here; app routes re-export handlers from the owning app folder. Route settings such as `dynamic` remain declared literally in the route file because Turbopack cannot read re-exported settings.
+- `app/api/feedback/route.ts`: authenticated feedback endpoint adapter; its implementation lives in `app/_feedback/server.ts`.
 
 The individual route files are deliberately small:
 
@@ -201,7 +204,13 @@ Design Manual:
 - `app/_tools/design-manual/public/`: generated English and Czech PDF downloads.
 - `app/_tools/design-manual/scripts/export-pdf.mjs`: reads the same Markdown and images, styles them with PDFKit, and writes both PDF editions.
 
-### `public/`: stable browser URLs
+### Feedback and Asana privacy boundary
+
+The feedback dialog sends a deliberately allowlisted snapshot: the selected tool, language, theme, shell state, route pathname, viewport, browser user agent, online state, high-level operation status, safe file metadata, reference count, result availability, timestamp, and the user's description. Uploaded files, extracted text, prompts, generated output, cookies, credentials, and arbitrary React state are never serialized.
+
+The feedback endpoint independently validates the signed `ta_session` cookie and derives the Robot username server-side. It exchanges the server-only `ASANA_REFRESH_TOKEN` for a short-lived Asana access token, caches it in memory, and creates a task using `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. The Asana section is supplied as a configured GID because the scoped OAuth account cannot use the sections-list endpoint without legacy full permissions.
+
+## `public/`: stable browser URLs
 
 The icon and PDF.js worker files live directly in `public/`. Cover Splitter, Solutions, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
 

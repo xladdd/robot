@@ -121,6 +121,8 @@ The PDF uses the same Markdown content as the website, but it has its own print 
 
 Read `.env.example` for the current settings. At minimum, local use needs the login values and session secret. Model names are settings so they can be changed without editing request code.
 
+The Bugs and Feedback dialog uses the server-only Asana variables listed in `.env.example`: `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET`, `ASANA_REFRESH_TOKEN`, `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. Never prefix these with `NEXT_PUBLIC_` or expose their values to the browser. The scoped Asana app cannot list empty sections, so after placing a temporary task in the exact `Bugs and Feedback` section, run `npm run feedback:section` once; the command discovers the section membership and saves only its GID to the ignored `.env.local`.
+
 Each model-backed app uses its own server-only OpenRouter key. Robot sends OpenRouter a stable pseudonymous identifier derived from the authenticated username and writes one `[openrouter-usage]` JSON record to the server log for every OpenRouter response. The record contains the app, operation, pseudonymous user, generation ID, model, status, token counts, and cost; it never contains prompts, files, or model output.
 
 Create the app keys automatically:

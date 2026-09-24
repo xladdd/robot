@@ -331,7 +331,11 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
   );
   assert.match(ocrPrompt, /literal OCR transcription engine/);
   assert.match(coverServer, /cover-generator\/prompts\/sketch\.md/);
-  assert.match(coverPrompt, /IMAGE-ONLY COVER ARTWORK/);
+  assert.match(
+    coverPrompt,
+    /clean, image-only, full-bleed portrait illustration/,
+  );
+  assert.match(coverPrompt, /Every visible surface is blank and unmarked/);
   assert.match(graphServer, /graph-generator\/prompts\/system\.md/);
   assert.match(diagramServer, /diagram-generator\/prompts\/system\.md/);
   assert.match(mapServer, /map-generator\/prompts\/system\.md/);
