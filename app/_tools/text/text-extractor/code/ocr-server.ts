@@ -5,10 +5,25 @@ import {
   openRouterConfigurationError,
   requestOpenRouter,
 } from "../../../openrouter/server";
+import { isOcrRateLimited, ocrModel, ocrProviderError } from "./ocr-response";
 
 const transcriptionPrompt = loadPrompt(
   "text/text-extractor/prompts/transcription.md",
 );
+const OCR_RATE_LIMIT_RETRY_DELAY_MS = 1_000;
+
+type OcrResult = {
+  choices?: Array<{ message?: { content?: string } }>;
+  error?: {
+    code?: number;
+    message?: string;
+    metadata?: { limit_source?: string; raw?: string };
+  };
+};
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 function normalizeTranscription(raw: string) {
   let text = raw.trim();
@@ -50,24 +65,48 @@ export async function POST(request: Request) {
           { type: "image_url", image_url: { url: data } },
         ];
 
-    const { response, result } = await requestOpenRouter<{
-      choices?: Array<{ message?: { content?: string } }>;
-      error?: { message?: string };
-    }>(openRouter, "chat/completions", "extract-text", {
-      model: process.env.OPENROUTER_OCR_MODEL || "mistralai/mistral-small-2603",
+    const body = {
+      model: ocrModel(process.env.OPENROUTER_OCR_MODEL),
       messages: [{ role: "user", content }],
       temperature: 0,
       ...(isPdf
         ? { plugins: [{ id: "file-parser", pdf: { engine: "mistral-ocr" } }] }
         : {}),
-    });
+    };
+    let openRouterResult = await requestOpenRouter<OcrResult>(
+      openRouter,
+      "chat/completions",
+      "extract-text",
+      body,
+    );
+    if (
+      isOcrRateLimited(
+        openRouterResult.result,
+        openRouterResult.response.status,
+      )
+    ) {
+      await wait(OCR_RATE_LIMIT_RETRY_DELAY_MS);
+      openRouterResult = await requestOpenRouter<OcrResult>(
+        openRouter,
+        "chat/completions",
+        "extract-text-retry",
+        body,
+      );
+    }
+    const { response, result } = openRouterResult;
     const rawText = result.choices?.[0]?.message?.content;
     const text = rawText ? normalizeTranscription(rawText) : "";
-    if (!response.ok || !text)
+    if (!response.ok || !text) {
+      const providerError = ocrProviderError(
+        result,
+        response.status,
+        "OpenRouter returned no text.",
+      );
       return NextResponse.json(
-        { error: result.error?.message || "OpenRouter returned no text." },
+        { error: providerError.message, code: providerError.code },
         { status: response.status || 502 },
       );
+    }
     return NextResponse.json({ text });
   } catch (error) {
     return NextResponse.json(

@@ -638,9 +638,15 @@ export default function Workspace({
       const result = (await response.json()) as {
         text?: string;
         error?: string;
+        code?: "provider_rate_limited" | "provider_error";
       };
-      if (!response.ok || !result.text)
-        throw new Error(result.error || "Text extraction failed.");
+      if (!response.ok || !result.text) {
+        const message =
+          result.code === "provider_rate_limited"
+            ? textExtractorT.providerRateLimited
+            : result.error || "Text extraction failed.";
+        throw new Error(message);
+      }
       setOcrText(result.text);
     } catch (error) {
       setExtractionError(

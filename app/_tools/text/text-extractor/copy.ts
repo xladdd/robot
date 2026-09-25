@@ -26,6 +26,8 @@ export const textExtractorCopy = {
     ],
     invalidFile: "Please use a PDF, PNG or JPG file.",
     fileTooLarge: "The file is larger than the 20 MB limit.",
+    providerRateLimited:
+      "The OCR provider is temporarily busy. Please retry shortly.",
   },
   cs: {
     heading: "Extraktor textu",
@@ -53,5 +55,7 @@ export const textExtractorCopy = {
     ],
     invalidFile: "Použijte soubor PDF, PNG nebo JPG.",
     fileTooLarge: "Soubor překračuje limit 20 MB.",
+    providerRateLimited:
+      "Poskytovatel OCR je dočasně vytížený. Zkuste to prosím za chvíli znovu.",
   },
 } as const;

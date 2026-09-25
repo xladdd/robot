@@ -236,10 +236,12 @@ The following completes the folder map by naming every source-file role. Repeate
 - `MainInterface.tsx`: accepts input, displays the editable text, sends OCR/correction requests, and downloads text.
 - `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/ocr-server.ts`: private OCR endpoint implementation.
+- `code/ocr-response.ts`: OCR model selection, rate-limit detection, and provider-error classification.
 - `code/correct-server.ts`: private text-correction endpoint implementation.
 - `prompts/transcription.md`: stable OCR instruction.
 - `prompts/correction.md`: stable correction instruction.
 - `info.en.md`, `info.cs.md`: live drawer content.
+- `tests/text-extractor.test.mts`: protects strict OCR model selection and provider-error handling.
 
 #### Index Creator: `app/_tools/text/index-creator/`
 
@@ -460,7 +462,7 @@ Corrected replacement text
 
 **Output:** copied text or `.md`/`.txt` download.
 
-**Dependencies:** browser File APIs and OpenRouter. OCR uses `mistralai/mistral-small-2603`; PDF input also enables OpenRouter's `mistral-ocr` file-parser engine. Correction uses `mistralai/ministral-8b-2512`. The environment variables in `.env.example` can override the model names. The interface is app-owned; file validation, request control, and result formatting remain in `Workspace.tsx`.
+**Dependencies:** browser File APIs and OpenRouter. OCR uses `mistralai/mistral-small-2603` and retries that same model once after a temporary provider rate limit; PDF input also enables OpenRouter's `mistral-ocr` file-parser engine. Correction uses `mistralai/ministral-8b-2512`. The environment variables in `.env.example` can override the OCR and correction model names. The interface is app-owned; file validation, request control, and result formatting remain in `Workspace.tsx`.
 
 ### Index Creator
 
