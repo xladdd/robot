@@ -3950,8 +3950,9 @@ button {
     color: var(--orange);
 }
 .cover-splitter-size {
+    right: auto;
     left: 14px;
-    width: min(180px, calc(100% - 62px));
+    width: min(180px, calc(100% - 52px));
     padding: 0 28px 0 9px;
     background: var(--panel-2);
     cursor: pointer;
@@ -6453,10 +6454,6 @@ button {
 .image-generator-references .cover-add-reference {
     aspect-ratio: 1;
 }
-.image-generator-loading {
-    min-height: 230px;
-}
-
 .image-generator-card-actions {
     display: flex;
     box-sizing: border-box;
@@ -7183,6 +7180,12 @@ button {
     min-height: 37px;
     max-height: 37px;
     padding: 3px 8px;
+}
+.cover-card > footer.image-generator-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 .cover-card-actions .cover-reject {
     grid-row: auto;

@@ -427,7 +427,7 @@ export function ImageGeneratorMainInterface({
         >
           {jobs.map((job, index) => (
             <article
-              className={`cover-card visual-multiple-card image-generator-card image-generator-card-${job.status}`}
+              className={`cover-card visual-multiple-card image-generator-card image-generator-card-${job.status} ${job.image ? "" : "cover-loading"}`}
               key={job.id}
             >
               {job.image ? (
@@ -439,19 +439,17 @@ export function ImageGeneratorMainInterface({
                   <img src={job.image.data} alt={job.prompt} />
                 </button>
               ) : (
-                <div className="cover-loading">
-                  <span>
-                    {job.status === "generating"
-                      ? t.generating
-                      : job.status === "failed"
-                        ? t.failed
-                        : job.status === "stopped"
-                          ? t.stopped
-                          : t.queued}
-                    <br />
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
+                <span>
+                  {job.status === "generating"
+                    ? t.generating
+                    : job.status === "failed"
+                      ? t.failed
+                      : job.status === "stopped"
+                        ? t.stopped
+                        : t.queued}
+                  <br />
+                  {String(index + 1).padStart(2, "0")}
+                </span>
               )}
               {job.image ? (
                 <footer className="image-generator-card-actions">
