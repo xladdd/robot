@@ -8,7 +8,6 @@ import {
   type OpenRouterContext,
 } from "../../../openrouter/server";
 import {
-  COVER_PLANNER_MODEL,
   createFallbackCoverPlan,
   planCoverConcepts,
   type PlannerInput,
@@ -25,11 +24,14 @@ const MAX_KEYWORDS_LENGTH = 1_500;
 const MAX_CUSTOM_SUBJECT_LENGTH = 300;
 const MAX_PREFERENCE_LENGTH = 1_000;
 const MAX_SEED = 2_000_000_000;
-const DEFAULT_MODEL = "black-forest-labs/flux.2-klein-4b" as const;
+const FLUX_PRO_MODEL = "black-forest-labs/flux.2-pro" as const;
 const GEMINI_MODEL = "google/gemini-3.1-flash-lite-image" as const;
+const FLUX_KLEIN_MODEL = "black-forest-labs/flux.2-klein-4b" as const;
+const DEFAULT_MODEL = FLUX_PRO_MODEL;
 const COVER_MODE = "sketch" as const;
 
-type CoverModel = typeof DEFAULT_MODEL | typeof GEMINI_MODEL;
+type CoverModel =
+  typeof FLUX_PRO_MODEL | typeof GEMINI_MODEL | typeof FLUX_KLEIN_MODEL;
 type GenerationCount = 2 | 4;
 
 type ImageResult = {
@@ -123,9 +125,14 @@ function parseGenerationCount(value: unknown): GenerationCount {
 
 function parseModel(value: unknown): CoverModel {
   if (value === undefined) return DEFAULT_MODEL;
-  if (value === DEFAULT_MODEL || value === GEMINI_MODEL) return value;
+  if (
+    value === FLUX_PRO_MODEL ||
+    value === GEMINI_MODEL ||
+    value === FLUX_KLEIN_MODEL
+  )
+    return value;
   throw new CoverRequestError(
-    `Unknown cover model. Use ${DEFAULT_MODEL} or ${GEMINI_MODEL}.`,
+    `Unknown cover model. Use ${FLUX_PRO_MODEL}, ${GEMINI_MODEL}, or ${FLUX_KLEIN_MODEL}.`,
   );
 }
 
@@ -212,32 +219,34 @@ async function generate(
   model: CoverModel,
   prompt: string,
   seed?: number,
+  operation = "generate-cover-image",
 ): Promise<GeneratedCover> {
   const baseRequest = {
     model,
     prompt,
     aspect_ratio: "3:4" as const,
   };
-  const requestBody =
-    model === DEFAULT_MODEL
-      ? {
-          ...baseRequest,
-          resolution: "512" as const,
-          output_format: "jpeg" as const,
-          seed,
-        }
-      : {
-          ...baseRequest,
-          resolution: "1K" as const,
-          n: 1 as const,
-        };
+  const isFluxModel = model === FLUX_PRO_MODEL || model === FLUX_KLEIN_MODEL;
+  const requestBody = isFluxModel
+    ? {
+        ...baseRequest,
+        resolution:
+          model === FLUX_KLEIN_MODEL ? ("512" as const) : ("1K" as const),
+        output_format: "jpeg" as const,
+        seed,
+      }
+    : {
+        ...baseRequest,
+        resolution: "1K" as const,
+        n: 1 as const,
+      };
 
   const { response, result } = await requestOpenRouter<{
     id?: string;
     data?: ImageResult[];
     usage?: Usage;
     error?: { message?: string };
-  }>(openRouter, "images", "generate-cover-image", requestBody);
+  }>(openRouter, "images", operation, requestBody);
   const data = result.data?.[0] ? outputDataUrl(result.data[0]) : "";
   if (!response.ok || !data)
     throw new Error(result.error?.message || "OpenRouter returned no image.");
@@ -258,8 +267,26 @@ function conceptInstruction(
   guidance: ReferenceGuidance,
 ): string {
   return JSON.stringify({
-    referenceGuidance: guidance,
-    concept,
+    referenceGuidance: {
+      audienceCharacter: guidance.audienceCharacter,
+      paletteCharacter: guidance.paletteCharacter,
+      finish: guidance.finish,
+      energy: guidance.energy,
+      recurringMaterials: guidance.recurringMaterials,
+      acceptableRenderingApproaches: guidance.acceptableRenderingApproaches,
+    },
+    concept: {
+      id: concept.id,
+      coreIdea: concept.coreIdea,
+      heroSubject: concept.heroSubject,
+      supportingElements: concept.supportingElements,
+      composition: concept.composition,
+      viewpoint: concept.viewpoint,
+      renderingApproach: concept.renderingApproach,
+      palette: concept.palette,
+      lighting: concept.lighting,
+      quietSpace: concept.quietSpace,
+    },
   });
 }
 
@@ -269,12 +296,10 @@ function buildPrompt(
   audience: CoverAudience,
   subject: CoverSubject,
   customSubject: string,
-  keywords: string,
 ) {
   return fillPrompt(coverPrompt, {
     audience,
     subject: subject === "other" ? customSubject : subject,
-    keywords: keywords || "none supplied",
     referenceGuidance: JSON.stringify(guidance),
     concept: conceptInstruction(plan, guidance),
   });
@@ -348,7 +373,10 @@ export async function POST(request: Request) {
 
     const usedSeeds = new Set<number>();
     const generateSketch = async (concept: PlannedCoverConcept) => {
-      const seed = model === DEFAULT_MODEL ? nextSeed(usedSeeds) : undefined;
+      const seed =
+        model === FLUX_PRO_MODEL || model === FLUX_KLEIN_MODEL
+          ? nextSeed(usedSeeds)
+          : undefined;
       const generated = await generate(
         openRouter,
         model,
@@ -358,7 +386,6 @@ export async function POST(request: Request) {
           audience,
           subject,
           customSubject,
-          keywords,
         ),
         seed,
       );
@@ -371,21 +398,8 @@ export async function POST(request: Request) {
       };
     };
 
-    const initialAttempts = await Promise.allSettled(
+    const settled = await Promise.allSettled(
       plan.concepts.map((concept) => generateSketch(concept)),
-    );
-    const settled = await Promise.all(
-      initialAttempts.map(async (result, index) => {
-        if (result.status === "fulfilled") return result;
-        try {
-          return {
-            status: "fulfilled",
-            value: await generateSketch(plan.concepts[index]),
-          } as const;
-        } catch (reason) {
-          return { status: "rejected", reason } as const;
-        }
-      }),
     );
     const images = settled.flatMap((result) =>
       result.status === "fulfilled" ? [result.value] : [],
@@ -395,7 +409,7 @@ export async function POST(request: Request) {
       ...settled.flatMap((result, index) =>
         result.status === "rejected"
           ? [
-              `Concept ${index + 1} also failed on its replacement attempt: ${result.reason instanceof Error ? result.reason.message : "generation failed"}`,
+              `Concept ${index + 1} failed with the selected image model: ${result.reason instanceof Error ? result.reason.message : "generation failed"}`,
             ]
           : [],
       ),
@@ -405,10 +419,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       images,
       warnings,
-      planner: {
-        ...plan.metadata,
-        model: COVER_PLANNER_MODEL,
-      },
+      planner: plan.metadata,
     });
   } catch (error) {
     if (error instanceof CoverRequestError) return requestError(error.message);

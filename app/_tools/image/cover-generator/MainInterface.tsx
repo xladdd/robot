@@ -17,7 +17,9 @@ import type {
 } from "./code/types";
 
 export type CoverModel =
-  "black-forest-labs/flux.2-klein-4b" | "google/gemini-3.1-flash-lite-image";
+  | "black-forest-labs/flux.2-pro"
+  | "google/gemini-3.1-flash-lite-image"
+  | "black-forest-labs/flux.2-klein-4b";
 export type { CoverAudience, CoverSubject, PlannedCoverConcept };
 export type CoverReference = { name: string; data: string; artData: string };
 export type CoverUsage = {
@@ -51,6 +53,10 @@ export function CoverLightbox({
 }) {
   const t = localizedCoverUi[language];
   const seed = cover.seed === null ? t.seedUnavailable : `seed ${cover.seed}`;
+  const credits =
+    cover.usage.cost === null
+      ? "credits unavailable"
+      : `${cover.usage.cost.toFixed(4)} cr`;
   return (
     <div
       className="manual-lightbox cover-lightbox"
@@ -78,7 +84,10 @@ export function CoverLightbox({
       </button>
       <figure onClick={(event) => event.stopPropagation()}>
         <img src={cover.data} alt={cover.direction || t.heading} />
-        <figcaption>{cover.direction || `${t.sketch} · ${seed}`}</figcaption>
+        <figcaption>
+          <span>{cover.direction || t.sketch}</span>
+          <small>{`${cover.model} · ${seed} · ${credits}`}</small>
+        </figcaption>
       </figure>
       <button
         className="cover-lightbox-arrow next"
@@ -197,15 +206,13 @@ export function CoverGeneratorMainInterface({
           </div>
         </header>
         <div
-          className={`cover-grid ${sketches.length || isGenerating ? "has-results" : ""}`}
+          className={`cover-grid visual-multiple-grid ${sketches.length || isGenerating ? "has-results" : ""}`}
           aria-live="polite"
         >
           {activeSketches.map((item, index) => {
-            const seed =
-              item.seed === null ? t.seedUnavailable : `seed ${item.seed}`;
             return (
               <article
-                className={`cover-card ${item.status === "selected" ? "selected" : ""}`}
+                className={`cover-card visual-multiple-card ${item.status === "selected" ? "selected" : ""}`}
                 data-cover-id={item.id}
                 key={item.id}
               >
@@ -216,16 +223,7 @@ export function CoverGeneratorMainInterface({
                 >
                   <img src={item.data} alt={`${t.sketch} ${index + 1}`} />
                 </button>
-                <footer>
-                  <span>
-                    {t.sketch} {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <small>
-                    {seed} ·{" "}
-                    {item.usage.cost === null
-                      ? "—"
-                      : `${item.usage.cost.toFixed(4)} cr`}
-                  </small>
+                <footer className="cover-card-actions">
                   <button
                     className="cover-upvote"
                     onClick={() => onSelectSketch(item.id)}
@@ -252,7 +250,7 @@ export function CoverGeneratorMainInterface({
           {isGenerating &&
             Array.from({ length: generationCount }, (_, index) => (
               <div
-                className="cover-card cover-loading"
+                className="cover-card visual-multiple-card cover-loading"
                 key={`loading-${index}`}
               >
                 <span>
@@ -409,17 +407,22 @@ export function CoverGeneratorMainInterface({
             value={model}
             onChange={(event) => onModel(event.target.value as CoverModel)}
           >
-            <option value="black-forest-labs/flux.2-klein-4b">
-              {t.modelFlux}
+            <option value="black-forest-labs/flux.2-pro">
+              {t.modelFluxPro}
             </option>
             <option value="google/gemini-3.1-flash-lite-image">
               {t.modelGemini}
+            </option>
+            <option value="black-forest-labs/flux.2-klein-4b">
+              {t.modelFlux}
             </option>
           </select>
           <small>
             {model === "google/gemini-3.1-flash-lite-image"
               ? t.modelGeminiNote
-              : t.modelFluxNote}
+              : model === "black-forest-labs/flux.2-pro"
+                ? t.modelFluxProNote
+                : t.modelFluxNote}
           </small>
         </section>
         {error && (

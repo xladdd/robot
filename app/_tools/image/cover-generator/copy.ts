@@ -133,9 +133,12 @@ export const coverUi = {
     seedUnavailable: "seed unavailable",
     reportTitle: "Cover generation report",
     model: "IMAGE MODEL",
-    modelFlux: "FLUX.2 Klein · low-cost · 512 px",
-    modelGemini: "Gemini Flash Lite · low-cost · 1K",
-    modelFluxNote: "Default model for inexpensive, fast cover exploration.",
+    modelFlux: "FLUX.2 Klein 512 • low-cost, less reliable",
+    modelFluxPro: "FLUX.2 Pro 1K",
+    modelGemini: "Gemini Flash Lite 1K",
+    modelFluxNote:
+      "Lowest-cost option; its text-free prompt adherence is less reliable.",
+    modelFluxProNote: "Default 1K European FLUX model with seed control.",
     modelGeminiNote:
       "Alternative model with a different visual style; seed control is unavailable.",
     artOnly: "USE ART-FOCUSED REFERENCE CROPS",
@@ -192,9 +195,13 @@ export const coverUi = {
     seedUnavailable: "seed není k dispozici",
     reportTitle: "Report generování obálky",
     model: "OBRAZOVÝ MODEL",
-    modelFlux: "FLUX.2 Klein · nízká cena · 512 px",
-    modelGemini: "Gemini Flash Lite · nízká cena · 1K",
-    modelFluxNote: "Výchozí model pro rychlé a levné zkoušení obálek.",
+    modelFlux: "FLUX.2 Klein 512 • nízká cena, méně spolehlivý",
+    modelFluxPro: "FLUX.2 Pro 1K",
+    modelGemini: "Gemini Flash Lite 1K",
+    modelFluxNote:
+      "Nejlevnější volba; méně spolehlivě dodrží zadání pro obraz bez textu.",
+    modelFluxProNote:
+      "Výchozí evropský model FLUX s 1K výstupem a podporou seedu.",
     modelGeminiNote:
       "Alternativní model s odlišným vizuálním stylem; seed nelze nastavit.",
     artOnly: "POUŽÍT VÝŘEZY ZAMĚŘENÉ NA OBRAZ",

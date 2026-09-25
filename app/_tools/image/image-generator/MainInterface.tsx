@@ -10,6 +10,7 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
 import { imageGeneratorUi } from "./copy";
@@ -171,6 +172,7 @@ export function ImageGeneratorMainInterface({
   );
   const zoomedIndex = completedJobs.findIndex((job) => job.id === zoomedId);
   const completedCount = completedJobs.length;
+  const zoomedJob = zoomedIndex >= 0 ? completedJobs[zoomedIndex] : null;
 
   async function addReferenceFiles(files: File[]) {
     if (isGenerating) return;
@@ -308,10 +310,9 @@ export function ImageGeneratorMainInterface({
       prompt: item,
       status: "queued" as const,
     }));
-    setJobs(nextJobs);
+    setJobs((current) => [...current, ...nextJobs]);
     setError(allPromptCount > MAX_IMAGE_QUEUE ? t.limit : "");
     setIsGenerating(true);
-    setZoomedId(null);
 
     let nextIndex = 0;
     const runWorker = async () => {
@@ -421,12 +422,12 @@ export function ImageGeneratorMainInterface({
           </div>
         </header>
         <div
-          className={`cover-grid image-generator-grid ${jobs.length ? "has-results" : ""}`}
+          className={`cover-grid visual-multiple-grid image-generator-grid ${jobs.length ? "has-results" : ""}`}
           aria-live="polite"
         >
           {jobs.map((job, index) => (
             <article
-              className={`cover-card image-generator-card image-generator-card-${job.status}`}
+              className={`cover-card visual-multiple-card image-generator-card image-generator-card-${job.status}`}
               key={job.id}
             >
               {job.image ? (
@@ -438,7 +439,7 @@ export function ImageGeneratorMainInterface({
                   <img src={job.image.data} alt={job.prompt} />
                 </button>
               ) : (
-                <div className="cover-loading image-generator-loading">
+                <div className="cover-loading">
                   <span>
                     {job.status === "generating"
                       ? t.generating
@@ -452,46 +453,36 @@ export function ImageGeneratorMainInterface({
                   </span>
                 </div>
               )}
-              <footer>
-                <span>
-                  {t.image} {String(index + 1).padStart(2, "0")}
-                </span>
-                <small>
-                  {job.image
-                    ? `${job.image.resolution} · seed ${job.image.seed} · ${job.image.usage.cost === null ? "—" : `${job.image.usage.cost.toFixed(4)} cr`}`
-                    : job.error || job.prompt}
-                </small>
-                {job.image ? (
-                  <div className="image-generator-card-actions">
-                    <button
-                      className="cover-upvote action-button action-button-success action-button-compact"
-                      onClick={() => downloadImage(job, index)}
-                    >
-                      ↓ {t.download}
-                    </button>
-                    <button
-                      className="cover-upvote image-generator-upscale"
-                      onClick={() => void upscaleJob(job)}
-                      disabled={isGenerating || job.image.resolution === "2K"}
-                    >
-                      {job.status === "upscaling"
-                        ? t.upscaling
-                        : job.image.resolution === "2K"
-                          ? t.upscaleMaximum
-                          : t.upscale}
-                    </button>
-                  </div>
-                ) : job.status === "failed" && !isGenerating ? (
-                  <div className="image-generator-card-actions">
-                    <button
-                      className="cover-upvote image-generator-retry"
-                      onClick={() => void retryJob(job)}
-                    >
-                      ↻ {t.retry}
-                    </button>
-                  </div>
-                ) : null}
-              </footer>
+              {job.image ? (
+                <footer className="image-generator-card-actions">
+                  <button
+                    className="action-button action-button-compact image-generator-download"
+                    onClick={() => downloadImage(job, index)}
+                  >
+                    ↓ {t.download}
+                  </button>
+                  <button
+                    className="action-button action-button-compact image-generator-upscale"
+                    onClick={() => void upscaleJob(job)}
+                    disabled={isGenerating || job.image.resolution === "2K"}
+                  >
+                    {job.status === "upscaling"
+                      ? t.upscaling
+                      : job.image.resolution === "2K"
+                        ? t.upscaleMaximum
+                        : t.upscale}
+                  </button>
+                </footer>
+              ) : job.status === "failed" && !isGenerating ? (
+                <footer className="image-generator-card-actions">
+                  <button
+                    className="action-button action-button-compact image-generator-retry"
+                    onClick={() => void retryJob(job)}
+                  >
+                    ↻ {t.retry}
+                  </button>
+                </footer>
+              ) : null}
             </article>
           ))}
           {!jobs.length && !isGenerating && (
@@ -694,50 +685,54 @@ export function ImageGeneratorMainInterface({
         </div>
       </aside>
 
-      {zoomedIndex >= 0 && (
-        <div
-          className="manual-lightbox cover-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label={completedJobs[zoomedIndex].prompt}
-          onClick={() => setZoomedId(null)}
-        >
-          <button
-            className="manual-lightbox-close"
+      {zoomedJob &&
+        createPortal(
+          <div
+            className="manual-lightbox cover-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label={zoomedJob.prompt}
             onClick={() => setZoomedId(null)}
-            aria-label={t.close}
           >
-            ×
-          </button>
-          <button
-            className="cover-lightbox-arrow previous"
-            onClick={(event) => {
-              event.stopPropagation();
-              moveLightbox(-1);
-            }}
-            aria-label={t.previous}
-          >
-            ←
-          </button>
-          <figure onClick={(event) => event.stopPropagation()}>
-            <img
-              src={completedJobs[zoomedIndex].image.data}
-              alt={completedJobs[zoomedIndex].prompt}
-            />
-            <figcaption>{completedJobs[zoomedIndex].prompt}</figcaption>
-          </figure>
-          <button
-            className="cover-lightbox-arrow next"
-            onClick={(event) => {
-              event.stopPropagation();
-              moveLightbox(1);
-            }}
-            aria-label={t.next}
-          >
-            →
-          </button>
-        </div>
-      )}
+            <button
+              className="manual-lightbox-close"
+              onClick={() => setZoomedId(null)}
+              aria-label={t.close}
+            >
+              ×
+            </button>
+            <button
+              className="cover-lightbox-arrow previous"
+              onClick={(event) => {
+                event.stopPropagation();
+                moveLightbox(-1);
+              }}
+              aria-label={t.previous}
+            >
+              ←
+            </button>
+            <figure onClick={(event) => event.stopPropagation()}>
+              <img src={zoomedJob.image.data} alt={zoomedJob.prompt} />
+              <figcaption>
+                <span>{zoomedJob.prompt}</span>
+                <small>
+                  {`${zoomedJob.image.model} · ${zoomedJob.image.resolution} · seed ${zoomedJob.image.seed} · ${zoomedJob.image.usage.cost === null ? "credits unavailable" : `${zoomedJob.image.usage.cost.toFixed(4)} cr`}`}
+                </small>
+              </figcaption>
+            </figure>
+            <button
+              className="cover-lightbox-arrow next"
+              onClick={(event) => {
+                event.stopPropagation();
+                moveLightbox(1);
+              }}
+              aria-label={t.next}
+            >
+              →
+            </button>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

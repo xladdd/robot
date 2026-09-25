@@ -812,7 +812,7 @@ export function CoverSplitterMainInterface({
             </div>
           </header>
 
-          <div className="cover-splitter-grid">
+          <div className="cover-splitter-grid visual-multiple-grid">
             {files.length === 0 && (
               <button
                 type="button"
@@ -826,7 +826,10 @@ export function CoverSplitterMainInterface({
               </button>
             )}
             {files.map((entry) => (
-              <article key={entry.id} className="cover-splitter-card">
+              <article
+                key={entry.id}
+                className="cover-splitter-card visual-multiple-card"
+              >
                 <div className="cover-splitter-preview">
                   <Image
                     src={entry.previewUrl}
@@ -856,7 +859,7 @@ export function CoverSplitterMainInterface({
                   disabled={uploadDisabled}
                   aria-label={t.removeFile(entry.file.name)}
                 >
-                  {t.remove}
+                  ×
                 </button>
                 <select
                   value={entry.sizeChoice}

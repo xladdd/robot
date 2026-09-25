@@ -444,44 +444,71 @@ test("keeps one app-title scale and inline GREP results", async () => {
 });
 
 test("keeps the documented document and visual workspace families", async () => {
-  const [cover, splitter, map, barcode, graph, diagram, index, prompt, css] =
-    await Promise.all([
-      readFile(
-        new URL("app/_tools/image/cover-generator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/image/map-generator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/image/graph-generator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/image/diagram-generator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/text/index-creator/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(
-        new URL("app/_tools/text/prompt-extractor/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(new URL("app/globals.css", root), "utf8"),
-    ]);
+  const [
+    cover,
+    image,
+    splitter,
+    map,
+    barcode,
+    graph,
+    diagram,
+    index,
+    prompt,
+    css,
+  ] = await Promise.all([
+    readFile(
+      new URL("app/_tools/image/cover-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/image/image-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/design/cover-splitter/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/image/map-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/design/barcode-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/image/graph-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/image/diagram-generator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/text/index-creator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/text/prompt-extractor/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(new URL("app/globals.css", root), "utf8"),
+  ]);
 
   assert.match(splitter, /cover-stage-head cover-splitter-active-head/);
+  for (const source of [cover, image, splitter]) {
+    assert.match(source, /visual-multiple-grid/);
+    assert.match(source, /visual-multiple-card/);
+  }
+  assert.match(
+    image,
+    /setJobs\(\(current\) => \[\.\.\.current, \.\.\.nextJobs\]\)/,
+  );
+  assert.doesNotMatch(image, /setJobs\(nextJobs\)/);
+  assert.match(
+    css,
+    /\.visual-multiple-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/,
+  );
   for (const source of [cover, splitter, map]) {
     assert.match(source, /editor-sidebar/);
   }

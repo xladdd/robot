@@ -14,6 +14,8 @@ import type {
 } from "./types";
 
 export const COVER_PLANNER_MODEL = "mistralai/mistral-small-2603" as const;
+export const COVER_PLANNER_FALLBACK_MODEL =
+  "google/gemini-2.5-flash-lite" as const;
 
 const plannerPrompt = loadPrompt(
   "image/cover-generator/prompts/plan-concepts.md",
@@ -108,6 +110,7 @@ type PlannerResult = {
 
 type PlannerResponse = {
   id?: string;
+  model?: string;
   choices?: Array<{
     message?: { content?: string | Array<{ type?: string; text?: string }> };
   }>;
@@ -342,7 +345,7 @@ export function createFallbackCoverPlan(input: PlannerInput): PlannerResult {
     referenceGuidance: defaultGuidance(input.references.length > 0),
     concepts: fallbackConcepts(input),
     metadata: {
-      model: COVER_PLANNER_MODEL,
+      model: "local-fallback",
       usage: emptyUsage,
       referenceGuidance: defaultGuidance(input.references.length > 0),
       usedFallback: true,
@@ -395,6 +398,9 @@ export async function planCoverConcepts(
     "plan-cover-concepts",
     {
       model: COVER_PLANNER_MODEL,
+      models: [COVER_PLANNER_MODEL, COVER_PLANNER_FALLBACK_MODEL],
+      route: "fallback",
+      provider: { require_parameters: true },
       temperature: 0.4,
       max_tokens: 4_000,
       messages: [
@@ -433,7 +439,7 @@ export async function planCoverConcepts(
     referenceGuidance: parsed.referenceGuidance,
     concepts,
     metadata: {
-      model: COVER_PLANNER_MODEL,
+      model: result.model || COVER_PLANNER_MODEL,
       generationId: result.id,
       usage: usageFrom(result),
       referenceGuidance: parsed.referenceGuidance,

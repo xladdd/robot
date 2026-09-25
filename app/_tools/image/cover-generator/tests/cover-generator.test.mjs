@@ -23,26 +23,39 @@ const workspace = await read("app/Workspace.tsx");
 const copy = await read("app/_tools/image/cover-generator/copy.ts");
 
 const obsolete =
-  /Shutterstock|shutterstock|flux\.2-pro|analyse-assets|prompts\/(?:asset|master)|production assets|separate stems|coverMedium|coverBrief|mediumInstruction|creativeDirectionLenses/i;
+  /Shutterstock|shutterstock|analyse-assets|prompts\/(?:asset|master)|production assets|separate stems|coverMedium|coverBrief|mediumInstruction|creativeDirectionLenses/i;
 
-test("uses the approved low-cost image models and defaults to FLUX.2 Klein", () => {
+test("uses the approved image models and defaults to FLUX.2 Pro", () => {
+  assert.match(server, /const DEFAULT_MODEL = FLUX_PRO_MODEL/);
   assert.match(
     server,
-    /const DEFAULT_MODEL = "black-forest-labs\/flux\.2-klein-4b"/,
+    /const FLUX_PRO_MODEL = "black-forest-labs\/flux\.2-pro"/,
   );
   assert.match(
     server,
     /const GEMINI_MODEL = "google\/gemini-3\.1-flash-lite-image"/,
   );
   assert.match(server, /if \(value === undefined\) return DEFAULT_MODEL/);
+  assert.match(workspace, /"black-forest-labs\/flux\.2-pro"/);
   assert.doesNotMatch(server, obsolete);
 });
 
-test("uses Mistral Small 4 as a single vision-capable planner", () => {
+test("uses a structured vision planner with an OpenRouter fallback", () => {
   assert.match(
     planner,
     /COVER_PLANNER_MODEL = "mistralai\/mistral-small-2603"/,
   );
+  assert.match(
+    planner,
+    /COVER_PLANNER_FALLBACK_MODEL\s*=\s*"google\/gemini-2\.5-flash-lite"/,
+  );
+  assert.match(
+    planner,
+    /models: \[COVER_PLANNER_MODEL, COVER_PLANNER_FALLBACK_MODEL\]/,
+  );
+  assert.match(planner, /route: "fallback"/);
+  assert.match(planner, /provider: \{ require_parameters: true \}/);
+  assert.match(planner, /model: result\.model \|\| COVER_PLANNER_MODEL/);
   assert.match(planner, /type: "image_url"/);
   assert.match(planner, /response_format/);
   assert.match(planner, /json_schema/);
@@ -92,31 +105,60 @@ test("removes the style dropdown and old medium prompt files from the active flo
   );
   assert.doesNotMatch(workspace, /coverMedium|onMedium|medium=/);
   assert.doesNotMatch(server, /medium|subjectInstruction|mediumInstruction/);
-  assert.doesNotMatch(server, /input_references/);
+  assert.doesNotMatch(server, /input_references:\s*references/);
 });
 
 test("keeps provider-specific image parameters and independent FLUX seeds", () => {
-  assert.match(server, /resolution: "512"/);
+  assert.match(server, /FLUX_KLEIN_MODEL \? \("512" as const\)/);
   assert.match(server, /output_format: "jpeg"/);
   assert.match(server, /resolution: "1K"/);
   assert.match(server, /n: 1/);
   assert.match(server, /randomInt\(0, MAX_SEED\)/);
   assert.match(server, /new Set<number>\(\)/);
-  assert.match(server, /model === DEFAULT_MODEL \? nextSeed\(usedSeeds\)/);
+  assert.match(
+    server,
+    /model === FLUX_PRO_MODEL \|\| model === FLUX_KLEIN_MODEL/,
+  );
+  assert.match(
+    interfaceSource,
+    /value="black-forest-labs\/flux\.2-pro"[\s\S]*value="google\/gemini-3\.1-flash-lite-image"[\s\S]*value="black-forest-labs\/flux\.2-klein-4b"/,
+  );
   assert.doesNotMatch(server, /let seedSequence/);
   assert.doesNotMatch(server, /seed: undefined/);
 });
 
-test("requires text-free, simple artwork and sends a different planned concept per image", () => {
-  assert.match(imagePrompt, /IMAGE-ONLY COVER ARTWORK/);
-  assert.match(imagePrompt, /Never generate readable text or text-like marks/);
-  assert.match(imagePrompt, /Optional keywords are soft inspiration only/);
+test("uses prompt-only text-free guidance and sends a different planned concept per image", () => {
+  assert.match(
+    imagePrompt,
+    /clean, image-only, full-bleed portrait illustration/,
+  );
+  assert.match(imagePrompt, /Every visible surface is blank and unmarked/);
+  assert.match(imagePrompt, /uninterrupted colour, light, sky, or atmosphere/);
+  assert.doesNotMatch(
+    imagePrompt,
+    /Never generate readable text or text-like marks/,
+  );
+  assert.doesNotMatch(imagePrompt, /pseudo-writing|typography|text-bearing/i);
+  assert.doesNotMatch(imagePrompt, /\{\{keywords\}\}/);
   assert.match(imagePrompt, /substantially different from other concepts/);
+  assert.match(
+    server,
+    /acceptableRenderingApproaches: guidance\.acceptableRenderingApproaches/,
+  );
+  assert.match(server, /quietSpace: concept\.quietSpace/);
+  assert.doesNotMatch(server, /referenceGuidance:\s*guidance/);
+  assert.doesNotMatch(
+    server,
+    /checkForText|CoverTextCheckError|verify-cover-has-no-text/,
+  );
+  assert.doesNotMatch(server, /generate-cover-image-text-fallback/);
+  assert.doesNotMatch(server, /input_references/);
   assert.match(
     server,
     /plan\.concepts\.map\(\(concept\) => generateSketch\(concept\)\)/,
   );
   assert.match(server, /buildPrompt\(/);
+  assert.doesNotMatch(server, /keywords: keywords \|\| "none supplied"/);
   assert.match(types, /renderingApproach/);
   assert.match(types, /viewpoint/);
 });
@@ -131,6 +173,7 @@ test("planner schema and normalization require exactly two or four unique concep
 
 test("planner failure has a local fallback and preferred concepts are summarized, not reused", () => {
   assert.match(server, /createFallbackCoverPlan\(plannerInput\)/);
+  assert.match(server, /planner: plan\.metadata/);
   assert.match(planner, /preferredImage/);
   assert.match(planner, /preferred earlier concept/);
   assert.match(planner, /Broad preference from the user/);

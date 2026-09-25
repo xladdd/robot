@@ -3890,38 +3890,35 @@ button {
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 390px;
+    min-height: 0;
     flex-direction: column;
-    padding: 14px 14px 62px;
+    padding: 0 0 62px;
     border: 1px solid var(--ink);
     background: var(--panel);
     box-shadow: 4px 4px 0 var(--teal);
 }
 .cover-splitter-preview {
-    display: grid;
-    min-height: 230px;
-    flex: 1;
-    place-items: center;
+    display: block;
+    min-height: 0;
     overflow: hidden;
-    border: 1px solid var(--line);
     background: #e8e6df;
 }
 .cover-splitter-preview-image {
     display: block;
     width: 100%;
-    height: 100%;
-    max-height: 340px;
+    height: auto;
+    max-height: none;
     object-fit: contain;
 }
 .cover-splitter-card h2 {
-    margin: 12px 0 5px;
+    margin: 12px 14px 5px;
     overflow-wrap: anywhere;
     font-size: 11px;
     font-weight: 400;
     line-height: 1.35;
 }
 .cover-splitter-details {
-    margin: 0;
+    margin: 0 14px;
     color: var(--muted);
     font-size: 8px;
     line-height: 1.5;
@@ -3937,18 +3934,24 @@ button {
     font-size: 8px;
 }
 .cover-splitter-remove {
-    left: 14px;
-    padding: 0 10px;
-    background: var(--bg);
+    right: 14px;
+    width: 17px;
+    min-height: 0;
+    height: 17px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
     cursor: pointer;
+    font-size: 17px;
+    line-height: 0.6;
 }
 .cover-splitter-remove:hover:not(:disabled) {
-    background: var(--orange);
-    color: var(--on-accent);
+    color: var(--orange);
 }
 .cover-splitter-size {
-    right: 14px;
-    width: min(160px, calc(100% - 108px));
+    left: 14px;
+    width: min(180px, calc(100% - 62px));
     padding: 0 28px 0 9px;
     background: var(--panel-2);
     cursor: pointer;
@@ -6446,40 +6449,41 @@ button {
     max-width: calc(100vh - 245px);
 }
 .image-generator-grid .cover-image img,
-.image-generator-loading,
 .image-generator-references figure,
 .image-generator-references .cover-add-reference {
     aspect-ratio: 1;
 }
 .image-generator-loading {
-    min-height: 0;
+    min-height: 230px;
 }
-.image-generator-card-failed .image-generator-loading,
-.image-generator-card-stopped .image-generator-loading {
-    animation: none;
-    opacity: 0.62;
-}
-.image-generator-card footer small {
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+
 .image-generator-card-actions {
     display: flex;
-    grid-column: 1 / -1;
-    gap: 10px;
+    box-sizing: border-box;
+    height: 37px;
+    min-height: 37px;
     align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 3px 8px;
+    border-top: 1px solid var(--ink);
 }
-.image-generator-card-actions .cover-upvote {
-    padding: 3px 0;
-}
-.image-generator-upscale {
-    color: var(--teal) !important;
+.image-generator-card-actions .image-generator-upscale {
+    margin-left: auto;
+    color: var(--ink) !important;
 }
 .image-generator-card-actions button:disabled {
     cursor: default;
     opacity: 0.45;
+}
+
+.cover-lightbox figcaption {
+    display: grid;
+    gap: 5px;
+}
+.cover-lightbox figcaption small {
+    color: color-mix(in srgb, #fff 72%, transparent);
+    font: 8px/1.45 var(--font-mono);
 }
 .image-generator-prompt-control > small {
     display: block;
@@ -6537,10 +6541,6 @@ button {
 .image-generator-references button:disabled {
     cursor: default;
     opacity: 0.55;
-}
-.image-generator-module .cover-lightbox figure img {
-    aspect-ratio: 1;
-    object-fit: contain;
 }
 
 /* Visual Workbench – Multiple */
@@ -7160,6 +7160,44 @@ button {
 .cover-splitter-preview-column > .cover-splitter-active-head {
     /* The rule aligns with a Single workbench's preview top edge. */
     padding: 7px 0 24px;
+}
+
+/* Multiple workbenches — stable gallery card geometry */
+.visual-multiple-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.visual-multiple-grid > .visual-multiple-card {
+    width: 100%;
+    min-width: 0;
+}
+.visual-multiple-grid > .cover-splitter-card {
+    min-height: 0;
+}
+.visual-multiple-grid > .cover-splitter-card .cover-splitter-preview {
+    flex: 0 0 auto;
+}
+.cover-card > footer.cover-card-actions,
+.cover-card > footer.image-generator-card-actions {
+    box-sizing: border-box;
+    height: 37px;
+    min-height: 37px;
+    max-height: 37px;
+    padding: 3px 8px;
+}
+.cover-card-actions .cover-reject {
+    grid-row: auto;
+}
+
+@media (max-width: 600px) {
+    .visual-multiple-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .visual-multiple-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* The original intermediate breakpoint reversed the gallery and controls. */

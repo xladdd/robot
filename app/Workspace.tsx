@@ -192,7 +192,7 @@ export default function Workspace({
     null,
   );
   const [coverModel, setCoverModel] = useState<CoverModel>(
-    "black-forest-labs/flux.2-klein-4b",
+    "black-forest-labs/flux.2-pro",
   );
   const [coverArtOnlyReferences, setCoverArtOnlyReferences] = useState(true);
   const [coverGenerationCount, setCoverGenerationCount] = useState<2 | 4>(4);
@@ -1443,16 +1443,19 @@ export default function Workspace({
   }
 
   function selectCoverSketch(id: string) {
-    setCoverSelectedId(id);
-    setCoverSketches((current) =>
-      current.map((item) =>
+    setCoverSelectedId((current) => (current === id ? null : id));
+    setCoverSketches((current) => {
+      const isSelected = current.some(
+        (item) => item.id === id && item.status === "selected",
+      );
+      return current.map((item) =>
         item.id === id
-          ? { ...item, status: "selected" }
+          ? { ...item, status: isSelected ? "active" : "selected" }
           : item.status === "selected"
             ? { ...item, status: "active" }
             : item,
-      ),
-    );
+      );
+    });
   }
   function rejectCoverSketch(id: string) {
     if (coverSelectedId === id) setCoverSelectedId(null);
