@@ -443,7 +443,8 @@ export async function planCoverConcepts(
       generationId: result.id,
       usage: usageFrom(result),
       referenceGuidance: parsed.referenceGuidance,
-      usedFallback: false,
+      usedFallback:
+        (result.model || COVER_PLANNER_MODEL) !== COVER_PLANNER_MODEL,
     },
   };
 }

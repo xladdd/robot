@@ -262,10 +262,31 @@ async function generate(
   };
 }
 
+function imageConcept(
+  concept: PlannedCoverConcept,
+  subject: CoverSubject,
+): PlannedCoverConcept {
+  if (subject !== "czech-language") return concept;
+  return {
+    ...concept,
+    coreIdea:
+      "A physical visual metaphor for exchange, interpretation, and shared ideas.",
+    heroSubject:
+      "a sculptural system of broad folded ribbons, solid blocks, and one coloured orb",
+    supportingElements: [
+      "large connected material forms",
+      "open colour fields",
+      "restrained layered shadows",
+    ],
+  };
+}
+
 function conceptInstruction(
   concept: PlannedCoverConcept,
   guidance: ReferenceGuidance,
+  subject: CoverSubject,
 ): string {
+  const imagePlan = imageConcept(concept, subject);
   return JSON.stringify({
     referenceGuidance: {
       audienceCharacter: guidance.audienceCharacter,
@@ -276,18 +297,24 @@ function conceptInstruction(
       acceptableRenderingApproaches: guidance.acceptableRenderingApproaches,
     },
     concept: {
-      id: concept.id,
-      coreIdea: concept.coreIdea,
-      heroSubject: concept.heroSubject,
-      supportingElements: concept.supportingElements,
-      composition: concept.composition,
-      viewpoint: concept.viewpoint,
-      renderingApproach: concept.renderingApproach,
-      palette: concept.palette,
-      lighting: concept.lighting,
-      quietSpace: concept.quietSpace,
+      id: imagePlan.id,
+      coreIdea: imagePlan.coreIdea,
+      heroSubject: imagePlan.heroSubject,
+      supportingElements: imagePlan.supportingElements,
+      composition: imagePlan.composition,
+      viewpoint: imagePlan.viewpoint,
+      renderingApproach: imagePlan.renderingApproach,
+      palette: imagePlan.palette,
+      lighting: imagePlan.lighting,
+      quietSpace: imagePlan.quietSpace,
     },
   });
+}
+
+function imageSubject(subject: CoverSubject, customSubject: string) {
+  if (subject === "czech-language")
+    return "communication, expression, interpretation, and shared ideas";
+  return subject === "other" ? customSubject : subject;
 }
 
 function buildPrompt(
@@ -299,9 +326,9 @@ function buildPrompt(
 ) {
   return fillPrompt(coverPrompt, {
     audience,
-    subject: subject === "other" ? customSubject : subject,
+    subject: imageSubject(subject, customSubject),
     referenceGuidance: JSON.stringify(guidance),
-    concept: conceptInstruction(plan, guidance),
+    concept: conceptInstruction(plan, guidance, subject),
   });
 }
 

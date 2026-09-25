@@ -128,24 +128,37 @@ test("keeps provider-specific image parameters and independent FLUX seeds", () =
 });
 
 test("uses prompt-only text-free guidance and sends a different planned concept per image", () => {
+  assert.match(imagePrompt, /Create only the full-bleed portrait artwork/);
   assert.match(
     imagePrompt,
-    /clean, image-only, full-bleed portrait illustration/,
+    /Every visible surface is smooth, blank, and unmarked/,
   );
-  assert.match(imagePrompt, /Every visible surface is blank and unmarked/);
   assert.match(imagePrompt, /uninterrupted colour, light, sky, or atmosphere/);
-  assert.doesNotMatch(
+  assert.match(
     imagePrompt,
-    /Never generate readable text or text-like marks/,
+    /no typography or graphic-symbol system: do not render titles/,
   );
-  assert.doesNotMatch(imagePrompt, /pseudo-writing|typography|text-bearing/i);
+  assert.match(
+    imagePrompt,
+    /Do not substitute stylised or illegible characters/,
+  );
   assert.doesNotMatch(imagePrompt, /\{\{keywords\}\}/);
   assert.match(imagePrompt, /substantially different from other concepts/);
   assert.match(
     server,
     /acceptableRenderingApproaches: guidance\.acceptableRenderingApproaches/,
   );
-  assert.match(server, /quietSpace: concept\.quietSpace/);
+  assert.match(server, /quietSpace: imagePlan\.quietSpace/);
+  assert.match(server, /function imageConcept/);
+  assert.match(server, /subject !== "czech-language"/);
+  assert.match(
+    server,
+    /communication, expression, interpretation, and shared ideas/,
+  );
+  assert.match(
+    plannerPrompt,
+    /For Czech language, literature, and other language subjects/,
+  );
   assert.doesNotMatch(server, /referenceGuidance:\s*guidance/);
   assert.doesNotMatch(
     server,

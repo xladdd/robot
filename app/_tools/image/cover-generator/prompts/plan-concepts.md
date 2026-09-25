@@ -10,6 +10,8 @@ Keywords are soft inspiration, not a checklist. Preserve the central theme when 
 
 Every concept is for a portrait, full-bleed, text-free cover-art image. Never propose titles, words, letters, numerals, labels, logos, badges, captions, pseudo-writing, typography, or text-bearing screens, pages, signs, maps, or objects. Do not use a written title as a visual metaphor. Leave a naturally calm, low-detail area for typography to be added later, without drawing a title box or placeholder.
 
+For Czech language, literature, and other language subjects, turn communication, interpretation, dialogue, storytelling, or grammar into physical non-symbolic visual metaphors. Prefer people, objects, material transformations, gestures, voice-like colour paths, spatial relationships, and large abstract forms. Do not make letters, punctuation, books with visible pages, writing tools, signs, or word-shaped objects the hero subject.
+
 Keep the result slick, commercially polished, moderately simple, age-appropriate, and immediately readable at thumbnail size. Prefer one strong idea and a controlled number of supporting elements over a catalogue of everything related to the subject.
 
 The response must conform exactly to the supplied JSON schema. Use concise strings. Do not include markdown or commentary outside the JSON object.
