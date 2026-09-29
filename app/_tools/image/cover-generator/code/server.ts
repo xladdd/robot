@@ -262,23 +262,53 @@ async function generate(
   };
 }
 
+function languageScene(concept: PlannedCoverConcept) {
+  const treatment = concept.renderingApproach.toLowerCase();
+  const isPhotographic =
+    treatment.includes("photo") && !treatment.includes("photomontage");
+  if (isPhotographic || treatment.includes("cinematic"))
+    return {
+      coreIdea:
+        "A contemporary, recognisable environment where spoken communication connects people in a Czech cultural setting.",
+      heroSubject:
+        "two upper-secondary students in active conversation in a warmly lit recording and reading room",
+      supportingElements: [
+        "a vintage microphone and headphones",
+        "two closed books with plain featureless cloth covers",
+        "a fountain pen and a plain ceramic cup",
+        "a window view of recognisable Prague architecture",
+      ],
+      renderingApproach:
+        "one uninterrupted editorial photograph with natural scene depth; a real environment, not a designed cover, with no graphic overlays, layout panels, banners, logos, or inserted symbols",
+      quietSpace:
+        "a naturally softer area of plain wall or window atmosphere near the upper edge, physically empty and still part of the room",
+    };
+  return {
+    coreIdea:
+      "A dense editorial collage connecting contemporary communication, Czech cultural context, and historical perspective.",
+    heroSubject:
+      "a contemporary upper-secondary student in an expressive communication gesture and a separate anonymous nineteenth-century writer-inspired engraved portrait",
+    supportingElements: [
+      "a recognisable Prague architectural panorama",
+      "a vintage microphone",
+      "two or three closed books with plain featureless spines",
+      "a fountain pen",
+      "blank saturated torn-paper layers",
+      "one or two empty speech-bubble cutouts",
+    ],
+    renderingApproach:
+      "a tactile editorial photomontage with photographic and engraved cutouts, blank saturated paper, screen-print texture, dramatic overlap, and no cover-layout panels, banners, logos, or inserted typography",
+    quietSpace:
+      "one calm area of uninterrupted saturated paper near an edge, integrated into the collage without a frame, panel, banner, or placeholder",
+  };
+}
+
 function imageConcept(
   concept: PlannedCoverConcept,
   subject: CoverSubject,
 ): PlannedCoverConcept {
   if (subject !== "czech-language") return concept;
-  return {
-    ...concept,
-    coreIdea:
-      "A physical visual metaphor for exchange, interpretation, and shared ideas.",
-    heroSubject:
-      "a sculptural system of broad folded ribbons, solid blocks, and one coloured orb",
-    supportingElements: [
-      "large connected material forms",
-      "open colour fields",
-      "restrained layered shadows",
-    ],
-  };
+  return { ...concept, ...languageScene(concept) };
 }
 
 function conceptInstruction(
@@ -297,7 +327,6 @@ function conceptInstruction(
       acceptableRenderingApproaches: guidance.acceptableRenderingApproaches,
     },
     concept: {
-      id: imagePlan.id,
       coreIdea: imagePlan.coreIdea,
       heroSubject: imagePlan.heroSubject,
       supportingElements: imagePlan.supportingElements,

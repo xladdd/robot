@@ -128,12 +128,28 @@ test("keeps provider-specific image parameters and independent FLUX seeds", () =
 });
 
 test("uses prompt-only text-free guidance and sends a different planned concept per image", () => {
-  assert.match(imagePrompt, /Create only the full-bleed portrait artwork/);
   assert.match(
     imagePrompt,
-    /Every visible surface is smooth, blank, and unmarked/,
+    /Create one full-bleed, portrait-oriented standalone visual artwork/,
   );
-  assert.match(imagePrompt, /uninterrupted colour, light, sky, or atmosphere/);
+  assert.match(
+    imagePrompt,
+    /Do not design a book cover, poster, advertisement, page layout, or cover mockup/,
+  );
+  assert.doesNotMatch(imagePrompt, /typography will be added later/i);
+  assert.match(
+    imagePrompt,
+    /Every potential writing or label surface is blank and unmarked/,
+  );
+  assert.match(
+    imagePrompt,
+    /uninterrupted colour, light, sky, wall, or atmosphere/,
+  );
+  assert.match(imagePrompt, /Never simplify an object-rich direction/);
+  assert.match(
+    imagePrompt,
+    /Show at least three clearly recognisable, subject-relevant real-world elements/,
+  );
   assert.match(
     imagePrompt,
     /no typography or graphic-symbol system: do not render titles/,
@@ -149,7 +165,11 @@ test("uses prompt-only text-free guidance and sends a different planned concept 
     /acceptableRenderingApproaches: guidance\.acceptableRenderingApproaches/,
   );
   assert.match(server, /quietSpace: imagePlan\.quietSpace/);
+  assert.doesNotMatch(server, /id: imagePlan\.id/);
+  assert.match(server, /function languageScene/);
   assert.match(server, /function imageConcept/);
+  assert.match(server, /a recognisable Prague architectural panorama/);
+  assert.match(server, /two upper-secondary students in active conversation/);
   assert.match(server, /subject !== "czech-language"/);
   assert.match(
     server,
@@ -157,7 +177,15 @@ test("uses prompt-only text-free guidance and sends a different planned concept 
   );
   assert.match(
     plannerPrompt,
-    /For Czech language, literature, and other language subjects/,
+    /For every subject, anchor the concept in a concrete, object-rich scene/,
+  );
+  assert.match(
+    plannerPrompt,
+    /For preschool and primary audiences, prefer animals, plants, tools, specimens, playful objects, and inviting environments/,
+  );
+  assert.match(
+    plannerPrompt,
+    /For Czech language, literature, and other language subjects, create concrete, object-rich narrative scenes/,
   );
   assert.doesNotMatch(server, /referenceGuidance:\s*guidance/);
   assert.doesNotMatch(
