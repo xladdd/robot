@@ -36,7 +36,7 @@ Creates up to 15 square images from prompts queued in order, with a choice of on
 
 ### Cover Generator
 
-Creates low-cost, text-free textbook cover-art directions from an audience, subject, optional keywords, and optional reference covers. A small vision-capable planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
+Creates text-free textbook cover-art directions from an audience, subject, optional keywords, and optional reference covers. A Mistral-family vision planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
 
 ### Layer Splitter
 

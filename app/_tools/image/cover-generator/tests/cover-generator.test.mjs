@@ -40,15 +40,16 @@ test("uses the approved image models and defaults to FLUX.2 Pro", () => {
   assert.doesNotMatch(server, obsolete);
 });
 
-test("uses a structured vision planner with an OpenRouter fallback", () => {
+test("uses Mistral Medium planning with a Ministral fallback", () => {
   assert.match(
     planner,
-    /COVER_PLANNER_MODEL = "mistralai\/mistral-small-2603"/,
+    /COVER_PLANNER_MODEL = "mistralai\/mistral-medium-3-5"/,
   );
   assert.match(
     planner,
-    /COVER_PLANNER_FALLBACK_MODEL\s*=\s*"google\/gemini-2\.5-flash-lite"/,
+    /COVER_PLANNER_FALLBACK_MODEL\s*=\s*"mistralai\/ministral-14b-2512"/,
   );
+  assert.doesNotMatch(planner, /google\/gemini-2\.5-flash-lite/);
   assert.match(
     planner,
     /models: \[COVER_PLANNER_MODEL, COVER_PLANNER_FALLBACK_MODEL\]/,
@@ -143,12 +144,28 @@ test("uses prompt-only text-free guidance and sends a different planned concept 
   );
   assert.match(
     imagePrompt,
-    /uninterrupted colour, light, sky, wall, or atmosphere/,
+    /flat or softly graded colour, sky, wall, atmospheric light, low-contrast paper texture, or blurred depth/,
   );
   assert.match(imagePrompt, /Never simplify an object-rich direction/);
   assert.match(
     imagePrompt,
     /Show at least three clearly recognisable, subject-relevant real-world elements/,
+  );
+  assert.match(
+    imagePrompt,
+    /The actual typography zone is the entire upper 33% of the portrait, with a strict render-time background-only safety buffer extending to 40%/,
+  );
+  assert.match(
+    imagePrompt,
+    /The first top edge, shadow, reflection, or crop of every recognisable object must begin below 40% of the image height/,
+  );
+  assert.match(
+    imagePrompt,
+    /Do not use suspended, hanging, tall, upward-reaching, or vertically dominant motifs/,
+  );
+  assert.match(
+    imagePrompt,
+    /Non-negotiable final spatial constraint: the upper 40% of the final portrait contains only uninterrupted background atmosphere/,
   );
   assert.match(
     imagePrompt,
@@ -167,10 +184,17 @@ test("uses prompt-only text-free guidance and sends a different planned concept 
   assert.match(server, /quietSpace: imagePlan\.quietSpace/);
   assert.doesNotMatch(server, /id: imagePlan\.id/);
   assert.match(server, /function languageScene/);
+  assert.match(server, /function withTopThirdClearance/);
+  assert.match(server, /the complete upper 40% of the portrait image/);
+  assert.match(
+    server,
+    /object edge, shadow, reflection, and crop below 40% of the image height/,
+  );
   assert.match(server, /function imageConcept/);
   assert.match(server, /a recognisable Prague architectural panorama/);
   assert.match(server, /two upper-secondary students in active conversation/);
-  assert.match(server, /subject !== "czech-language"/);
+  assert.match(server, /subject === "czech-language"/);
+  assert.match(server, /const subjectPlan/);
   assert.match(
     server,
     /communication, expression, interpretation, and shared ideas/,
@@ -181,7 +205,23 @@ test("uses prompt-only text-free guidance and sends a different planned concept 
   );
   assert.match(
     plannerPrompt,
+    /the actual typography zone is the complete upper 33% of the portrait image, with a renderer safety buffer extending to 40%/,
+  );
+  assert.match(
+    plannerPrompt,
+    /The top edge, shadow, reflection, and crop of every recognisable object must begin below 40% of the image height/,
+  );
+  assert.match(
+    plannerPrompt,
     /For preschool and primary audiences, prefer animals, plants, tools, specimens, playful objects, and inviting environments/,
+  );
+  assert.match(
+    plannerPrompt,
+    /For upper-secondary humanities, especially history, literature, and social science, favour mature historical photomontage/,
+  );
+  assert.match(
+    plannerPrompt,
+    /For physics, use text-safe physical apparatus that can rest wholly in the lower scene/,
   );
   assert.match(
     plannerPrompt,

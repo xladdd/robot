@@ -148,7 +148,7 @@ Image apps:
 - `app/_tools/image/map-generator/code/data/`: the only repository copies of processed map datasets and their licence note.
 - `app/_tools/image/map-generator/scripts/`: repeatable dataset import and map evaluation commands.
 - `app/_tools/image/cover-generator/code/server.ts`: protected low-cost OpenRouter planning and image generation for distinct text-free cover-art concepts.
-- `app/_tools/image/cover-generator/code/concept-plan.ts`: Mistral Small vision planning, structured concept validation, reference guidance, and local fallback directions.
+- `app/_tools/image/cover-generator/code/concept-plan.ts`: Mistral Medium vision planning with a Ministral 14B provider fallback, structured concept validation, reference guidance, and local emergency directions.
 - `app/_tools/image/cover-generator/code/types.ts`: shared audience, subject, planner, reference-guidance, and concept metadata types.
 - `app/_tools/image/cover-generator/prompts/`: editable planner and text-free artwork prompts.
 - `app/_tools/image/cover-generator/MainInterface.tsx`: optional references, audience/subject/keyword controls, model controls, concepts, results, exports, and lightbox.
@@ -573,11 +573,11 @@ Editable SVG
 ```text
 Audience, subject, optional keywords and references
 ↓
-Mistral Small plans two or four distinct concepts and reference guidance
+Mistral Medium plans two or four distinct concepts and reference guidance
 ↓
-Validated plan, or deterministic local directions if planning fails
+Ministral 14B provider fallback, then deterministic local directions if both planners fail
 ↓
-Parallel image generation with FLUX.2 Klein at 512 px or Gemini Flash Lite at 1K
+Parallel image generation with FLUX.2 Pro at 1K by default, FLUX.2 Klein at 512 px, or Gemini Flash Lite Image at 1K
 ↓
 One replacement attempt for each failed image
 ↓
@@ -588,7 +588,7 @@ ZIP with JPEGs, Markdown report, and project JSON, or artboard PDF
 
 **Output:** text-free concept images, a ZIP containing the active JPEGs plus `generation-report.md` and `project.json`, and a browser-created artboard PDF. A preferred concept can guide a later batch; there is no master-image or separate-asset production stage.
 
-**Dependencies:** OpenRouter planner `mistralai/mistral-small-2603`, image model `black-forest-labs/flux.2-klein-4b` for 512 px concepts, or `google/gemini-3.1-flash-lite-image` for 1K concepts. These three current Cover Generator model names are code constants rather than environment overrides. Browser ZIP/PDF helpers produce downloads. The interface and server implementation are app-owned; long-lived workflow state, ZIP writing, and report creation remain in `Workspace.tsx`.
+**Dependencies:** OpenRouter planner `mistralai/mistral-medium-3-5` with `mistralai/ministral-14b-2512` as the same-family provider fallback; image model `black-forest-labs/flux.2-pro` for default 1K concepts, `black-forest-labs/flux.2-klein-4b` for 512 px concepts, or `google/gemini-3.1-flash-lite-image` for alternative 1K concepts. These current Cover Generator model names are code constants rather than environment overrides. Browser ZIP/PDF helpers produce downloads. The interface and server implementation are app-owned; long-lived workflow state, ZIP writing, and report creation remain in `Workspace.tsx`.
 
 ### GREP Builder
 
@@ -826,25 +826,27 @@ Reserved app folder
 
 `.env.example` lists the environment setting for each configurable model. A dash means the current model is an intentional code constant and changing it requires a code change.
 
-| App               | Job                     | Setting                                    | Default model                        |
-| ----------------- | ----------------------- | ------------------------------------------ | ------------------------------------ |
-| Text Extractor    | OCR and image reading   | `OPENROUTER_OCR_MODEL`                     | `mistralai/mistral-small-2603`       |
-| Text Extractor    | correction              | `OPENROUTER_CORRECTION_MODEL`              | `mistralai/ministral-8b-2512`        |
-| Index Creator     | grammatical forms       | `OPENROUTER_INDEX_MODEL`                   | `mistralai/mistral-medium-3-5`       |
-| Diagram Generator | diagram description     | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Graph Generator   | chart structure         | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Map Generator     | optional generated map  | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Cover Generator   | concept planning        | —                                          | `mistralai/mistral-small-2603`       |
-| Cover Generator   | fast 512 px concepts    | —                                          | `black-forest-labs/flux.2-klein-4b`  |
-| Cover Generator   | 1K concepts             | —                                          | `google/gemini-3.1-flash-lite-image` |
-| Image Generator   | fast 512 px images      | `OPENROUTER_COVER_SKETCH_MODEL`            | `black-forest-labs/flux.2-klein-4b`  |
-| Image Generator   | high-quality images     | `OPENROUTER_COVER_FIDELITY_MODEL`          | `black-forest-labs/flux.2-pro`       |
-| Image Generator   | 2× generative upscale   | `OPENROUTER_IMAGE_UPSCALE_MODEL`*          | `black-forest-labs/flux.2-pro`       |
-| Layer Splitter    | scene planning          | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL`     | `mistralai/mistral-small-2603`       |
-| Layer Splitter    | fast reconstruction     | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL`     | `black-forest-labs/flux.2-klein-4b`  |
-| Layer Splitter    | fidelity reconstruction | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro`       |
-| GREP Builder      | GREP conversion         | `OPENROUTER_GREP_MODEL`                    | `mistralai/ministral-8b-2512`        |
-| Prompt Extractor  | page-image reading      | `OPENROUTER_PROMPT_EXTRACTOR_MODEL`        | `qwen/qwen3.5-122b-a10b`             |
+| App               | Job                      | Setting                                    | Default model                        |
+| ----------------- | ------------------------ | ------------------------------------------ | ------------------------------------ |
+| Text Extractor    | OCR and image reading    | `OPENROUTER_OCR_MODEL`                     | `mistralai/mistral-small-2603`       |
+| Text Extractor    | correction               | `OPENROUTER_CORRECTION_MODEL`              | `mistralai/ministral-8b-2512`        |
+| Index Creator     | grammatical forms        | `OPENROUTER_INDEX_MODEL`                   | `mistralai/mistral-medium-3-5`       |
+| Diagram Generator | diagram description      | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Graph Generator   | chart structure          | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Map Generator     | optional generated map   | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
+| Cover Generator   | primary concept planning | —                                          | `mistralai/mistral-medium-3-5`       |
+| Cover Generator   | backup concept planning  | —                                          | `mistralai/ministral-14b-2512`       |
+| Cover Generator   | default 1K concepts      | —                                          | `black-forest-labs/flux.2-pro`       |
+| Cover Generator   | fast 512 px concepts     | —                                          | `black-forest-labs/flux.2-klein-4b`  |
+| Cover Generator   | alternative 1K concepts  | —                                          | `google/gemini-3.1-flash-lite-image` |
+| Image Generator   | fast 512 px images       | `OPENROUTER_COVER_SKETCH_MODEL`            | `black-forest-labs/flux.2-klein-4b`  |
+| Image Generator   | high-quality images      | `OPENROUTER_COVER_FIDELITY_MODEL`          | `black-forest-labs/flux.2-pro`       |
+| Image Generator   | 2× generative upscale    | `OPENROUTER_IMAGE_UPSCALE_MODEL`*          | `black-forest-labs/flux.2-pro`       |
+| Layer Splitter    | scene planning           | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL`     | `mistralai/mistral-small-2603`       |
+| Layer Splitter    | fast reconstruction      | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL`     | `black-forest-labs/flux.2-klein-4b`  |
+| Layer Splitter    | fidelity reconstruction  | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro`       |
+| GREP Builder      | GREP conversion          | `OPENROUTER_GREP_MODEL`                    | `mistralai/ministral-8b-2512`        |
+| Prompt Extractor  | page-image reading       | `OPENROUTER_PROMPT_EXTRACTOR_MODEL`        | `qwen/qwen3.5-122b-a10b`             |
 
 `*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
 

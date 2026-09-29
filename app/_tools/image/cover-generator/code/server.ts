@@ -303,12 +303,26 @@ function languageScene(concept: PlannedCoverConcept) {
   };
 }
 
+function withTopThirdClearance(
+  concept: PlannedCoverConcept,
+): PlannedCoverConcept {
+  return {
+    ...concept,
+    composition: `${concept.composition} Use a render-time safety buffer: compose a low, wide horizontal tableau entirely in the lower 60%. Keep every recognisable person, animal, building, landscape feature, tree, flower, tool, specimen, book, machine, laboratory object, collage cutout, object edge, shadow, reflection, and crop below 40% of the image height. This protects the actual upper-third typography zone. Do not use suspended, hanging, tall, upward-reaching, or vertically dominant motifs: no trees, tall plants, reeds, birdhouses, streetlamps, lampposts, masts, towers, chimneys, poles, magnifying glasses, beams, plumes, wires, cords, or similar forms. Use the lower portion for the object-rich scene, with optional side and bottom crops only.`,
+    quietSpace:
+      "the complete upper 40% of the portrait image: one continuous render-time background-only safety field of colour, sky, wall, atmospheric light, low-contrast texture, or blurred depth; no recognisable objects, people, faces, animals, architecture, equipment, cutouts, panels, banners, cards, frames, or white placeholder",
+  };
+}
+
 function imageConcept(
   concept: PlannedCoverConcept,
   subject: CoverSubject,
 ): PlannedCoverConcept {
-  if (subject !== "czech-language") return concept;
-  return { ...concept, ...languageScene(concept) };
+  const subjectPlan =
+    subject === "czech-language"
+      ? { ...concept, ...languageScene(concept) }
+      : concept;
+  return withTopThirdClearance(subjectPlan);
 }
 
 function conceptInstruction(

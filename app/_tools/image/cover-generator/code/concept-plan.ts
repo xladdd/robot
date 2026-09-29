@@ -13,9 +13,9 @@ import type {
   ReferenceGuidance,
 } from "./types";
 
-export const COVER_PLANNER_MODEL = "mistralai/mistral-small-2603" as const;
+export const COVER_PLANNER_MODEL = "mistralai/mistral-medium-3-5" as const;
 export const COVER_PLANNER_FALLBACK_MODEL =
-  "google/gemini-2.5-flash-lite" as const;
+  "mistralai/ministral-14b-2512" as const;
 
 const plannerPrompt = loadPrompt(
   "image/cover-generator/prompts/plan-concepts.md",
