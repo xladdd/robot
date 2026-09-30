@@ -3968,9 +3968,8 @@ button {
 .solutions-module {
     position: absolute;
     z-index: 1;
-    inset: 0;
+    inset: var(--wide-app-gutter) auto 0;
     overflow-y: auto;
-    padding-top: 0;
     padding-bottom: 90px;
 }
 .library-tool-header {
@@ -4726,10 +4725,39 @@ button {
 .buffet-module {
     position: absolute;
     z-index: 1;
-    inset: 0;
+    inset: var(--wide-app-gutter) auto 0;
     overflow-y: auto;
-    padding-top: 0;
     padding-bottom: 90px;
+}
+
+.buffet-module > .buffet-header.tool-header,
+.solutions-module > .solutions-header.tool-header {
+    display: block;
+    padding: 7px 0 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.buffet-module > .buffet-header.tool-header > .tool-header-copy,
+.solutions-module > .solutions-header.tool-header > .tool-header-copy {
+    display: grid;
+    align-content: start;
+    gap: var(--title-block-gap);
+    max-width: none;
+}
+.buffet-module > .buffet-header.tool-header > .tool-header-copy .tool-header-meta,
+.solutions-module > .solutions-header.tool-header > .tool-header-copy .tool-header-meta {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0;
+}
+.buffet-module > .buffet-header.tool-header .tool-header-meta,
+.solutions-module > .solutions-header.tool-header .tool-header-meta {
+    padding-right: 0;
+}
+.buffet-module > .buffet-header.tool-header .processing-badge,
+.solutions-module > .solutions-header.tool-header .processing-badge {
+    position: static;
 }
 
 .buffet-install-grid {
@@ -5731,6 +5759,14 @@ button {
 .library-tool-header h1 {
     font-size: clamp(32px, 4vw, 52px);
 }
+.buffet-module > .buffet-header.tool-header h1,
+.solutions-module > .solutions-header.tool-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    font-weight: 400;
+}
 
 .editor-sidebar {
     width: 330px;
@@ -5802,7 +5838,7 @@ button {
 }
 
 .library-guide {
-    margin: 30px 0 0;
+    margin: 24px 0 0;
     border: 1px solid var(--ink);
     background: var(--panel);
     box-shadow: 4px 4px 0 var(--ink);
