@@ -66,7 +66,7 @@ Checks ISBN-10 or ISBN-13 and creates a print-ready vector EAN-13 PDF locally. [
 
 ### Typesetter
 
-Reserved for a future typesetting tool. It is visible in the sidebar but is not available yet. [English info drawer](app/_tools/design/typesetter/info.en.md)
+Reads a Word manuscript and an InDesign IDML template, inventories the template locally, suggests controlled semantic roles with AI, lets the designer map those roles to real paragraph styles, and exports reviewed `indesign-typesetter-v1` JSON plus an InDesign importer. V1 fills one labelled threaded story and creates unanchored image-request frames for manual placement. [English info drawer](app/_tools/design/typesetter/info.en.md)
 
 ## Reference
 

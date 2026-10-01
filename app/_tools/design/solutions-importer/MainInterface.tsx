@@ -597,7 +597,7 @@ export function SolutionsImporterMainInterface({
             <span>{t.download}</span>
             <div className="solutions-downloads">
               <a
-                className="action-button action-button-success"
+                className="action-button"
                 href="/solutions/import_solutions.jsx"
                 download
               >

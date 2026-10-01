@@ -94,7 +94,14 @@ test("ships one extractor and one mode-selecting InDesign importer", async () =>
     /If Advanced doesn't work as expected, undo the action and rerun the script in Simple mode\./,
   );
 
-  assert.match(component, /\/solutions\/import_solutions\.jsx/);
+  assert.match(
+    component,
+    /className="action-button"\s+href="\/solutions\/import_solutions\.jsx"/,
+  );
+  assert.doesNotMatch(
+    component,
+    /className="action-button action-button-success"\s+href="\/solutions\/import_solutions\.jsx"/,
+  );
   assert.doesNotMatch(
     component,
     /href="\/solutions\/import_solutions_(?:simple|advanced)\.jsx"/,

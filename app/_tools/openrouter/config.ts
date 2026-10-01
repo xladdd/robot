@@ -39,6 +39,10 @@ export const openRouterApps = {
     name: "Prompt Extractor",
     envName: "OPENROUTER_PROMPT_EXTRACTOR_API_KEY",
   },
+  typesetter: {
+    name: "Typesetter",
+    envName: "OPENROUTER_TYPESETTER_API_KEY",
+  },
 } as const;
 
 export type OpenRouterAppId = keyof typeof openRouterApps;

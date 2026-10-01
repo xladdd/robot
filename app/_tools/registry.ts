@@ -87,7 +87,7 @@ export const appRegistry = [
     id: "typesetter",
     category: "design",
     folder: "design/typesetter",
-    available: false,
+    available: true,
   },
 ] as const;
 
@@ -101,6 +101,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   image: "alpha",
   cover: "to-test",
   layerSplitter: "to-test",
+  typesetter: "alpha",
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
 

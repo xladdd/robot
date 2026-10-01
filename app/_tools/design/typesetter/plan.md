@@ -138,9 +138,9 @@ The designer positions or replaces these frames manually. A later image-generati
 
 ## Interface archetype
 
-Use Solutions Importer as the closest existing Robot precedent for uploads, progress, logs, status badges, and downloads. Typesetter should extend that pattern into a staged wizard/workbench rather than one large form or a chat interface.
+Use Solutions Importer as the shared interface archetype, not merely as visual inspiration. Typesetter should use the same library header, upload/processing card, progress console, compact collapsible report, summary statistics, download control, and installation guide with a sticky sidebar. It is not a chat interface.
 
-Suggested stages:
+The additional Typesetter stages live inside the single upload/processing card and reveal progressively:
 
 1. **Template & manuscript** — upload cards and privacy notes.
 2. **Template inventory** — styles, labels, structure, and validation results.
@@ -158,7 +158,7 @@ The role-mapping table should show:
 - required/optional state;
 - validation status.
 
-Use a persistent stepper or status rail. Disable later stages until their prerequisites pass. Follow Robot's existing bilingual English/Czech UI pattern.
+Do not add a separate persistent stepper above the header or a parallel card system around the workflow. A compact row of live progress cards appears immediately below the template setup and import guide roll-down, outside its collapsible contents, so progress remains visible without competing with the Solutions Importer hierarchy. The progressively revealed sections and disabled actions remain the primary workflow state. Follow Robot's existing bilingual English/Czech UI pattern.
 
 ## V1 scope
 

@@ -5,6 +5,7 @@ const publicLinks = [
   "cover-splitter",
   "solutions",
   "solutions-beta",
+  "typesetter",
   "data/cliopatria-timeline.json",
   "script-buffet",
   "design-manual/downloads",

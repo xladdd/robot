@@ -80,7 +80,7 @@ Standard buttons have square corners, a `1px` ink border, and visible pressed or
 
 - `.action-button` is the neutral base with panel background and a `4px` ink shadow.
 - `.action-button-primary` uses orange for the next primary action.
-- `.action-button-success` uses turquoise for ready, download, or successful actions.
+- `.action-button-success` uses turquoise for ready generated output or successful actions. Permanent utility downloads, such as installer scripts, use the neutral `.action-button` so accent color continues to communicate workflow state.
 - `.action-button-compact` uses the `3px` accent shadow.
 - Disabled buttons use muted styling, reduced emphasis, and no hover movement.
 - Existing `.start-button` and `.download-button` follow these neutral and success semantics respectively.

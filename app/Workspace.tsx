@@ -74,6 +74,7 @@ import {
 } from "./_tools/image/cover-generator/MainInterface";
 import type { CoverPlannerMetadata } from "./_tools/image/cover-generator/code/types";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
+import { TypesetterMainInterface } from "./_tools/design/typesetter/MainInterface";
 import {
   completedApps,
   groups,
@@ -1871,6 +1872,7 @@ export default function Workspace({
     selected === "coverSplitter" ||
     selected === "prompt" ||
     selected === "solutions" ||
+    selected === "typesetter" ||
     selected === "scriptBuffet" ||
     selected === "barcode" ||
     selected === "map" ||
@@ -2145,6 +2147,8 @@ export default function Workspace({
           />
         ) : selected === "solutions" ? (
           <SolutionsImporterMainInterface language={language} />
+        ) : selected === "typesetter" ? (
+          <TypesetterMainInterface language={language} />
         ) : selected === "scriptBuffet" ? (
           <ScriptBuffetMainInterface language={language} />
         ) : selected === "extraction" ? (
