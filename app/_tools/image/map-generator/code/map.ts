@@ -471,6 +471,36 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
   const canvas = { x: 0, y: 0, width: 1000, height: 700 };
   const layer = (id: string, name: string, content: string, className = "") =>
     `<g id="${id}" data-name="${name}"${className ? ` class="${className}"` : ""}>${content}</g>`;
+  const mapLabel = ({
+    key,
+    label,
+    kind,
+    rootX,
+    rootY,
+    x = rootX,
+    y = rootY,
+    className,
+    anchor = "start",
+    variant = "default",
+    rank = 0,
+    prominence = 0,
+    required = false,
+  }: {
+    key: string;
+    label: string;
+    kind: "country" | "water" | "feature" | "city" | "mountain";
+    rootX: number;
+    rootY: number;
+    x?: number;
+    y?: number;
+    className: string;
+    anchor?: "start" | "middle" | "end";
+    variant?: "default" | "full" | "short";
+    rank?: number;
+    prominence?: number;
+    required?: boolean;
+  }) =>
+    `<text x="${x}" y="${y}" class="${className}" text-anchor="${anchor}" data-map-label-key="${escapeXml(key)}" data-map-label-kind="${kind}" data-map-label-variant="${variant}" data-map-label-rank="${rank}" data-map-label-prominence="${prominence.toFixed(3)}" data-map-label-required="${required}" data-map-label-root-x="${rootX}" data-map-label-root-y="${rootY}" data-map-label-base-x="${x}" data-map-label-base-y="${y}">${escapeXml(label)}</text>`;
 
   const viewportGeometry: GeoJSON.Polygon = {
     type: "Polygon",
@@ -508,7 +538,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     ]),
   );
   const featureMarkup = spec.features
-    .map((item) => {
+    .map((item, featureIndex) => {
       const category = categoryById.get(item.category)!;
       const color = swatches.length
         ? swatches[category.index % swatches.length].hex
@@ -519,7 +549,8 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
           type: "Polygon",
           coordinates: [[...coordinates, coordinates[0]]],
         };
-        return `<path class="feature area ${item.style}" d="${path(geometry) || ""}" fill="${color}"/><text class="feature-label" x="${path.centroid(geometry)[0]}" y="${path.centroid(geometry)[1]}" text-anchor="middle">${escapeXml(item.label)}</text>`;
+        const [x, y] = path.centroid(geometry);
+        return `<path class="feature area ${item.style}" d="${path(geometry) || ""}" fill="${color}"/>${mapLabel({ key: `feature-${featureIndex}`, label: item.label, kind: "feature", rootX: x, rootY: y, className: "feature-label", anchor: "middle", prominence: path.area(geometry), required: true })}`;
       }
       if (item.kind === "line" || item.kind === "route") {
         const geometry: GeoJSON.LineString = {
@@ -529,18 +560,27 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         const last = projection(
           coordinates[coordinates.length - 1] as [number, number],
         );
-        return `<path class="feature ${item.kind} ${item.style}" d="${path(geometry) || ""}" stroke="${color}"${item.kind === "route" ? ` marker-end="url(#arrow-${category.index})"` : ""}/>${item.kind === "line" && last ? `<text class="feature-label" x="${last[0] + 6}" y="${last[1] - 6}">${escapeXml(item.label)}</text>` : ""}`;
+        return `<path class="feature ${item.kind} ${item.style}" d="${path(geometry) || ""}" stroke="${color}"${item.kind === "route" ? ` marker-end="url(#arrow-${category.index})"` : ""}/>${item.kind === "line" && last ? mapLabel({ key: `feature-${featureIndex}`, label: item.label, kind: "feature", rootX: last[0] + 6, rootY: last[1] - 6, className: "feature-label", required: true }) : ""}`;
       }
       const position = projection(coordinates[0] as [number, number]);
       if (!position) return "";
-      return `<g class="feature point ${item.style}" transform="translate(${position[0]} ${position[1]})">${item.style === "battle" ? `<path d="M-6,-6 L6,6 M6,-6 L-6,6" stroke="${color}" stroke-width="3"/>` : `<circle r="4" fill="${color}" stroke="#fff" stroke-width="1.5"/>`}<text class="feature-label" x="8" y="-7">${escapeXml(item.label)}</text></g>`;
+      return `<g class="feature point ${item.style}" transform="translate(${position[0]} ${position[1]})">${item.style === "battle" ? `<path d="M-6,-6 L6,6 M6,-6 L-6,6" stroke="${color}" stroke-width="3"/>` : `<circle r="4" fill="${color}" stroke="#fff" stroke-width="1.5"/>`}${mapLabel({ key: `feature-${featureIndex}`, label: item.label, kind: "feature", rootX: position[0] + 8, rootY: position[1] - 7, x: 8, y: -7, className: "feature-label", required: true })}</g>`;
     })
     .join("");
   const freeLabels = spec.labels
-    .map(({ label, kind, lon, lat }) => {
+    .map(({ label, kind, lon, lat }, labelIndex) => {
       const position = projection([lon, lat]);
       return position
-        ? `<text x="${position[0]}" y="${position[1]}" class="free-label ${kind}" text-anchor="middle">${escapeXml(label)}</text>`
+        ? mapLabel({
+            key: `free-${labelIndex}`,
+            label,
+            kind: kind === "water" ? "water" : "feature",
+            rootX: position[0],
+            rootY: position[1],
+            className: `free-label ${kind}`,
+            anchor: "middle",
+            required: true,
+          })
         : "";
     })
     .join("");
@@ -570,7 +610,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     Math.min(220, (scaleKilometres / viewportKilometres) * canvas.width),
   );
   const ornaments = `${spec.showNorthArrow ? `<g class="north" transform="translate(952 54)"><path d="M0,24 L10,0 L20,24 L10,18 Z" fill="#1a1a1a"/><text x="10" y="-7" text-anchor="middle">N</text></g>` : ""}${spec.showScaleBar ? `<g class="scale" transform="translate(${950 - scaleWidth} 660)"><rect width="${scaleWidth}" height="8" fill="#fff" stroke="#1a1a1a"/><rect width="${scaleWidth / 2}" height="8" fill="#1a1a1a"/><text x="${scaleWidth / 2}" y="-6" text-anchor="middle">${scaleKilometres.toLocaleString("en")} km</text></g>` : ""}`;
-  const sharedStyle = `text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.map-label{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.free-label,.feature-label{font-size:7px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.8px}.free-label.water{font-size:7.5px;fill:#256a86;font-style:italic}.base-land path{fill:#eeeeec;stroke:#777;stroke-width:.7;stroke-linejoin:round}.regions path{stroke:#1a1a1a;stroke-width:.8;stroke-linejoin:round}.feature.area{stroke:#1a1a1a;stroke-width:1;fill-opacity:.42}.feature.line,.feature.route{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.feature.river{stroke-width:2}.feature.mountain{stroke-dasharray:2 4;stroke-width:5}.feature.route{stroke-width:4}.coast-overlay path{fill:none;stroke:#555;stroke-width:.7}.north text,.scale text{font-size:7px;font-weight:400}`;
+  const sharedStyle = `text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.map-label{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.label-short{display:none}.free-label,.feature-label{font-size:7px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.8px}.free-label.water{font-size:7.5px;fill:#256a86;font-style:italic}.base-land path{fill:#eeeeec;stroke:#777;stroke-width:.7;stroke-linejoin:round}.regions path{stroke:#1a1a1a;stroke-width:.8;stroke-linejoin:round}.feature.area{stroke:#1a1a1a;stroke-width:1;fill-opacity:.42}.feature.line,.feature.route{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.feature.river{stroke-width:2}.feature.mountain{stroke-dasharray:2 4;stroke-width:5}.feature.route{stroke-width:4}.coast-overlay path{fill:none;stroke:#555;stroke-width:.7}.north text,.scale text{font-size:7px;font-weight:400}`;
   const geographyStyle = `.natural-terrain path{stroke:none;fill-opacity:.32}.terrain-desert{fill:#e3b85f}.terrain-plateau{fill:#ad8b64}.terrain-plain{fill:#9fc98d}.terrain-basin{fill:#8db5a1}.natural-mountains path{fill:#8b6a52;fill-opacity:.3;stroke:#654936;stroke-width:.45}.natural-mountains text,.natural-cities text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.natural-mountains text{fill:#654936;font-style:italic}.disputed-boundaries path{fill:none;stroke:#d35a40;stroke-width:1.2;stroke-dasharray:4 2}.natural-cities circle{fill:#1a1a1a;stroke:#fff;stroke-width:.6}`;
   const rivers = naturalEarthWater.rivers
     .map(
@@ -613,12 +653,22 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     )
     .join("");
   const mountains = naturalEarthGeography.mountains
-    .map(({ geometry, name, rank }) => {
+    .map(({ geometry, name, rank }, mountainIndex) => {
       const mapGeometry = geometry as GeoJSON.Geometry,
         [x, y] = path.centroid(mapGeometry);
       const label =
         name && Number.isFinite(x) && Number.isFinite(y)
-          ? `<text x="${x}" y="${y}" text-anchor="middle">${escapeXml(name)}</text>`
+          ? mapLabel({
+              key: `mountain-${mountainIndex}`,
+              label: name,
+              kind: "mountain",
+              rootX: x,
+              rootY: y,
+              className: "mountain-label",
+              anchor: "middle",
+              rank,
+              prominence: path.area(mapGeometry),
+            })
           : "";
       return `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}"><path d="${path(mapGeometry) || ""}"/>${label}</g>`;
     })
@@ -630,12 +680,12 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     )
     .join("");
   const cities = naturalEarthGeography.cities
-    .map(({ geometry, name, rank }) => {
+    .map(({ geometry, name, rank }, cityIndex) => {
       const position = projection(
         (geometry as GeoJSON.Point).coordinates as [number, number],
       );
       return position
-        ? `<g class="city-rank-${rank}" data-name="${escapeXml(name)}" transform="translate(${position[0]} ${position[1]})"><circle r="1.7"/><text x="4" y="2">${escapeXml(name)}</text></g>`
+        ? `<g class="city-rank-${rank}" data-name="${escapeXml(name)}" transform="translate(${position[0]} ${position[1]})"><circle r="1.7"/>${mapLabel({ key: `city-${cityIndex}`, label: name, kind: "city", rootX: position[0] + 4, rootY: position[1] + 2, x: 4, y: 2, className: "city-label", rank })}</g>`
         : "";
     })
     .join("");
@@ -687,7 +737,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     const labelLayers = layer(
       "labels",
       "Labels",
-      `${cityLayer}<g id="country-abbreviations" data-name="Country abbreviations" style="display:none">${shortLabels}</g>${layer("country-names", "Country names", fullLabels)}${layer("geographic-labels", "Geographic labels", freeLabels)}`,
+      `${cityLayer}<g id="country-abbreviations" data-name="Country abbreviations">${shortLabels}</g>${layer("country-names", "Country names", fullLabels)}${layer("geographic-labels", "Geographic labels", freeLabels)}`,
     );
     return `${layer("seas-oceans", "Seas and oceans", `<rect width="1000" height="700" fill="#eaf6fa"/>`)}${baseGeography}${politicalGeography}${thematicOverlays}${layer("map-features", "Map features", featureMarkup)}${labelLayers}${layer("coastline", "Coastline", baseLand, "coast-overlay")}${layer("map-ornaments", "Map ornaments", ornaments)}`;
   };
@@ -738,10 +788,36 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     const labelParts = selected.features.map((item) => {
       const region = regionForFeature(item)!;
       const [x, y] = path.centroid(item);
+      const key = `country-${
+        item.id == null
+          ? region.atlasName || region.label
+          : String(item.id).padStart(3, "0")
+      }`;
+      const prominence = path.area(item);
       return Number.isFinite(x) && Number.isFinite(y)
         ? {
-            short: `<text x="${x}" y="${y}" class="map-label label-short" text-anchor="middle">${escapeXml(shortMapLabel(region.label))}</text>`,
-            full: `<text x="${x}" y="${y}" class="map-label label-full" text-anchor="middle">${escapeXml(region.label)}</text>`,
+            short: mapLabel({
+              key,
+              label: shortMapLabel(region.label),
+              kind: "country",
+              rootX: x,
+              rootY: y,
+              className: "map-label label-short",
+              anchor: "middle",
+              variant: "short",
+              prominence,
+            }),
+            full: mapLabel({
+              key,
+              label: region.label,
+              kind: "country",
+              rootX: x,
+              rootY: y,
+              className: "map-label label-full",
+              anchor: "middle",
+              variant: "full",
+              prominence,
+            }),
           }
         : { short: "", full: "" };
     });
@@ -755,7 +831,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
   ) as unknown as GeoJSON.Feature<GeoJSON.Geometry>;
   const landPath = path(land) || "";
   const baseLand = `<path d="${landPath}"/>`;
-  const regionParts = spec.regions.map((region) => {
+  const regionParts = spec.regions.map((region, regionIndex) => {
     const category = categoryById.get(region.category)!;
     const fill = swatches.length
       ? swatches[category.index % swatches.length].hex
@@ -771,13 +847,42 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       })
       .join("");
     const labelPosition = projection([region.labelLon, region.labelLat]);
+    const labelKey = `historical-${region.dataId || regionIndex}`;
+    const prominence = region.polygons.reduce((total, polygon) => {
+      const coordinates = polygon.map(({ lon, lat }) => [lon, lat]);
+      const geometry: GeoJSON.Polygon = {
+        type: "Polygon",
+        coordinates: [[...coordinates, coordinates[0]]],
+      };
+      return total + path.area(geometry);
+    }, 0);
     const shortLabel =
       region.labelVisible !== false && labelPosition
-        ? `<text x="${labelPosition[0]}" y="${labelPosition[1]}" class="map-label label-short" text-anchor="middle">${escapeXml(shortMapLabel(region.label))}</text>`
+        ? mapLabel({
+            key: labelKey,
+            label: shortMapLabel(region.label),
+            kind: "country",
+            rootX: labelPosition[0],
+            rootY: labelPosition[1],
+            className: "map-label label-short",
+            anchor: "middle",
+            variant: "short",
+            prominence,
+          })
         : "";
     const fullLabel =
       region.labelVisible !== false && labelPosition
-        ? `<text x="${labelPosition[0]}" y="${labelPosition[1]}" class="map-label label-full" text-anchor="middle">${escapeXml(region.label)}</text>`
+        ? mapLabel({
+            key: labelKey,
+            label: region.label,
+            kind: "country",
+            rootX: labelPosition[0],
+            rootY: labelPosition[1],
+            className: "map-label label-full",
+            anchor: "middle",
+            variant: "full",
+            prominence,
+          })
         : "";
     return {
       shapes: `<g data-name="${escapeXml(region.label)}">${shapes}</g>`,
@@ -806,7 +911,7 @@ export function createMapReport(
   return JSON.stringify(
     {
       generatedAt: new Date().toISOString(),
-      generator: "Taktik Robot Map Generator",
+      generator: "Taktik Robot Map Maker",
       model,
       referenceCount,
       palette: swatches,

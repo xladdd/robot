@@ -99,7 +99,7 @@ The individual route files are deliberately small:
 - `app/api/auth/logout/route.ts`: removes that cookie.
 - `app/api/ocr/route.ts`, `correct/route.ts`, and `index/forms/route.ts`: Text Extractor and Index Creator endpoint addresses.
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
-- `app/api/graphs/route.ts`, `diagrams/route.ts`, and `maps/generate/route.ts`: app-native Graph, Diagram, and model-backed Map generation adapters.
+- `app/api/graphs/route.ts` and `diagrams/route.ts`: app-native model-backed generation adapters. `app/api/maps/generate/route.ts` preserves the legacy Map URL and returns `410 Gone` because Map Maker is local-only.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
 - `app/api/covers/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, Layer Splitter, Image Generator, GREP Builder, and Prompt Extractor endpoint addresses.
 
@@ -290,7 +290,7 @@ The following completes the folder map by naming every source-file role. Repeate
 - `tests/diagram.test.mts`: diagram renderer and validator regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
-#### Map Generator: `app/_tools/image/map-generator/`
+#### Map Maker: `app/_tools/image/map-generator/`
 
 - `MainInterface.tsx`: deterministic map editor, timeline, layers, palette, and cropped-SVG export interface.
 - `copy.ts`: bilingual Map UI and progress copy.
@@ -488,7 +488,7 @@ Workspace formats accepted pages as tab-separated ranges
 
 **Dependencies:** PDF.js plus one OpenRouter call. Grammatical-form expansion uses `mistralai/mistral-medium-3-5`; candidate search, ranking, review, and output formatting remain local. Only the term list goes to OpenRouter.
 
-### Map Generator
+### Map Maker
 
 **Input:** year, visible layers, pan/zoom, country fills, and optional ASE palette.
 
@@ -833,7 +833,6 @@ Reserved app folder
 | Index Creator     | grammatical forms        | `OPENROUTER_INDEX_MODEL`                   | `mistralai/mistral-medium-3-5`       |
 | Diagram Generator | diagram description      | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
 | Graph Generator   | chart structure          | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Map Generator     | optional generated map   | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
 | Cover Generator   | primary concept planning | —                                          | `mistralai/mistral-medium-3-5`       |
 | Cover Generator   | backup concept planning  | —                                          | `mistralai/ministral-14b-2512`       |
 | Cover Generator   | default 1K concepts      | —                                          | `black-forest-labs/flux.2-pro`       |
@@ -850,7 +849,7 @@ Reserved app folder
 
 `*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
 
-Map Generator's visible year/timeline flow, Solutions Importer, Script Buffet, Barcode Generator, Design Manual, and Typesetter make no OpenRouter call in their current visible flows. Map Generator's optional app-owned generated-map endpoint uses the Figure model and a web-research pass when invoked.
+Map Maker, Solutions Importer, Script Buffet, Barcode Generator, and Design Manual make no OpenRouter call in their current visible flows. Map Maker's legacy generated-map endpoint remains at its stable URL but returns `410 Gone`.
 
 ## Important functions
 

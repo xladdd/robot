@@ -15,10 +15,7 @@ export const openRouterApps = {
     name: "Diagram Generator",
     envName: "OPENROUTER_DIAGRAM_GENERATOR_API_KEY",
   },
-  map: {
-    name: "Map Generator",
-    envName: "OPENROUTER_MAP_GENERATOR_API_KEY",
-  },
+
   cover: {
     name: "Cover Generator",
     envName: "OPENROUTER_COVER_GENERATOR_API_KEY",

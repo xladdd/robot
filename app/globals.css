@@ -2900,7 +2900,7 @@ button {
     margin-top: 38px;
 }
 
-/* Graph, Diagram, and Map Generators */
+/* Graph and Diagram Generators, Map Maker */
 .figure-module {
     position: absolute;
     z-index: 1;
@@ -3194,12 +3194,8 @@ button {
     gap: 8px;
     font: 700 10px/1.2 var(--font-sans);
 }
-.map-year-field > span {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--orange);
-    font: 700 7px var(--font-sans);
-    letter-spacing: 0.14em;
+.map-year-note {
+    margin-top: 8px !important;
 }
 .map-year-field > div {
     display: grid;
@@ -5455,7 +5451,10 @@ button {
     right: 16px;
 }
 .map-module .figure-controls > .processing-badge {
+    display: flex;
+    width: fit-content;
     margin-bottom: 18px;
+    margin-left: auto;
 }
 
 /* Shared library width and ordered guidance */
@@ -7190,7 +7189,7 @@ button {
 /* ==========================================================================
    Interface system — workbench geometry
    --------------------------------------------------------------------------
-   Map Generator keeps its declared unique canvas treatment. These rules apply
+   Map Maker keeps its declared unique canvas treatment. These rules apply
    only to the Single and Multiple workbench families.
    ========================================================================== */
 

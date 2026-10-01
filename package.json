@@ -37,6 +37,7 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/d3-geo": "^3.1.1",
     "@types/node": "22.19.19",
     "@types/pdfkit": "^0.17.6",

@@ -18,7 +18,7 @@ Looks through a manuscript PDF and prepares simple and complex illustration prom
 
 ## Image
 
-### Map Generator
+### Map Maker
 
 Builds an editable SVG map for a selected year using local historical and present-day datasets. You can change layers, view, country fills, and an Adobe colour palette. [English info drawer](app/_tools/image/map-generator/info.en.md)
 

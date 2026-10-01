@@ -141,11 +141,11 @@ GREP Builder uses a persistent input/result pair. Layer Splitter uses one border
 
 ### Unique Workspaces
 
-> Map Generator · Solutions Importer
+> Map Maker · Solutions Importer
 
 Use when a task-specific structure cannot follow a standard archetype without making the workflow harder. Keep the shared title block, AI Indicator, viewport, control-panel, button, and responsive rules wherever those elements occur.
 
-Map Generator adapts the Visual Workbench – Single into a canvas editor. Its `330px` control panel scrolls internally and moves below the canvas on narrow screens. Solutions Importer remains a unique multi-file workflow.
+Map Maker adapts the Visual Workbench – Single into a canvas editor. Its `330px` control panel scrolls internally and moves below the canvas on narrow screens. Solutions Importer remains a unique multi-file workflow.
 
 ### Reference / Library
 
@@ -163,7 +163,7 @@ Script Buffet is the current library interface. Design Manual retains its readin
 | Text Workbench               | Text Extractor, Index Creator, Prompt Extractor       |
 | Visual Workbench – Single    | Diagram Generator, Graph Generator, Barcode Generator |
 | Visual Workbench – Multiple  | Cover Generator, Cover Splitter, Image Generator      |
-| Adapted and Unique Workspace | Map Generator, Solutions Importer                     |
+| Adapted and Unique Workspace | Map Maker, Solutions Importer                         |
 | Library and Reference        | Script Buffet, Design Manual                          |
 
 ## Common interaction rules
@@ -193,7 +193,7 @@ Script Buffet is the current library interface. Design Manual retains its readin
 | Layer Splitter     | AI ENABLED        |
 | GREP Builder       | AI ENABLED        |
 | Prompt Extractor   | AI ENABLED        |
-| Map Generator      | PROCESSED LOCALLY |
+| Map Maker          | PROCESSED LOCALLY |
 | Cover Splitter     | PROCESSED LOCALLY |
 | Solutions Importer | PROCESSED LOCALLY |
 | Script Buffet      | PROCESSED LOCALLY |

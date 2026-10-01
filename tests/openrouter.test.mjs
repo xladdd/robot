@@ -21,7 +21,6 @@ test("defines one unique OpenRouter key for every model-backed app", () => {
     "image",
     "index",
     "layerSplitter",
-    "map",
     "prompt",
     "typesetter",
   ]);
@@ -62,7 +61,6 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
 
     "app/_tools/image/graph-generator/code/server.ts",
     "app/_tools/image/diagram-generator/code/server.ts",
-    "app/_tools/image/map-generator/code/generate-server.ts",
     "app/_tools/image/cover-generator/code/server.ts",
     "app/_tools/image/image-generator/code/server.ts",
     "app/_tools/image/layer-splitter/code/server.ts",
@@ -79,4 +77,14 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
     assert.match(source, /requestOpenRouter/);
     assert.doesNotMatch(source, /process\.env\.OPENROUTER_API_KEY/);
   }
+});
+
+test("keeps legacy map generation routes as explicit local-only responses", async () => {
+  const source = await readFile(
+    new URL("app/_tools/image/map-generator/code/generate-server.ts", root),
+    "utf8",
+  );
+  assert.match(source, /status:\s*410/);
+  assert.match(source, /local-only/);
+  assert.doesNotMatch(source, /OpenRouter|OPENROUTER/);
 });

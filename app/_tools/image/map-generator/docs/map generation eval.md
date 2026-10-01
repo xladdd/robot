@@ -1,4 +1,4 @@
-# Map generator evaluation — 13 August 2026
+# Map Maker evaluation — 13 August 2026
 
 All prompts came from [`prompts.md`](prompts.md). Calls used `mistralai/mistral-large-2512` through OpenRouter and the live local application. Every call has its raw JSON response here; every successful call also has the exact SVG and a PNG inspection render.
 

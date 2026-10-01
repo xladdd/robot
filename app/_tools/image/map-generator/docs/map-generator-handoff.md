@@ -1,10 +1,10 @@
-# Session handoff — map generator
+# Session handoff — Map Maker
 
 Last updated: 2026-08-14 (Europe/Prague)
 
 ## Current product direction
 
-The original AI-first figure generator has been split into separate sidebar apps: Map Generator, Diagram Generator, and Graph Generator. The old Bio Generator label was replaced by Diagram Generator. The Map Generator is now primarily a deterministic, interactive world map rather than an LLM drawing SVG geography. It supports panning, zooming, a historical year timeline, selectable layers, optional country filling, ASE palettes, and cropped SVG export. AI should eventually interpret prompts into structured map edits (for example, verified country IDs and colors), but must not generate geographic polygons. Diagram and Graph Generator are standalone apps, so their obsolete one-button mode selectors were removed from the top of both toolbars.
+The original AI-first figure generator has been split into separate sidebar apps: Map Maker, Diagram Generator, and Graph Generator. The old Bio Generator label was replaced by Diagram Generator. Map Maker is now primarily a deterministic, interactive world map rather than an LLM drawing SVG geography. It supports panning, zooming, a historical year timeline, selectable layers, optional country filling, ASE palettes, and cropped SVG export. AI should eventually interpret prompts into structured map edits (for example, verified country IDs and colors), but must not generate geographic polygons. Diagram and Graph Generator are standalone apps, so their obsolete one-button mode selectors were removed from the top of both toolbars.
 
 ## Important files
 
@@ -150,7 +150,7 @@ Groups use both human-readable `data-name` values and stable IDs so Illustrator 
 ## Diagram and graph generators
 
 - Diagram Generator creates constrained biological SVG diagrams; Graph Generator creates source-bound bar or line charts.
-- Both apps have dedicated English and Czech info-drawer content. Map Generator also has its own updated drawer describing datasets, editing, export, and the currently inactive prompt field.
+- Both apps have dedicated English and Czech info-drawer content. Map Maker also has its own updated drawer describing datasets, editing, export, and the currently inactive prompt field.
 - Both apps now use relevant localized loading phrases instead of the map-loading phrases.
 - The displayed generation estimate and countdown baseline are 30 seconds, not three minutes. The countdown stops at `0:00` rather than going negative.
 - Automated Checks appear at the bottom of the right-hand toolbar for Diagram and Graph Generator, not beneath the SVG preview.

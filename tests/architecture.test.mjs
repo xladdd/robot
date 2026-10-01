@@ -341,7 +341,9 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
   );
   assert.match(graphServer, /graph-generator\/prompts\/system\.md/);
   assert.match(diagramServer, /diagram-generator\/prompts\/system\.md/);
-  assert.match(mapServer, /map-generator\/prompts\/system\.md/);
+  assert.match(mapServer, /status:\s*410/);
+  assert.match(mapServer, /local-only/);
+  assert.doesNotMatch(mapServer, /loadPrompt|requestOpenRouter/);
   assert.match(mapPrompt, /longitude\/latitude coordinates/);
 });
 
