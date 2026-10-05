@@ -120,6 +120,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     graphGenerator,
     diagramGenerator,
     mapGenerator,
+    typesetter,
   ] = await Promise.all([
     readFile(new URL("app/Workspace.tsx", root), "utf8"),
     readFile(
@@ -158,6 +159,10 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
       new URL("app/_tools/image/map-generator/MainInterface.tsx", root),
       "utf8",
     ),
+    readFile(
+      new URL("app/_tools/design/typesetter/MainInterface.tsx", root),
+      "utf8",
+    ),
   ]);
 
   for (const componentName of [
@@ -170,6 +175,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     "GraphMainInterface",
     "DiagramMainInterface",
     "MapMainInterface",
+    "TypesetterMainInterface",
   ]) {
     assert.match(workspace, new RegExp(`<${componentName}`));
   }
@@ -200,6 +206,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     /cover-module visual-single-module diagram-module/,
   );
   assert.match(mapGenerator, /map-module/);
+  assert.match(typesetter, /typesetter-module/);
 });
 
 test("opens text document tools directly in their main workspaces", async () => {
@@ -306,6 +313,8 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
     diagramServer,
     mapServer,
     mapPrompt,
+    typesetterServer,
+    typesetterPrompt,
   ] = await Promise.all([
     readFile(new URL("app/_tools/load-prompt.ts", root), "utf8"),
     readFile(
@@ -340,6 +349,14 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
       new URL("app/_tools/image/map-generator/prompts/system.md", root),
       "utf8",
     ),
+    readFile(
+      new URL("app/_tools/design/typesetter/code/server.ts", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/design/typesetter/prompts/classify.md", root),
+      "utf8",
+    ),
   ]);
 
   assert.match(loader, /readFileSync/);
@@ -366,6 +383,8 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
   assert.match(mapServer, /local-only/);
   assert.doesNotMatch(mapServer, /loadPrompt|requestOpenRouter/);
   assert.match(mapPrompt, /longitude\/latitude coordinates/);
+  assert.match(typesetterServer, /typesetter\/prompts\/classify\.md/);
+  assert.match(typesetterPrompt, /Never rewrite, correct, translate/);
 });
 
 test("ships Script Buffet and repeatable Design Manual PDF exports", async () => {
@@ -429,6 +448,7 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       "image/cover-generator",
       "image/layer-splitter",
       "design/grep-builder",
+      "design/typesetter",
       "text/prompt-extractor",
     ],
     local: [

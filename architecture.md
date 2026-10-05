@@ -101,7 +101,7 @@ The individual route files are deliberately small:
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts` and `diagrams/route.ts`: app-native model-backed generation adapters. `app/api/maps/generate/route.ts` preserves the legacy Map URL and returns `410 Gone` because Map Maker is local-only.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, and `prompts/route.ts`: Cover Generator, Layer Splitter, Image Generator, GREP Builder, and Prompt Extractor endpoint addresses.
+- `app/api/covers/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, and `typesetter/route.ts`: Cover Generator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, and Typesetter endpoint addresses.
 
 ### `app/_tools/`: tool ownership
 
@@ -192,7 +192,11 @@ Design apps:
 - `app/_tools/design/script-buffet/MainInterface.tsx`: filterable Adobe script catalog, installation guide, and local download counters.
 - `app/_tools/design/script-buffet/public/preview-placeholder.svg`: temporary preview artwork for cards until individual GIF previews exist.
 - `app/_tools/design/script-buffet/public/Make Silhouette Fill.jsx`, `Opacity Set.jsx`, and `Split Text Frames into Characters.jsx`: the three downloadable InDesign utilities listed in Script Buffet.
-- `app/_tools/design/typesetter/`: reserved for the unavailable sidebar app.
+- `app/_tools/design/typesetter/MainInterface.tsx`, `copy.ts`, `roles.ts`, and `types.ts`: staged bilingual DOCX/IDML inventory, role mapping, semantic review, and JSON-export interface and contracts.
+- `app/_tools/design/typesetter/code/`: schema-constrained OpenRouter handler and deterministic mapping/manifest validation.
+- `app/_tools/design/typesetter/public/`: browser-local Python extractor, Pyodide worker, and downloadable unanchored-frame InDesign importer.
+- `app/_tools/design/typesetter/prompts/`: stable pre-scan and classification instructions.
+- `app/_tools/design/typesetter/tests/`: mapping, source-preservation, summary, and importer-contract regressions.
 
 Design Manual:
 
@@ -212,11 +216,12 @@ The feedback endpoint independently validates the signed `ta_session` cookie and
 
 ## `public/`: stable browser URLs
 
-The icon and PDF.js worker files live directly in `public/`. Cover Splitter, Solutions, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
+The icon and PDF.js worker files live directly in `public/`. Cover Splitter, Solutions, Typesetter, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
 
 - `/cover-splitter/*`: the app-owned Pyodide worker and Python splitter used for local cover processing.
 - `/solutions/*`: the shared worker, extractor, and canonical `/solutions/import_solutions.jsx` importer.
 - `/solutions-beta/*`: temporary compatibility link to the same Solutions files; new code does not use it.
+- `/typesetter/*`: the local DOCX/IDML extractor worker and downloadable InDesign importer.
 - `/script-buffet/*`: Script Buffet preview media.
 - `/design-manual/media/*`: manual images.
 - `/design-manual/downloads/*`: generated manual PDFs.
@@ -390,9 +395,19 @@ The following completes the folder map by naming every source-file role. Repeate
 - `public/preview-placeholder.svg`: temporary script-preview asset.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
-#### Reserved Typesetter: `app/_tools/design/typesetter/`
+#### Typesetter: `app/_tools/design/typesetter/`
 
-- `info.en.md`, `info.cs.md`: drawer content for the unavailable placeholder. There is no implementation yet.
+- `MainInterface.tsx`: staged DOCX/IDML upload, local inventory, AI role suggestions, inventory-backed mapping, batched classification, review, and download UI.
+- `copy.ts`: bilingual interface and setup guidance.
+- `roles.ts`, `types.ts`: controlled semantic-role catalogue and versioned data contracts.
+- `code/server.ts`: private schema-constrained pre-scan and classification endpoint implementation.
+- `code/validation.ts`: deterministic style mapping, source-preservation, review, and manifest checks.
+- `prompts/prescan.md`, `prompts/classify.md`: stable semantic instructions.
+- `public/pyodide-worker.js`, `public/extract_typesetter.py`: browser-local DOCX and IDML ZIP/XML extraction.
+- `public/import_typesetter.jsx`: one-undo InDesign importer for a labelled main story and unanchored image-request frames.
+- `tests/typesetter.test.mts`: mapping, source-preservation, summary, and importer-contract tests.
+- `plan.md`: agreed V1 product and implementation plan.
+- `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Design Manual: `app/_tools/design-manual/`
 
@@ -814,44 +829,63 @@ Failed cards can retry their own request. Completed 512 px and 1K cards can be u
 
 ### Typesetter
 
-**Input:** none yet.
+**Input:** an unstructured DOCX manuscript, a prepared IDML template, template ID/version, and designer-approved semantic-role mappings.
 
 **Flow:**
 
 ```text
-Unavailable sidebar entry
+DOCX manuscript and IDML template
 ↓
-Reserved app folder
+Pyodide worker opens both ZIP/XML packages locally
+↓
+Browser receives ordered source blocks and an inventory of styles, labels, layers, and page size
+↓
+POST /api/typesetter pre-scan suggests roles from the controlled catalogue
+↓
+Designer accepts roles and maps them to styles selected from the IDML inventory
+↓
+POST /api/typesetter classifies the complete manuscript in bounded batches
+↓
+Designer resolves uncertain, unsupported, and image-request blocks
+↓
+Versioned indesign-typesetter-v1 JSON plus import_typesetter.jsx
+↓
+Importer validates the labelled main story and mapped styles before mutation
+↓
+One undoable import fills the threaded story and creates unanchored image-request frames
 ```
 
-**Output:** none yet.
+**Output:** reviewed `indesign-typesetter-v1` JSON and a downloadable ExtendScript importer. Original source block text and order are retained. Image requests become ordinary labelled frames on the `IMAGE REQUESTS` layer; V1 does not anchor or position them automatically.
 
-**Dependencies:** none yet; no OpenRouter model is configured.
+**Dependencies:** browser File/Worker APIs, Pyodide with Python standard-library ZIP/XML parsing, OpenRouter structured outputs, and Adobe InDesign. The DOCX and IDML files remain local; only extracted manuscript blocks and controlled role context are sent to OpenRouter. The pre-scan defaults to `mistralai/ministral-14b-2512`, and full classification defaults to `mistralai/mistral-large-2512`.
 
 ## OpenRouter model map
 
 `.env.example` lists the environment setting for each configurable model. A dash means the current model is an intentional code constant and changing it requires a code change.
 
-| App               | Job                      | Setting                                    | Default model                        |
-| ----------------- | ------------------------ | ------------------------------------------ | ------------------------------------ |
-| Text Extractor    | OCR and image reading    | `OPENROUTER_OCR_MODEL`                     | `mistralai/mistral-small-2603`       |
-| Text Extractor    | correction               | `OPENROUTER_CORRECTION_MODEL`              | `mistralai/ministral-8b-2512`        |
-| Index Creator     | grammatical forms        | `OPENROUTER_INDEX_MODEL`                   | `mistralai/mistral-medium-3-5`       |
-| Diagram Generator | diagram description      | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Graph Generator   | chart structure          | `OPENROUTER_FIGURE_MODEL`                  | `mistralai/mistral-large-2512`       |
-| Cover Generator   | primary concept planning | —                                          | `mistralai/mistral-medium-3-5`       |
-| Cover Generator   | backup concept planning  | —                                          | `mistralai/ministral-14b-2512`       |
-| Cover Generator   | default 1K concepts      | —                                          | `black-forest-labs/flux.2-pro`       |
-| Cover Generator   | fast 512 px concepts     | —                                          | `black-forest-labs/flux.2-klein-4b`  |
-| Cover Generator   | alternative 1K concepts  | —                                          | `google/gemini-3.1-flash-lite-image` |
-| Image Generator   | fast 512 px images       | `OPENROUTER_COVER_SKETCH_MODEL`            | `black-forest-labs/flux.2-klein-4b`  |
-| Image Generator   | high-quality images      | `OPENROUTER_COVER_FIDELITY_MODEL`          | `black-forest-labs/flux.2-pro`       |
-| Image Generator   | 2× generative upscale    | `OPENROUTER_IMAGE_UPSCALE_MODEL`*          | `black-forest-labs/flux.2-pro`       |
-| Layer Splitter    | scene planning           | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL`     | `mistralai/mistral-small-2603`       |
-| Layer Splitter    | fast reconstruction      | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL`     | `black-forest-labs/flux.2-klein-4b`  |
-| Layer Splitter    | fidelity reconstruction  | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro`       |
-| GREP Builder      | GREP conversion          | `OPENROUTER_GREP_MODEL`                    | `mistralai/ministral-8b-2512`        |
-| Prompt Extractor  | page-image reading       | `OPENROUTER_PROMPT_EXTRACTOR_MODEL`        | `qwen/qwen3.5-122b-a10b`             |
+| App               | Job                   | Setting                       | Default model                  |
+| ----------------- | --------------------- | ----------------------------- | ------------------------------ |
+| Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`        | `mistralai/mistral-small-2603` |
+| Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL` | `mistralai/ministral-8b-2512`  |
+| Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`      | `mistralai/mistral-medium-3-5` |
+| Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`     | `mistralai/mistral-large-2512` |
+| Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`     | `mistralai/mistral-large-2512` |
+
+| Cover Generator | primary concept planning | — | `mistralai/mistral-medium-3-5` |
+| Cover Generator | backup concept planning | — | `mistralai/ministral-14b-2512` |
+| Cover Generator | default 1K concepts | — | `black-forest-labs/flux.2-pro` |
+| Cover Generator | fast 512 px concepts | — | `black-forest-labs/flux.2-klein-4b` |
+| Cover Generator | alternative 1K concepts | — | `google/gemini-3.1-flash-lite-image` |
+| Image Generator | fast 512 px images | `OPENROUTER_COVER_SKETCH_MODEL` | `black-forest-labs/flux.2-klein-4b` |
+| Image Generator | high-quality images | `OPENROUTER_COVER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro` |
+| Image Generator | 2× generative upscale | `OPENROUTER_IMAGE_UPSCALE_MODEL`* | `black-forest-labs/flux.2-pro` |
+| Layer Splitter | scene planning | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL` | `mistralai/mistral-small-2603` |
+| Layer Splitter | fast reconstruction | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL` | `black-forest-labs/flux.2-klein-4b` |
+| Layer Splitter | fidelity reconstruction | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro` |
+| GREP Builder | GREP conversion | `OPENROUTER_GREP_MODEL` | `mistralai/ministral-8b-2512` |
+| Prompt Extractor | page-image reading | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b` |
+| Typesetter | semantic pre-scan | `OPENROUTER_TYPESETTER_PRESCAN_MODEL` | `mistralai/ministral-14b-2512` |
+| Typesetter | block classification | `OPENROUTER_TYPESETTER_MODEL` | `mistralai/mistral-large-2512` |
 
 `*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
 
