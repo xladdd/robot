@@ -317,7 +317,7 @@ button {
 }
 .bug-report .material-icons {
     font-size: 27.54px;
-    transform: translateY(1px);
+    transform: translateY(2px);
 }
 
 /* Bugs and feedback dialog */
@@ -4740,8 +4740,14 @@ button {
     gap: var(--title-block-gap);
     max-width: none;
 }
-.buffet-module > .buffet-header.tool-header > .tool-header-copy .tool-header-meta,
-.solutions-module > .solutions-header.tool-header > .tool-header-copy .tool-header-meta {
+.buffet-module
+    > .buffet-header.tool-header
+    > .tool-header-copy
+    .tool-header-meta,
+.solutions-module
+    > .solutions-header.tool-header
+    > .tool-header-copy
+    .tool-header-meta {
     width: 100%;
     justify-content: flex-start;
     padding: 0;
@@ -7415,6 +7421,7 @@ button {
 .buffet-install-path button:focus-visible {
     transform: translate(1px, 1px);
 }
+
 /* Typesetter */
 .typesetter-module > .typesetter-header {
     order: 0;
