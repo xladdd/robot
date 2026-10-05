@@ -69,14 +69,29 @@ test("keeps static content outside the main page component", async () => {
 });
 
 test("keeps figure handlers and compatibility dispatch in their owning apps", async () => {
-  const [compatibilityRoute, graphRoute, diagramRoute, mapRoute, packageJson] =
-    await Promise.all([
-      readFile(new URL("app/api/figures/route.ts", root), "utf8"),
-      readFile(new URL("app/api/graphs/route.ts", root), "utf8"),
-      readFile(new URL("app/api/diagrams/route.ts", root), "utf8"),
-      readFile(new URL("app/api/maps/generate/route.ts", root), "utf8"),
-      readFile(new URL("package.json", root), "utf8"),
-    ]);
+  const [
+    compatibilityRoute,
+    graphRoute,
+    diagramRoute,
+    mapRoute,
+    diagramServer,
+    legacyDiagramServer,
+    packageJson,
+  ] = await Promise.all([
+    readFile(new URL("app/api/figures/route.ts", root), "utf8"),
+    readFile(new URL("app/api/graphs/route.ts", root), "utf8"),
+    readFile(new URL("app/api/diagrams/route.ts", root), "utf8"),
+    readFile(new URL("app/api/maps/generate/route.ts", root), "utf8"),
+    readFile(
+      new URL("app/_tools/image/diagram-generator/code/server.ts", root),
+      "utf8",
+    ),
+    readFile(
+      new URL("app/_tools/image/diagram-generator/code/legacy-server.ts", root),
+      "utf8",
+    ),
+    readFile(new URL("package.json", root), "utf8"),
+  ]);
 
   assert.match(compatibilityRoute, /graph-generator\/code\/server/);
   assert.match(compatibilityRoute, /diagram-generator\/code\/server/);
@@ -86,6 +101,9 @@ test("keeps figure handlers and compatibility dispatch in their owning apps", as
   assert.match(compatibilityRoute, /body\.mode === "map"/);
   assert.match(graphRoute, /graph-generator\/code\/server/);
   assert.match(diagramRoute, /diagram-generator\/code\/server/);
+  assert.match(diagramServer, /legacyDiagramPost\(legacyRequest\)/);
+  assert.match(legacyDiagramServer, /validateDiagramSpec/);
+  assert.match(legacyDiagramServer, /renderDiagramSvg/);
   assert.match(mapRoute, /map-generator\/code\/generate-server/);
   assert.doesNotMatch(packageJson, /image\/shared/);
 });
@@ -340,7 +358,10 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
     /Every potential writing or label surface is blank and unmarked/,
   );
   assert.match(graphServer, /graph-generator\/prompts\/system\.md/);
-  assert.match(diagramServer, /diagram-generator\/prompts\/system\.md/);
+  assert.match(
+    diagramServer,
+    /diagram-generator\/prompts\/(?:create-brief|reconstruct-vector)\.md/,
+  );
   assert.match(mapServer, /status:\s*410/);
   assert.match(mapServer, /local-only/);
   assert.doesNotMatch(mapServer, /loadPrompt|requestOpenRouter/);
@@ -525,8 +546,10 @@ test("keeps the documented document and visual workspace families", async () => 
     assert.match(source, /cover-stage visual-single-stage/);
     assert.match(source, /cover-toolbar editor-sidebar visual-single-toolbar/);
     assert.match(source, /className="pane-label"/);
-    assert.match(source, /1000 × 700 \/ SVG 1\.1/);
   }
+  for (const source of [barcode, graph])
+    assert.match(source, /1000 × 700 \/ SVG 1\.1/);
+  assert.match(diagram, /1000 × 750 \/ SVG 1\.1/);
   assert.match(graph, /cover-toolbar-exports/);
   assert.match(diagram, /cover-toolbar-exports/);
   for (const source of [index, prompt]) {

@@ -280,14 +280,20 @@ The following completes the folder map by naming every source-file role. Repeate
 
 #### Diagram Generator: `app/_tools/image/diagram-generator/`
 
-- `MainInterface.tsx`: biological description, references, palette, preview, checks, and download interface.
-- `copy.ts`: bilingual Diagram UI and progress copy.
+- `MainInterface.tsx`: staged biological brief, reviewed-category match, image candidate selection, semantic vectorization, review/repair, preview, checks, and downloads.
+- `copy.ts`: bilingual Diagram UI and workflow copy.
 - `code/ase.ts`: ASE palette reader.
-- `code/diagram.ts`: version 1 compatibility plus version 2 biological-diagram validation, deterministic SVG rendering, controlled primitives, panels, labels, connections, and report generation.
-- `code/server.ts`: private diagram-generation request implementation and version 2 structured-output schema with safe usage metadata.
-- `prompts/system.md`: stable version 2 biological-diagram instruction.
+- `code/diagram.ts`: legacy version 1/version 2 compatibility renderer retained behind the compatibility figures endpoint.
+- `code/contracts.ts`: biological brief, candidate, semantic object manifest, review, and pipeline contracts.
+- `code/reference-catalog.ts` and `references/catalog.json`: small reviewed-composition catalogue matcher; the catalogue is metadata and does not silently claim rights to artwork.
+- `code/svg-sanitize.ts`, `code/svg-labels.ts`, and `code/editability-checks.ts`: strict model-SVG allowlist, canonical server-added labels/arrows, and complete-underlay/editability checks.
+- `code/underlay-check.ts`: locally rasterizes hidden-object variants and rejects movable objects whose full visible footprint is not covered by declared underlying geometry.
+- `code/pipeline-report.ts`: provenance, usage, uncertainty, review, and verification report generation.
+- `code/server.ts`: OpenRouter-only plan, image-candidate, vectorize, rendered visual review, and bounded repair actions.
+- `code/legacy-server.ts`: retained version 2 structured-spec handler used when the compatibility figures endpoint sends a request without a pipeline action.
+- `prompts/`: stable biological brief, raster, reconstruction, repair, and review instructions.
 - `scripts/evaluation-cases.json` and `scripts/run-diagram-eval.mjs`: capped, sequential English/Czech and supplied-prompt evaluation tooling; outputs remain in the caller-provided local results directory.
-- `tests/diagram.test.mts`: diagram renderer and validator regressions.
+- `tests/diagram.test.mts` and `tests/pipeline.test.mts`: legacy renderer and new sanitizer/completeness regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Map Maker: `app/_tools/image/map-generator/`

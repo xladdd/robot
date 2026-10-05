@@ -6471,6 +6471,120 @@ button {
 .diagram-export-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.diagram-paper {
+    padding: 20px;
+}
+.diagram-paper > div,
+.diagram-paper svg {
+    display: block;
+    width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.diagram-candidate-preview {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    overflow: auto;
+}
+.diagram-candidate-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.diagram-brief > span,
+.diagram-candidates > span,
+.diagram-review > span {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--teal);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+}
+.diagram-brief b,
+.diagram-brief p,
+.diagram-brief small {
+    display: block;
+}
+.diagram-brief b {
+    font-size: 12px;
+}
+.diagram-brief p {
+    margin: 6px 0;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.45;
+}
+.diagram-brief small {
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.4;
+}
+.diagram-candidates > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.diagram-candidates > div button {
+    min-width: 0;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+.diagram-candidates > div button.selected {
+    border: 2px solid var(--teal);
+    box-shadow: 3px 3px 0 var(--teal);
+}
+.diagram-candidates > div img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+.diagram-candidates > div small {
+    display: block;
+    overflow: hidden;
+    padding: 6px;
+    color: var(--muted);
+    font-size: 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.diagram-candidates > .action-button {
+    width: 100%;
+    margin-top: 12px;
+}
+.diagram-actions {
+    margin-top: 16px;
+}
+.diagram-actions > .action-button {
+    width: 100%;
+    margin-bottom: 8px;
+}
+.diagram-review {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+.diagram-review p {
+    margin: 7px 0;
+    font-size: 8px;
+    line-height: 1.45;
+}
+.diagram-review small {
+    display: block;
+    color: var(--muted);
+    font-size: 7px;
+}
+.diagram-review p.error {
+    color: var(--orange);
+}
 
 /* Image Generator */
 

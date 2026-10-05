@@ -1909,10 +1909,30 @@ export default function Workspace({
         sources?: Array<{ id: string; title: string; url: string }>;
         notes?: string[];
       };
+      brief?: {
+        title?: string;
+        subtitle?: string;
+        uncertainties?: string[];
+      };
+      reconstruction?: {
+        uncertainties?: string[];
+      };
+      review?: {
+        summary?: string;
+        findings?: Array<{ message?: string }>;
+      };
+      usage?: Array<{
+        generationId?: string | null;
+        model?: string;
+        cost?: number | null;
+        promptTokens?: number | null;
+        completionTokens?: number | null;
+        totalTokens?: number | null;
+      }>;
       checks?: FigureCheck[];
     };
     const lines = [
-      `# ${data.spec?.title || "Verification report"}`,
+      `# ${data.spec?.title || data.brief?.title || "Verification report"}`,
       "",
       `- Generated: ${data.generatedAt || ""}`,
       `- Generator: ${data.generator || ""}`,
@@ -1922,6 +1942,15 @@ export default function Workspace({
     if (data.spec?.date) lines.push(`- Date or period: ${data.spec.date}`);
     if (typeof data.referenceCount === "number")
       lines.push(`- Reference images: ${data.referenceCount}`);
+    if (data.usage?.length) {
+      const totalCost = data.usage.reduce(
+        (sum, item) => sum + (typeof item.cost === "number" ? item.cost : 0),
+        0,
+      );
+      lines.push(`- OpenRouter calls: ${data.usage.length}`);
+      if (totalCost > 0)
+        lines.push(`- Reported OpenRouter cost: $${totalCost.toFixed(4)}`);
+    }
     lines.push(
       "",
       "## Checks",
@@ -1950,12 +1979,38 @@ export default function Workspace({
             `- ${name}: ${hex} — ${model}${values?.length ? ` (${values.join(", ")})` : ""}${group ? ` — ${group}` : ""}`,
         ),
       );
-    if (data.spec?.notes?.length)
+    const uncertainties = [
+      ...(data.spec?.notes || []),
+      ...(data.brief?.uncertainties || []),
+      ...(data.reconstruction?.uncertainties || []),
+    ];
+    if (uncertainties.length)
       lines.push(
         "",
-        "## Notes",
+        "## Notes and uncertainties",
         "",
-        ...data.spec.notes.map((note) => `- ${note}`),
+        ...uncertainties.map((note) => `- ${note}`),
+      );
+    if (data.usage?.length)
+      lines.push(
+        "",
+        "## OpenRouter provenance",
+        "",
+        ...data.usage.map(
+          (item) =>
+            `- ${item.model || "unknown model"}${item.generationId ? ` — ${item.generationId}` : ""}${typeof item.cost === "number" ? ` — $${item.cost.toFixed(4)}` : ""}`,
+        ),
+      );
+    if (data.review?.summary || data.review?.findings?.length)
+      lines.push(
+        "",
+        "## Automated review",
+        "",
+        ...(data.review.summary ? [data.review.summary] : []),
+        ...(data.review.findings || [])
+          .map((finding) => finding.message)
+          .filter((message): message is string => Boolean(message))
+          .map((message) => `- ${message}`),
       );
     return `${lines.join("\n")}\n`;
   }
