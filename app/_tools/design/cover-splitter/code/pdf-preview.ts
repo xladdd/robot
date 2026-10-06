@@ -1,9 +1,4 @@
-import {
-  GlobalWorkerOptions,
-  getDocument,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.legacy.mjs";
+import { loadPdfJs } from "../../../load-pdfjs.ts";
 
 export type PdfFirstPagePreview = {
   blob: Blob;
@@ -56,6 +51,7 @@ function exportScale(width: number, height: number): number {
 export async function renderFirstPdfPage(
   file: File,
 ): Promise<PdfFirstPagePreview> {
+  const { getDocument } = await loadPdfJs();
   const loadingTask = getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
   });
@@ -105,6 +101,7 @@ export async function renderSplitPdfPanel(
   buffer: ArrayBuffer,
   format: CoverRasterFormat,
 ): Promise<Blob> {
+  const { getDocument } = await loadPdfJs();
   // PDF.js may transfer its input to its own worker, so retain the panel bytes
   // that the caller needs later when rebuilding the combined ZIP.
   const loadingTask = getDocument({ data: new Uint8Array(buffer.slice(0)) });

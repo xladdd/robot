@@ -1,10 +1,5 @@
-import {
-  GlobalWorkerOptions,
-  getDocument,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
+import { loadPdfJs } from "../../../load-pdfjs.ts";
 import type { ExtractedPage } from "./pdf-indexer";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.legacy.mjs";
 
 const OCR_SCALE = 1.35;
 const MIN_OCR_TEXT_LENGTH = 24;
@@ -51,6 +46,7 @@ export async function addLocalOcrText(
 ) {
   if (!pageNumbers.length) return pages;
 
+  const { getDocument } = await loadPdfJs();
   const pageNumberSet = new Set(pageNumbers);
   const pdfDocument = await getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
