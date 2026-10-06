@@ -1,10 +1,5 @@
-import {
-  GlobalWorkerOptions,
-  getDocument,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
+import { loadPdfJs } from "../../../load-pdfjs.ts";
 import { getDetailRegions } from "./render-geometry";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.legacy.mjs";
 
 export type PdfPageImage = {
   page: number;
@@ -16,6 +11,7 @@ export async function renderPdfPages(
   file: File,
   onProgress?: (done: number, total: number) => void,
 ): Promise<PdfPageImage[]> {
+  const { getDocument } = await loadPdfJs();
   const pdf = await getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
   }).promise;

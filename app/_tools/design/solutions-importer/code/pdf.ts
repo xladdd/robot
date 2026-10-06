@@ -1,9 +1,4 @@
-import {
-  GlobalWorkerOptions,
-  getDocument,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.legacy.mjs";
+import { loadPdfJs } from "../../../load-pdfjs.ts";
 
 function ensureReadableStreamAsyncIterator() {
   const Stream = globalThis.ReadableStream;
@@ -128,6 +123,7 @@ export async function extractPositionedPdfText(
   onProgress: (page: number, total: number) => void,
 ): Promise<PositionedPdfTextPage[]> {
   ensureReadableStreamAsyncIterator();
+  const { getDocument } = await loadPdfJs();
   const loadingTask = getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
   });

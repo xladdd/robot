@@ -18,6 +18,34 @@ test("uses the standard local Next.js runtime", async () => {
   assert.equal(packageJson.devDependencies["@tailwindcss/postcss"], undefined);
 });
 
+test("traces runtime Markdown into the deployed page bundle", async () => {
+  const { default: nextConfig } = await import("../next.config.ts");
+  const pageIncludes = nextConfig.outputFileTracingIncludes?.["/"];
+
+  assert.ok(pageIncludes?.includes("./app/_tools/**/info.*.md"));
+  assert.ok(pageIncludes?.includes("./app/_tools/design-manual/manual.*.md"));
+});
+
+test("loads browser PDF.js lazily instead of during server rendering", async () => {
+  const paths = [
+    "app/_tools/design/cover-splitter/code/pdf-preview.ts",
+    "app/_tools/design/solutions-importer/code/pdf.ts",
+    "app/_tools/text/index-creator/code/local-ocr.ts",
+    "app/_tools/text/index-creator/code/pdf-indexer.ts",
+    "app/_tools/text/prompt-extractor/code/pdf-images.ts",
+  ];
+  const [loader, ...consumers] = await Promise.all([
+    readFile(new URL("app/_tools/load-pdfjs.ts", root), "utf8"),
+    ...paths.map((path) => readFile(new URL(path, root), "utf8")),
+  ]);
+
+  assert.match(loader, /import\("pdfjs-dist\/legacy\/build\/pdf\.mjs"\)/);
+  for (const source of consumers) {
+    assert.match(source, /loadPdfJs/);
+    assert.doesNotMatch(source, /from ["']pdfjs-dist/);
+  }
+});
+
 test("keeps one repository copy of the Cliopatria timeline", async () => {
   const appDataset = new URL(
     "app/_tools/image/map-generator/code/data/cliopatria-timeline.json",

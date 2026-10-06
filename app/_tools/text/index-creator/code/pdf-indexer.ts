@@ -1,9 +1,4 @@
-import {
-  GlobalWorkerOptions,
-  getDocument,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.legacy.mjs";
+import { loadPdfJs } from "../../../load-pdfjs.ts";
 
 export type ExtractedPage = {
   pdfPage: number;
@@ -272,11 +267,9 @@ function phrasePatterns(entry: WordForms) {
   );
 }
 
-async function readTextItems(
-  page: Awaited<
-    ReturnType<Awaited<ReturnType<typeof getDocument>["promise"]>["getPage"]>
-  >,
-) {
+async function readTextItems(page: {
+  streamTextContent: () => ReadableStream<TextContentChunk>;
+}) {
   const reader = page.streamTextContent().getReader();
   const items: TextItemLike[] = [];
 
@@ -325,6 +318,7 @@ function reconstructCoordinateText(items: TextItemLike[]) {
 }
 
 export async function getPdfPageCount(file: File): Promise<number> {
+  const { getDocument } = await loadPdfJs();
   const document = await getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
   }).promise;
@@ -340,6 +334,7 @@ export async function extractPdfPages(
   file: File,
   onProgress?: (done: number, total: number) => void,
 ) {
+  const { getDocument } = await loadPdfJs();
   const document = await getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
   }).promise;
