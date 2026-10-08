@@ -104,7 +104,6 @@ export type Language = "en" | "cs";
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   bio: "alpha",
   image: "to-test",
-  cover: "to-test",
   conceptIllustrator: "alpha",
   layerSplitter: "to-test",
   typesetter: "alpha",
