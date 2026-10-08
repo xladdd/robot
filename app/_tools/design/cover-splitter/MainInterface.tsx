@@ -197,6 +197,9 @@ export function CoverSplitterMainInterface({
     null,
   );
   const [consoleLines, setConsoleLines] = useState<string[]>([]);
+  const addFilesRef = useRef<((selectedFiles: File[]) => Promise<void>) | null>(
+    null,
+  );
 
   useEffect(() => {
     const objectUrls = objectUrlsRef.current;
@@ -208,6 +211,37 @@ export function CoverSplitterMainInterface({
       for (const url of objectUrls) URL.revokeObjectURL(url);
       objectUrls.clear();
       resultRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    addFilesRef.current = addFiles;
+  });
+
+  useEffect(() => {
+    function hasFiles(event: globalThis.DragEvent): boolean {
+      const types = event.dataTransfer?.types;
+      return !!types && Array.from(types).includes("Files");
+    }
+
+    function onDragOver(event: globalThis.DragEvent): void {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    }
+
+    function onDrop(event: globalThis.DragEvent): void {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      const droppedFiles = Array.from(event.dataTransfer?.files ?? []);
+      addFilesRef.current?.(droppedFiles);
+    }
+
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
     };
   }, []);
 
