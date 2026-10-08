@@ -5,14 +5,21 @@ import {
   requestOpenRouter,
   type OpenRouterContext,
 } from "../../../openrouter/server";
-import type {
-  CoverAudience,
-  CoverConcept,
-  CoverConceptObject,
-  CoverPlannerMetadata,
-  CoverSubject,
-  PlannedCoverConcept,
+import {
+  coverCompositionStrategies,
+  coverConceptModes,
+  coverTreatments,
+  type CoverAudience,
+  type CoverCompositionStrategy,
+  type CoverConcept,
+  type CoverConceptObject,
+  type CoverPlannerMetadata,
+  type CoverStyleSelection,
+  type CoverSubject,
+  type CoverTreatment,
+  type PlannedCoverConcept,
 } from "./types";
+import { coverStylePrompts as explicitStylePrompts } from "./style-catalog";
 
 export const COVER_PLANNER_MODEL = "mistralai/mistral-medium-3-5" as const;
 export const COVER_PLANNER_FALLBACK_MODEL =
@@ -34,6 +41,14 @@ const objectSchema = {
 } as const;
 
 const conceptProperties = {
+  concept_mode: {
+    type: "string",
+    enum: coverConceptModes,
+  },
+  composition_strategy: {
+    type: "string",
+    enum: coverCompositionStrategies,
+  },
   hero_subjects: {
     type: "array",
     minItems: 1,
@@ -42,19 +57,23 @@ const conceptProperties = {
   },
   supporting_objects: {
     type: "array",
-    minItems: 0,
-    maxItems: 2,
+    minItems: 1,
+    maxItems: 3,
     items: objectSchema,
   },
   scene: { type: "string" },
   upper_background: { type: "string" },
   style: { type: "string" },
+  treatment: {
+    type: "string",
+    enum: coverTreatments,
+  },
   palette: { type: "string" },
   lighting: { type: "string" },
   mood_treatment: { type: "string" },
 } as const;
 
-function responseSchema(count: 2 | 4) {
+function responseSchema(count: 1 | 2 | 4) {
   return {
     type: "object",
     additionalProperties: false,
@@ -68,11 +87,14 @@ function responseSchema(count: 2 | 4) {
           additionalProperties: false,
           properties: conceptProperties,
           required: [
+            "concept_mode",
+            "composition_strategy",
             "hero_subjects",
             "supporting_objects",
             "scene",
             "upper_background",
             "style",
+            "treatment",
             "palette",
             "lighting",
             "mood_treatment",
@@ -109,10 +131,10 @@ type PlannerInput = {
   subject: CoverSubject;
   customSubject: string;
   keywords: string;
-  references: string[];
+  style: CoverStyleSelection;
   preferredImage?: string;
   preferredText?: string;
-  count: 2 | 4;
+  count: 1 | 2 | 4;
 };
 
 function parseContent(
@@ -156,12 +178,19 @@ function isConceptObject(value: unknown): value is CoverConceptObject {
 function isConcept(value: unknown): value is CoverConcept {
   if (!isRecord(value)) return false;
   if (
+    !coverConceptModes.includes(
+      value.concept_mode as (typeof coverConceptModes)[number],
+    ) ||
+    !coverCompositionStrategies.includes(
+      value.composition_strategy as CoverCompositionStrategy,
+    ) ||
     !Array.isArray(value.hero_subjects) ||
     value.hero_subjects.length < 1 ||
     value.hero_subjects.length > 2 ||
     value.hero_subjects.some((item) => !isConceptObject(item)) ||
     !Array.isArray(value.supporting_objects) ||
-    value.supporting_objects.length > 2 ||
+    value.supporting_objects.length < 1 ||
+    value.supporting_objects.length > 3 ||
     value.supporting_objects.some((item) => !isConceptObject(item))
   )
     return false;
@@ -169,52 +198,104 @@ function isConcept(value: unknown): value is CoverConcept {
     text(value.scene) &&
     text(value.upper_background) &&
     text(value.style) &&
+    coverTreatments.includes(value.treatment as CoverTreatment) &&
     text(value.palette) &&
     text(value.lighting) &&
     text(value.mood_treatment)
   );
 }
 
-const subjectPosition =
-  "Small focal subject anchored close to the bottom edge, entirely beneath the horizontal midpoint.";
-const subjectScale =
-  "Compact, occupying only the bottom quarter of the portrait.";
-const composition = {
-  framing: "Wide environmental composition with the camera pulled well back.",
-  focal_cluster:
-    "All focal subjects and props form one compact cluster near the bottom edge.",
-  headroom:
-    "The upper half is dominated by a softly detailed, naturally varied continuation of the same environment.",
-  continuity:
-    "Perspective, depth, texture, light, and colour flow naturally from the lower scene through the upper background.",
-  format: "Portrait 3:4 full bleed.",
+const heroPosition =
+  "Primary focal anchor across the lower and middle image field.";
+const heroScale =
+  "Medium to medium-large and clearly readable at thumbnail size.";
+const supportingPosition =
+  "Subordinate element arranged in a clear visual relationship with the hero across the lower and middle image field, using varied depth and spacing.";
+const supportingScale =
+  "Small to medium, clearly secondary to the hero but still recognisable.";
+
+const strategyInstructions: Record<CoverCompositionStrategy, string> = {
+  "immersive edge crop":
+    "Use a large asymmetrical focal crop entering naturally from a lower or side edge.",
+  "diagonal progression":
+    "Arrange related focal elements in a clear diagonal progression with visual movement.",
+  "layered editorial montage":
+    "Build overlapping foreground and middle-ground layers with controlled depth.",
+  "asymmetric counterpoint":
+    "Balance one dominant anchor with smaller related elements across the opposing side.",
+  "environmental sweep":
+    "Embed the focal elements in a broad continuous environmental or material flow.",
+  "specimen constellation":
+    "Arrange related elements as an intentionally spaced, connected visual system.",
 };
 
-function serializeObject(object: CoverConceptObject) {
+function compositionFor(strategy: CoverCompositionStrategy) {
+  return {
+    strategy: strategyInstructions[strategy],
+    canvas:
+      "Full-bleed edge-to-edge artwork. The environment, colour fields, texture, and image-making marks continue naturally beyond all four canvas edges.",
+    focal_field:
+      "Focal subjects occupy the lower and middle image field with substantial presence, layered relationships, and varied scale.",
+    title_area:
+      "The upper third remains calm and low-contrast for later typography while preserving the same continuous background, atmospheric light, broad forms, and subtle texture.",
+    background_continuity:
+      "One continuous environment flows from bottom to top. Perspective, depth, material, texture, light, and colour continue naturally through the title area.",
+    format: "Portrait 3:4.",
+  };
+}
+
+function serializeHero(object: CoverConceptObject) {
   return {
     description: object.description,
-    position: subjectPosition,
-    scale: subjectScale,
+    position: heroPosition,
+    scale: heroScale,
     action: object.action,
     appearance: object.appearance,
   };
 }
 
-export function serializeCoverConcept(concept: CoverConcept): string {
+function serializeSupportingObject(object: CoverConceptObject) {
+  return {
+    description: object.description,
+    position: supportingPosition,
+    scale: supportingScale,
+    action: object.action,
+    appearance: object.appearance,
+  };
+}
+
+export function serializeCoverConcept(
+  concept: CoverConcept,
+  styleSelection: CoverStyleSelection = "automatic",
+): string {
+  const treatment =
+    styleSelection === "automatic" ? concept.treatment : styleSelection;
   return JSON.stringify({
-    subjects: concept.hero_subjects.map(serializeObject),
-    style: concept.style,
+    subjects: concept.hero_subjects.map(serializeHero),
+    style:
+      styleSelection === "automatic"
+        ? concept.style
+        : explicitStylePrompts[styleSelection],
+    treatment,
+    ...(styleSelection === "automatic" ? {} : { style_details: concept.style }),
+    concept_approach: concept.concept_mode,
+    composition: compositionFor(concept.composition_strategy),
     scene: concept.scene,
     upper_background: concept.upper_background,
-    composition,
-    supporting_objects: concept.supporting_objects.map(serializeObject),
+    supporting_objects: concept.supporting_objects.map(
+      serializeSupportingObject,
+    ),
     palette: concept.palette,
     lighting: concept.lighting,
     mood_treatment: concept.mood_treatment,
   });
 }
 
-export function normalizeCoverConcepts(value: unknown, count: 2 | 4) {
+export function normalizeCoverConcepts(
+  value: unknown,
+  count: 1 | 2 | 4,
+  styleSelection: CoverStyleSelection = "automatic",
+) {
   if (!isRecord(value) || !Array.isArray(value.concepts)) return null;
   if (
     value.concepts.length !== count ||
@@ -224,7 +305,7 @@ export function normalizeCoverConcepts(value: unknown, count: 2 | 4) {
   return value.concepts.map((concept, index) => ({
     id: `concept-${String(index + 1).padStart(2, "0")}`,
     concept,
-    prompt: serializeCoverConcept(concept),
+    prompt: serializeCoverConcept(concept, styleSelection),
   }));
 }
 
@@ -255,11 +336,11 @@ export async function planCoverConcepts(
     `School level: ${input.audience}`,
     `Subject: ${input.subject === "other" ? input.customSubject : input.subject}`,
     input.keywords ? `Theme / keywords: ${input.keywords}` : "",
+    input.style === "automatic"
+      ? "Visual treatment: automatic. Choose the most subject-appropriate treatment from the allowed enum."
+      : `Required visual treatment: ${input.style}. Copy this exact treatment value and make the style description compatible with it; do not choose another medium.`,
     input.preferredText
       ? `Broad preference from the user: ${input.preferredText}`
-      : "",
-    input.references.length
-      ? `The following ${input.references.length} image(s) are reference covers for loose visual inspiration only.`
       : "",
     input.preferredImage
       ? "The final image is a preferred earlier concept. Use it only as broad inspiration, not as a template."
@@ -270,10 +351,6 @@ export async function planCoverConcepts(
   const content: Array<Record<string, unknown>> = [
     { type: "text", text: requestText },
   ];
-  input.references.forEach((url, index) => {
-    content.push({ type: "text", text: `Reference cover ${index + 1}:` });
-    content.push({ type: "image_url", image_url: { url } });
-  });
   if (input.preferredImage) {
     content.push({ type: "text", text: "Preferred earlier concept:" });
     content.push({
@@ -314,7 +391,7 @@ export async function planCoverConcepts(
   const parsed = parsePlannerJson(
     parseContent(result.choices?.[0]?.message?.content),
   );
-  const concepts = normalizeCoverConcepts(parsed, input.count);
+  const concepts = normalizeCoverConcepts(parsed, input.count, input.style);
   if (!concepts)
     throw new Error(
       "The cover concept planner did not return valid structured concepts.",

@@ -8,7 +8,13 @@ import {
   type OpenRouterContext,
 } from "../../../openrouter/server";
 import { planCoverConcepts, type PlannerInput } from "./concept-plan";
-import type { CoverAudience, CoverSubject, PlannedCoverConcept } from "./types";
+import {
+  coverTreatments,
+  type CoverAudience,
+  type CoverStyleSelection,
+  type CoverSubject,
+  type PlannedCoverConcept,
+} from "./types";
 
 const MAX_REFERENCE_SIZE = 7_000_000;
 const MAX_KEYWORDS_LENGTH = 1_500;
@@ -22,7 +28,7 @@ const DEFAULT_MODEL = FLUX_PRO_MODEL;
 const COVER_MODE = "sketch" as const;
 
 type CoverModel = typeof FLUX_PRO_MODEL | typeof GEMINI_MODEL;
-type GenerationCount = 2 | 4;
+type GenerationCount = 1 | 2 | 4;
 
 type ImageResult = {
   b64_json?: string;
@@ -43,6 +49,7 @@ type CoverRequest = {
   subject?: unknown;
   customSubject?: unknown;
   keywords?: unknown;
+  style?: unknown;
   references?: unknown;
   preference?: unknown;
   generationCount?: unknown;
@@ -106,9 +113,19 @@ function nextSeed(usedSeeds: Set<number>): number {
 }
 
 function parseGenerationCount(value: unknown): GenerationCount {
-  if (value === undefined) return 4;
-  if (value === 2 || value === 4) return value;
-  throw new CoverRequestError("generationCount must be 2 or 4.");
+  if (value === undefined) return 2;
+  if (value === 1 || value === 2 || value === 4) return value;
+  throw new CoverRequestError("generationCount must be 1, 2, or 4.");
+}
+
+function parseStyle(value: unknown): CoverStyleSelection {
+  if (value === undefined || value === "automatic") return "automatic";
+  if (
+    typeof value === "string" &&
+    coverTreatments.includes(value as (typeof coverTreatments)[number])
+  )
+    return value as CoverStyleSelection;
+  throw new CoverRequestError("Choose a supported visual treatment.");
 }
 
 function parseModel(value: unknown): CoverModel {
@@ -197,16 +214,39 @@ function parsePreference(value: unknown): DirectionPreference {
   );
 }
 
+function addReferenceGuidance(prompt: string, referenceCount: number) {
+  if (!referenceCount) return prompt;
+  try {
+    const parsed = JSON.parse(prompt) as unknown;
+    if (!isRecord(parsed)) return prompt;
+    return JSON.stringify({
+      ...parsed,
+      reference_guidance: `Use the ${referenceCount} supplied reference image${referenceCount === 1 ? "" : "s"} as visual guidance for palette, atmosphere, material finish, and treatment. Render the structured subjects in an independently arranged, edge-to-edge continuous scene with clean unmarked surfaces.`,
+    });
+  } catch {
+    return prompt;
+  }
+}
+
 async function generate(
   openRouter: OpenRouterContext,
   model: CoverModel,
   prompt: string,
+  references: string[],
   seed?: number,
   operation = "generate-cover-image",
 ): Promise<GeneratedCover> {
   const baseRequest = {
     model,
-    prompt,
+    prompt: addReferenceGuidance(prompt, references.length),
+    ...(references.length
+      ? {
+          input_references: references.map((url) => ({
+            type: "image_url" as const,
+            image_url: { url },
+          })),
+        }
+      : {}),
     aspect_ratio: "3:4" as const,
   };
   const requestBody =
@@ -284,6 +324,7 @@ export async function POST(request: Request) {
       MAX_KEYWORDS_LENGTH,
       "keywords",
     );
+    const style = parseStyle(body.style);
     const references = parseReferences(body.references);
     const preference = parsePreference(body.preference);
     const generationCount = parseGenerationCount(body.generationCount);
@@ -293,7 +334,7 @@ export async function POST(request: Request) {
       subject,
       customSubject,
       keywords,
-      references,
+      style,
       preferredImage: preference.image,
       preferredText: preference.text,
       count: generationCount,
@@ -304,7 +345,13 @@ export async function POST(request: Request) {
     const usedSeeds = new Set<number>();
     const generateSketch = async (concept: PlannedCoverConcept) => {
       const seed = model === FLUX_PRO_MODEL ? nextSeed(usedSeeds) : undefined;
-      const generated = await generate(openRouter, model, concept.prompt, seed);
+      const generated = await generate(
+        openRouter,
+        model,
+        concept.prompt,
+        references,
+        seed,
+      );
       return {
         ...generated,
         model,

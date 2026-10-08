@@ -71,10 +71,15 @@ import {
   type CoverGeneration,
   type CoverModel,
   type CoverReference,
+  type CoverStyleSelection,
   type CoverSubject,
   type CoverUsage,
 } from "./_tools/image/cover-generator/MainInterface";
-import type { CoverPlannerMetadata } from "./_tools/image/cover-generator/code/types";
+import type {
+  CoverLightboxOverlay,
+  CoverOverlayTone,
+  CoverPlannerMetadata,
+} from "./_tools/image/cover-generator/code/types";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
 import { TypesetterMainInterface } from "./_tools/design/typesetter/MainInterface";
 import {
@@ -187,6 +192,8 @@ export default function Workspace({
   const [isGeneratingFigure, setIsGeneratingFigure] = useState(false);
   const [coverReferences, setCoverReferences] = useState<CoverReference[]>([]);
   const [coverAudience, setCoverAudience] = useState<CoverAudience | "">("");
+  const [coverStyle, setCoverStyle] =
+    useState<CoverStyleSelection>("automatic");
   const [coverSubject, setCoverSubject] = useState<CoverSubject | "">("");
   const [coverCustomSubject, setCoverCustomSubject] = useState("");
   const [coverKeywords, setCoverKeywords] = useState("");
@@ -199,7 +206,14 @@ export default function Workspace({
     "black-forest-labs/flux.2-pro",
   );
   const [coverArtOnlyReferences, setCoverArtOnlyReferences] = useState(true);
-  const [coverGenerationCount, setCoverGenerationCount] = useState<2 | 4>(4);
+  const [coverOverlayTone, setCoverOverlayTone] =
+    useState<CoverOverlayTone>("black");
+  const [coverOverlayChoices, setCoverOverlayChoices] = useState<
+    Record<string, CoverLightboxOverlay>
+  >({});
+  const [coverGenerationCount, setCoverGenerationCount] = useState<1 | 2 | 4>(
+    2,
+  );
   const [coverError, setCoverError] = useState("");
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [zoomedCover, setZoomedCover] = useState<CoverGeneration | null>(null);
@@ -1504,7 +1518,7 @@ export default function Workspace({
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  async function generateCoverSketches(generationCount: 2 | 4) {
+  async function generateCoverSketches(generationCount: 1 | 2 | 4) {
     if (
       !coverAudience ||
       !coverSubject ||
@@ -1534,6 +1548,7 @@ export default function Workspace({
           mode: "sketch",
           generationCount,
           audience: coverAudience,
+          style: coverStyle,
           subject: coverSubject,
           customSubject: coverCustomSubject,
           keywords: coverKeywords,
@@ -1613,6 +1628,11 @@ export default function Workspace({
     );
   }
 
+  function selectCoverOverlayTone(tone: CoverOverlayTone) {
+    setCoverOverlayTone(tone);
+    setCoverOverlayChoices({});
+  }
+
   async function downloadCoverZip() {
     const entries: Array<{ name: string; data: Uint8Array }> = [];
     const toBytes = async (dataUrl: string) =>
@@ -1635,6 +1655,7 @@ export default function Workspace({
       "",
       `- Exported: ${new Date().toISOString()}`,
       `- Audience: ${coverAudience}`,
+      `- Visual treatment: ${coverStyle}`,
       `- Subject: ${coverSubject === "other" ? coverCustomSubject : coverSubject}`,
       `- Keywords: ${coverKeywords || "none"}`,
       `- Planner model: ${coverPlanner?.model || "not reported"}`,
@@ -1674,11 +1695,13 @@ export default function Workspace({
           {
             project: "Taktik Robot",
             audience: coverAudience,
+            style: coverStyle,
             subject: coverSubject,
             customSubject: coverCustomSubject,
             keywords: coverKeywords,
             references: coverReferences.map(({ name }) => name),
             artworkOnlyReferenceCrops: coverArtOnlyReferences,
+            artboardOverlay: coverOverlayTone,
             selectedSketch: coverSelectedId,
             model: coverModel,
             planner: coverPlanner,
@@ -1752,7 +1775,11 @@ export default function Workspace({
     }
     try {
       const pdf = await createCoverArtboardPdf(
-        visible.map(({ item, number }) => ({ number, data: item.data })),
+        visible.map(({ item, number }) => ({
+          number,
+          data: item.data,
+          overlay: coverOverlayChoices[item.id] ?? coverOverlayTone,
+        })),
       );
       const url = URL.createObjectURL(
         new Blob([pdf], { type: "application/pdf" }),
@@ -2270,6 +2297,7 @@ export default function Workspace({
             inputRef={coverReferenceInputRef}
             references={coverReferences}
             audience={coverAudience}
+            style={coverStyle}
             subject={coverSubject}
             customSubject={coverCustomSubject}
             keywords={coverKeywords}
@@ -2277,6 +2305,8 @@ export default function Workspace({
             selectedId={coverSelectedId}
             model={coverModel}
             artOnlyReferences={coverArtOnlyReferences}
+            overlayTone={coverOverlayTone}
+            overlayChoices={coverOverlayChoices}
             generationCount={coverGenerationCount}
             error={coverError}
             isGenerating={isGeneratingCover}
@@ -2288,6 +2318,7 @@ export default function Workspace({
               )
             }
             onAudience={setCoverAudience}
+            onStyle={setCoverStyle}
             onSubject={(value) => {
               setCoverSubject(value);
               if (value !== "other") setCoverCustomSubject("");
@@ -2301,6 +2332,7 @@ export default function Workspace({
             onDownload={() => void downloadCoverZip()}
             onModel={setCoverModel}
             onArtOnlyReferences={setCoverArtOnlyReferences}
+            onOverlayTone={selectCoverOverlayTone}
             onGenerateSketches={(count) => void generateCoverSketches(count)}
           />
         ) : selected === "layerSplitter" ? (
@@ -2590,6 +2622,13 @@ export default function Workspace({
         <CoverLightbox
           language={language}
           cover={zoomedCover}
+          overlay={coverOverlayChoices[zoomedCover.id] ?? coverOverlayTone}
+          onOverlay={(overlay) =>
+            setCoverOverlayChoices((current) => ({
+              ...current,
+              [zoomedCover.id]: overlay,
+            }))
+          }
           onMove={moveZoomedCover}
           onClose={() => setZoomedCover(null)}
         />

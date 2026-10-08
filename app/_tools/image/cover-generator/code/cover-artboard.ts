@@ -1,5 +1,16 @@
-type ArtboardJpeg = { number: number; bytes: Uint8Array; width: number; height: number };
-type ArtboardCover = { number: number; data: string };
+import type { CoverLightboxOverlay, CoverOverlayTone } from "./types";
+
+type ArtboardJpeg = {
+  number: number;
+  bytes: Uint8Array;
+  width: number;
+  height: number;
+};
+type ArtboardCover = {
+  number: number;
+  data: string;
+  overlay: CoverLightboxOverlay;
+};
 
 const encoder = new TextEncoder();
 
@@ -11,20 +22,32 @@ function join(chunks: Uint8Array[]) {
   const length = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
   const result = new Uint8Array(length);
   let offset = 0;
-  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
   return result;
 }
 
 function object(id: number, body: Uint8Array | string) {
-  return join([text(`${id} 0 obj\n`), typeof body === "string" ? text(body) : body, text("\nendobj\n")]);
+  return join([
+    text(`${id} 0 obj\n`),
+    typeof body === "string" ? text(body) : body,
+    text("\nendobj\n"),
+  ]);
 }
 
 function imageObject(id: number, image: ArtboardJpeg) {
-  return object(id, join([
-    text(`<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`),
-    image.bytes,
-    text("\nendstream"),
-  ]));
+  return object(
+    id,
+    join([
+      text(
+        `<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`,
+      ),
+      image.bytes,
+      text("\nendstream"),
+    ]),
+  );
 }
 
 export function buildCoverArtboardPdf(images: ArtboardJpeg[]) {
@@ -32,12 +55,20 @@ export function buildCoverArtboardPdf(images: ArtboardJpeg[]) {
   const pageHeight = 540;
   const imageStartId = 6;
   const contentId = imageStartId + images.length;
-  const resources = images.map((_, index) => `/Im${index + 1} ${imageStartId + index} 0 R`).join(" ");
+  const resources = images
+    .map((_, index) => `/Im${index + 1} ${imageStartId + index} 0 R`)
+    .join(" ");
   const commands = [
     "q 0.902 0.902 0.902 rg 0 0 960 540 re f Q",
     "q 0.80 0.80 0.80 RG 0.45 w",
-    ...Array.from({ length: 15 }, (_, index) => `${index * 72} 0 m ${index * 72} 540 l S`),
-    ...Array.from({ length: 9 }, (_, index) => `0 ${index * 72} m 960 ${index * 72} l S`),
+    ...Array.from(
+      { length: 15 },
+      (_, index) => `${index * 72} 0 m ${index * 72} 540 l S`,
+    ),
+    ...Array.from(
+      { length: 9 },
+      (_, index) => `0 ${index * 72} m 960 ${index * 72} l S`,
+    ),
     "Q",
   ];
   const rows = Math.max(1, Math.ceil(images.length / 4));
@@ -82,25 +113,48 @@ export function buildCoverArtboardPdf(images: ArtboardJpeg[]) {
   const objects = [
     object(1, "<< /Type /Catalog /Pages 2 0 R >>"),
     object(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
-    object(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> /XObject << ${resources} >> >> /Contents ${contentId} 0 R >>`),
+    object(
+      3,
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> /XObject << ${resources} >> >> /Contents ${contentId} 0 R >>`,
+    ),
     object(4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"),
     object(5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"),
     ...images.map((image, index) => imageObject(imageStartId + index, image)),
-    object(contentId, join([text(`<< /Length ${content.length} >>\nstream\n`), content, text("endstream")])),
+    object(
+      contentId,
+      join([
+        text(`<< /Length ${content.length} >>\nstream\n`),
+        content,
+        text("endstream"),
+      ]),
+    ),
   ];
   const header = text("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
   const offsets: number[] = [];
   let offset = header.length;
-  for (const item of objects) { offsets.push(offset); offset += item.length; }
+  for (const item of objects) {
+    offsets.push(offset);
+    offset += item.length;
+  }
   const xrefOffset = offset;
-  const xref = text(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((value) => `${String(value).padStart(10, "0")} 00000 n `).join("\n")}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+  const xref = text(
+    `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((value) => `${String(value).padStart(10, "0")} 00000 n `).join("\n")}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,
+  );
   return join([header, ...objects, xref]);
 }
 
-async function dataUrlToJpeg(cover: ArtboardCover): Promise<ArtboardJpeg> {
+async function loadImage(src: string) {
   const image = new Image();
-  image.src = cover.data;
+  image.src = src;
   await image.decode();
+  return image;
+}
+
+async function dataUrlToJpeg(
+  cover: ArtboardCover,
+  overlays: Map<CoverOverlayTone, HTMLImageElement>,
+): Promise<ArtboardJpeg> {
+  const image = await loadImage(cover.data);
   const canvas = document.createElement("canvas");
   canvas.width = 600;
   canvas.height = 800;
@@ -108,14 +162,56 @@ async function dataUrlToJpeg(cover: ArtboardCover): Promise<ArtboardJpeg> {
   if (!context) throw new Error("Canvas is unavailable.");
   context.fillStyle = "#07101a";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  const scale = Math.min(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
+  const scale = Math.min(
+    canvas.width / image.naturalWidth,
+    canvas.height / image.naturalHeight,
+  );
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  context.drawImage(image, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
-  const bytes = new Uint8Array(await (await fetch(canvas.toDataURL("image/jpeg", 0.92))).arrayBuffer());
-  return { number: cover.number, bytes, width: canvas.width, height: canvas.height };
+  context.drawImage(
+    image,
+    (canvas.width - width) / 2,
+    (canvas.height - height) / 2,
+    width,
+    height,
+  );
+  const overlay =
+    cover.overlay === "none" ? undefined : overlays.get(cover.overlay);
+  if (overlay) context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+  const bytes = new Uint8Array(
+    await (await fetch(canvas.toDataURL("image/jpeg", 0.92))).arrayBuffer(),
+  );
+  return {
+    number: cover.number,
+    bytes,
+    width: canvas.width,
+    height: canvas.height,
+  };
 }
 
 export async function createCoverArtboardPdf(covers: ArtboardCover[]) {
-  return buildCoverArtboardPdf(await Promise.all(covers.slice(0, 12).map(dataUrlToJpeg)));
+  const selectedCovers = covers.slice(0, 12);
+  const tones = Array.from(
+    new Set(
+      selectedCovers
+        .map((cover) => cover.overlay)
+        .filter((tone): tone is CoverOverlayTone => tone !== "none"),
+    ),
+  );
+  const overlays = new Map(
+    await Promise.all(
+      tones.map(
+        async (tone) =>
+          [
+            tone,
+            await loadImage(`/cover-generator/cover-overlay-${tone}.png`),
+          ] as const,
+      ),
+    ),
+  );
+  return buildCoverArtboardPdf(
+    await Promise.all(
+      selectedCovers.map((cover) => dataUrlToJpeg(cover, overlays)),
+    ),
+  );
 }

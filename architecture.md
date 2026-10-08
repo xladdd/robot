@@ -604,18 +604,20 @@ Editable SVG
 
 ### Cover Generator
 
-**Input:** audience and subject, optional custom subject and keywords, zero to three optional reference covers, an optional preferred earlier concept, a batch size of two or four, and a FLUX or Gemini image-model choice.
+**Input:** audience and subject, automatic or explicitly selected visual treatment, optional custom subject and keywords, zero to three optional reference images, an optional preferred earlier concept, a batch size of one, two, or four, and a FLUX or Gemini image-model choice.
 
 **Flow:**
 
 ```text
-Audience, subject, optional keywords and references
+Audience, subject, and optional keywords
 ↓
-Mistral Medium plans two or four distinct concepts and reference guidance
+Mistral Medium plans one, two, or four distinct structured concepts and chooses the treatment only in Automatic mode
 ↓
-Ministral 14B provider fallback, then deterministic local directions if both planners fail
+Ministral 14B provider fallback
 ↓
-Parallel image generation with FLUX.2 Pro at 1K by default, FLUX.2 Klein at 512 px, or Gemini Flash Lite Image at 1K
+Optional reference images join each concept as direct image-model inputs
+↓
+Parallel image generation with FLUX.2 Pro or Gemini Flash Lite Image at 1K
 ↓
 One replacement attempt for each failed image
 ↓

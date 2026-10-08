@@ -36,7 +36,7 @@ Creates up to 15 square images from prompts queued in order, with a choice of on
 
 ### Cover Generator
 
-Creates text-free textbook cover-art directions from an audience, subject, optional keywords, and optional reference covers. A Mistral-family vision planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
+Creates one, two, or four text-free textbook cover-art directions from an audience, subject, user-selectable visual treatment, optional keywords, and optional reference images. A Mistral-family vision planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
 
 ### Concept Illustrator
 
