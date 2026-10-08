@@ -729,7 +729,7 @@ button {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 16px;
-    min-height: calc(100vh - 180px);
+    min-height: 0;
     padding-top: 24px;
 }
 .cover-card {
@@ -5428,6 +5428,7 @@ button {
     cursor: help;
 }
 .cover-active-count > span {
+    display: none;
     position: absolute;
     z-index: 12;
     top: calc(100% + 10px);
@@ -5441,13 +5442,12 @@ button {
     font-size: 9px;
     line-height: 1.45;
     letter-spacing: 0;
-    opacity: 0;
     box-shadow: 4px 4px 0 var(--orange);
     pointer-events: none;
 }
 .cover-active-count:hover > span,
 .cover-active-count:focus-visible > span {
-    opacity: 1;
+    display: block;
     animation: tooltip-in 160ms ease-out;
 }
 .cover-generate-group {
@@ -6412,10 +6412,18 @@ button {
 }
 .cover-stage,
 .cover-stage.initial {
-    display: block;
+    display: flex;
     height: 100%;
+    flex-direction: column;
     padding: 0 0 58px;
     overflow-y: auto;
+    overflow-x: hidden;
+}
+.cover-stage > .cover-grid {
+    flex: 1 0 auto;
+}
+.cover-stage-head {
+    flex: 0 0 auto;
 }
 .cover-stage-head.tool-header {
     padding: 18px 2px 22px;
