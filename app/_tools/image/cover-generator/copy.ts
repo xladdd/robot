@@ -9,15 +9,15 @@ const promptHelp = {
       "A central theme, such as communication, nature, discovery, or movement.",
       "Mood or energy, such as calm, playful, bold, or curious.",
       "Colours or materials, such as bright colours, paper, glass, or tactile shapes.",
-      "A visual treatment, such as collage, photographic, 3D, or illustration.",
+      "An alternate medium, such as cartoon, illustration, or 3D, only when you want to override the default photographic montage.",
       "One thing that should be included or avoided, if it really matters.",
     ],
     promptHelpFocusTitle: "Keep it short:",
     promptHelpFocus:
-      "Keywords are soft guidance, not a checklist. The planner chooses the focal idea, composition, viewpoint, and visual treatment, and deliberately makes the concepts different from one another.",
+      "The default is photographic or editorial montage. A visual-medium keyword is a direct override; other keywords are soft guidance. The planner varies subjects, composition, viewpoint, lighting, and photographic treatment between concepts.",
     promptHelpExampleTitle: "Example keywords",
     promptHelpExample:
-      "communication, bright colours, curious, polished tactile illustration",
+      "communication, bright colours, curious, tactile paper texture",
     promptHelpAvoidTitle: "Do not ask for",
     promptHelpAvoid:
       "titles, grade numbers, logos, labels, badges, captions, pseudo-writing, or a detailed list of objects. Typography is added later in InDesign.",
@@ -34,15 +34,15 @@ const promptHelp = {
       "Hlavní téma, například komunikace, příroda, objevování nebo pohyb.",
       "Nálada nebo energie, například klidná, hravá, výrazná nebo zvídavá.",
       "Barvy nebo materiály, například výrazné barvy, papír, sklo nebo hmatové tvary.",
-      "Výtvarné zpracování, například koláž, fotografie, 3D nebo ilustrace.",
+      "Jiné výtvarné médium, například kreslené, ilustrace nebo 3D, pouze pokud chcete přepsat výchozí fotografickou montáž.",
       "Jeden důležitý motiv, který má být použit nebo vynechán.",
     ],
     promptHelpFocusTitle: "Buďte struční:",
     promptHelpFocus:
-      "Klíčová slova jsou pouze volná inspirace, ne seznam úkolů. Plánovač sám zvolí hlavní motiv, kompozici, pohled a výtvarné zpracování a záměrně vytvoří odlišné koncepty.",
+      "Výchozím médiem je fotografická nebo redakční montáž. Klíčové slovo určující jiné médium je přímý pokyn; ostatní slova jsou volná inspirace. Plánovač mezi koncepty mění motiv, kompozici, pohled, světlo a fotografické zpracování.",
     promptHelpExampleTitle: "Příklad klíčových slov",
     promptHelpExample:
-      "komunikace, výrazné barvy, zvídavé, hmatová redakční ilustrace",
+      "komunikace, výrazné barvy, zvídavé, hmatová textura papíru",
     promptHelpAvoidTitle: "Nezadávejte",
     promptHelpAvoid:
       "názvy, ročníky, loga, popisky, odznaky, titulky, napodobený text ani podrobný seznam předmětů. Typografie se doplní později v InDesignu.",
@@ -133,6 +133,11 @@ export const coverUi = {
     seedUnavailable: "seed unavailable",
     reportTitle: "Cover generation report",
     model: "IMAGE MODEL",
+    previewOverlay: "TEXT OVERLAY PREVIEW",
+    overlayBlack: "BLACK",
+    overlayWhite: "WHITE",
+    overlayPreviewOnly:
+      "Preview only. Downloads and artboard exports contain the original artwork without text.",
 
     modelFluxPro: "FLUX.2 Pro 1K",
     modelGemini: "Gemini Flash Lite 1K",
@@ -194,6 +199,11 @@ export const coverUi = {
     seedUnavailable: "seed není k dispozici",
     reportTitle: "Report generování obálky",
     model: "OBRAZOVÝ MODEL",
+    previewOverlay: "NÁHLED TEXTU OBÁLKY",
+    overlayBlack: "ČERNÝ",
+    overlayWhite: "BÍLÝ",
+    overlayPreviewOnly:
+      "Pouze náhled. Stažené soubory a exportní plochy obsahují původní obraz bez textu.",
 
     modelFluxPro: "FLUX.2 Pro 1K",
     modelGemini: "Gemini Flash Lite 1K",

@@ -19,20 +19,47 @@ const interfaceSource = await read(
 );
 const workspace = await read("app/Workspace.tsx");
 const copy = await read("app/_tools/image/cover-generator/copy.ts");
+const styles = await read("app/globals.css");
 
-test("keeps a single concise prompt template for image-ready concepts", async () => {
+test("defines one structured concept prompt template with positive spatial invariants", async () => {
   assert.deepEqual(await readdir(promptDir), ["plan-concepts.md"]);
   assert.match(plannerPrompt, /FLUX\.2 Pro/);
-  assert.match(plannerPrompt, /upper third clear of subjects and text/);
-  assert.match(plannerPrompt, /one or two clearly named hero objects/);
-  assert.match(plannerPrompt, /Prefer sparsity over complexity/);
-  assert.match(plannerPrompt, /different directions/);
-  assert.match(plannerPrompt, /80–150 words/);
-  assert.match(plannerPrompt, /200 words/);
-  assert.doesNotMatch(plannerPrompt, /40%|subject-specific templates for/);
+  assert.match(plannerPrompt, /concept objects/);
+  assert.match(plannerPrompt, /one or two hero_subjects/);
+  assert.match(plannerPrompt, /zero, one, or two supporting_objects/);
+  assert.match(plannerPrompt, /concept-specific upper_background/);
+  assert.match(
+    plannerPrompt,
+    /application exclusively owns object positioning, scale, camera distance, and composition/,
+  );
+  assert.match(
+    plannerPrompt,
+    /anchors every focal object beneath the horizontal midpoint/,
+  );
+  assert.match(plannerPrompt, /pulls the camera well back/);
+  assert.match(plannerPrompt, /upper half.*soft detail and natural variation/);
+  assert.match(
+    plannerPrompt,
+    /Perspective, depth, texture, light, and colour flow naturally.*upper background/,
+  );
+  assert.match(plannerPrompt, /Do not request close-up, macro, portrait/);
+  assert.match(plannerPrompt, /premium editorial photomontage/);
+  assert.match(
+    plannerPrompt,
+    /premium montage of detailed sophisticated stylized illustrations/,
+  );
+  assert.match(plannerPrompt, /explicit medium keyword[\s\S]*hard override/);
+  assert.doesNotMatch(
+    plannerPrompt,
+    /exactly four natural-language sentences|40–80 words|100 words/,
+  );
+  assert.doesNotMatch(
+    plannerPrompt,
+    /blank|empty|title panel|negative-prompt list|negative lists/,
+  );
 });
 
-test("uses Mistral Medium with Ministral fallback to write exactly 2 or 4 prompts", () => {
+test("uses Mistral Medium with Ministral fallback to write exactly 2 or 4 concepts", () => {
   assert.match(
     planner,
     /COVER_PLANNER_MODEL = "mistralai\/mistral-medium-3-5"/,
@@ -48,11 +75,39 @@ test("uses Mistral Medium with Ministral fallback to write exactly 2 or 4 prompt
   assert.match(planner, /route: "fallback"/);
   assert.match(planner, /provider: \{ require_parameters: true \}/);
   assert.match(planner, /response_format/);
+  assert.match(planner, /name: \"cover_art_concepts\"/);
+  assert.doesNotMatch(planner, /split\(\/\\s\+\/\)|new Set\(normalized/);
   assert.match(planner, /minItems: count/);
   assert.match(planner, /maxItems: count/);
-  assert.match(planner, /prompts\.length !== count/);
-  assert.match(planner, /prompt\.split\(\/\\s\+\/\)\.length > 200/);
-  assert.match(planner, /new Set\(normalized\.map/);
+  assert.match(planner, /concepts\.length !== count/);
+  assert.match(planner, /maxItems: 2/);
+  assert.match(planner, /hero_subjects:[\s\S]*minItems: 1[\s\S]*maxItems: 2/);
+  assert.match(
+    planner,
+    /supporting_objects:[\s\S]*minItems: 0[\s\S]*maxItems: 2/,
+  );
+  assert.match(planner, /hero_subjects\.length < 1/);
+  assert.match(planner, /hero_subjects\.length > 2/);
+  assert.match(planner, /supporting_objects\.length > 2/);
+  assert.match(planner, /subjects: concept\.hero_subjects\.map/);
+  assert.match(planner, /style: concept\.style/);
+  assert.match(planner, /supporting_objects: concept\.supporting_objects\.map/);
+  assert.match(
+    planner,
+    /description: object\.description,[\s\S]*position: subjectPosition,[\s\S]*scale: subjectScale,[\s\S]*action: object\.action/,
+  );
+  assert.match(planner, /composition,/);
+  assert.match(
+    planner,
+    /framing: "Wide environmental composition with the camera pulled well back\."/,
+  );
+  assert.match(planner, /focal_cluster/);
+  assert.match(planner, /headroom/);
+  assert.match(planner, /continuity/);
+  assert.doesNotMatch(
+    planner,
+    /overlay_usefulness|composition_constraints|upper_environment|viewpoint: concept\.viewpoint|40% image height|bounding box/,
+  );
   assert.match(planner, /type: "image_url"/);
   assert.match(planner, /School level:/);
   assert.match(planner, /Theme \/ keywords:/);
@@ -75,7 +130,9 @@ test("sends each prompt unchanged to the selected image model; no subject overri
     /languageScene|withTopThirdClearance|buildPrompt|loadPrompt|createFallbackCoverPlan/,
   );
   assert.match(types, /prompt: string/);
-  assert.doesNotMatch(types, /coreIdea|referenceGuidance/);
+  assert.doesNotMatch(types, /coreIdea|referenceGuidance|overlay_usefulness/);
+  assert.match(types, /hero_subjects/);
+  assert.match(types, /supporting_objects/);
 });
 
 test("requires school level and subject and keeps references and keywords optional", () => {
@@ -104,6 +161,40 @@ test("offers FLUX.2 Pro by default and Gemini, but rejects Klein", () => {
   assert.match(workspace, /"black-forest-labs\/flux\.2-pro"/);
   for (const source of [server, interfaceSource, copy])
     assert.doesNotMatch(source, /flux\.2-klein|modelFlux(?:Note)?:/);
+});
+
+test("keeps the switchable cover text overlay preview-only", async () => {
+  const [blackOverlay, whiteOverlay] = await Promise.all([
+    readFile(new URL("public/cover-generator/cover-overlay-black.png", root)),
+    readFile(new URL("public/cover-generator/cover-overlay-white.png", root)),
+  ]);
+
+  assert.ok(blackOverlay.length > 0);
+  assert.ok(whiteOverlay.length > 0);
+  assert.match(interfaceSource, /useState<"black" \| "white">\("black"\)/);
+  assert.match(interfaceSource, /cover-overlay-\$\{overlayTone\}\.png/);
+  assert.match(interfaceSource, /className="cover-text-overlay"/);
+  assert.match(interfaceSource, /backgroundImage: `url\(\$\{overlaySrc\}\)`/);
+  assert.match(interfaceSource, /aria-hidden="true"/);
+  assert.match(interfaceSource, /aria-pressed=\{overlayTone === "black"\}/);
+  assert.match(interfaceSource, /aria-pressed=\{overlayTone === "white"\}/);
+  assert.match(
+    styles,
+    /\.cover-image \.cover-text-overlay[\s\S]*position: absolute/,
+  );
+  assert.match(
+    styles,
+    /\.cover-image \.cover-text-overlay[\s\S]*pointer-events: none/,
+  );
+  assert.match(
+    copy,
+    /Preview only\. Downloads and artboard exports contain the original artwork without text\./,
+  );
+  assert.match(workspace, /data: await toBytes\(item\.data\)/);
+  assert.match(
+    workspace,
+    /visible\.map\(\(\{ item, number \}\) => \(\{ number, data: item\.data \}\)\)/,
+  );
 });
 
 test("exports the actual generated prompts with image metadata", () => {

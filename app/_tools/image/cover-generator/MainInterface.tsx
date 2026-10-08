@@ -167,8 +167,10 @@ export function CoverGeneratorMainInterface({
   const t = localizedCoverUi[language];
   const activeSketches = sketches.filter((item) => item.status !== "rejected");
   const [requestedCount, setRequestedCount] = useState<2 | 4>(2);
+  const [overlayTone, setOverlayTone] = useState<"black" | "white">("black");
   const [helpOpen, setHelpOpen] = useState(false);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
+  const overlaySrc = `/cover-generator/cover-overlay-${overlayTone}.png`;
 
   useEffect(() => {
     if (!helpOpen) return;
@@ -220,6 +222,11 @@ export function CoverGeneratorMainInterface({
                   aria-label={`${t.zoom} ${index + 1}`}
                 >
                   <img src={item.data} alt={`${t.sketch} ${index + 1}`} />
+                  <span
+                    className="cover-text-overlay"
+                    style={{ backgroundImage: `url(${overlaySrc})` }}
+                    aria-hidden="true"
+                  />
                 </button>
                 <footer className="cover-card-actions">
                   <button
@@ -397,6 +404,32 @@ export function CoverGeneratorMainInterface({
             placeholder={t.keywordsPlaceholder}
             rows={3}
           />
+        </section>
+        <section className="cover-control cover-overlay-control">
+          <label>{t.previewOverlay}</label>
+          <div
+            className="cover-overlay-options"
+            role="group"
+            aria-label={t.previewOverlay}
+          >
+            <button
+              type="button"
+              className={overlayTone === "black" ? "active" : ""}
+              aria-pressed={overlayTone === "black"}
+              onClick={() => setOverlayTone("black")}
+            >
+              {t.overlayBlack}
+            </button>
+            <button
+              type="button"
+              className={overlayTone === "white" ? "active" : ""}
+              aria-pressed={overlayTone === "white"}
+              onClick={() => setOverlayTone("white")}
+            >
+              {t.overlayWhite}
+            </button>
+          </div>
+          <small>{t.overlayPreviewOnly}</small>
         </section>
         <section className="cover-control cover-render-controls">
           <label htmlFor="cover-model">{t.model}</label>

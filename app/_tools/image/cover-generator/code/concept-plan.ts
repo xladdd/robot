@@ -7,6 +7,8 @@ import {
 } from "../../../openrouter/server";
 import type {
   CoverAudience,
+  CoverConcept,
+  CoverConceptObject,
   CoverPlannerMetadata,
   CoverSubject,
   PlannedCoverConcept,
@@ -20,19 +22,65 @@ const plannerPrompt = loadPrompt(
   "image/cover-generator/prompts/plan-concepts.md",
 );
 
+const objectSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    description: { type: "string" },
+    action: { type: "string" },
+    appearance: { type: "string" },
+  },
+  required: ["description", "action", "appearance"],
+} as const;
+
+const conceptProperties = {
+  hero_subjects: {
+    type: "array",
+    minItems: 1,
+    maxItems: 2,
+    items: objectSchema,
+  },
+  supporting_objects: {
+    type: "array",
+    minItems: 0,
+    maxItems: 2,
+    items: objectSchema,
+  },
+  scene: { type: "string" },
+  upper_background: { type: "string" },
+  style: { type: "string" },
+  palette: { type: "string" },
+  lighting: { type: "string" },
+  mood_treatment: { type: "string" },
+} as const;
+
 function responseSchema(count: 2 | 4) {
   return {
     type: "object",
     additionalProperties: false,
     properties: {
-      prompts: {
+      concepts: {
         type: "array",
         minItems: count,
         maxItems: count,
-        items: { type: "string" },
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: conceptProperties,
+          required: [
+            "hero_subjects",
+            "supporting_objects",
+            "scene",
+            "upper_background",
+            "style",
+            "palette",
+            "lighting",
+            "mood_treatment",
+          ],
+        },
       },
     },
-    required: ["prompts"],
+    required: ["concepts"],
   } as const;
 }
 
@@ -90,22 +138,93 @@ function parsePlannerJson(content: string): unknown {
   }
 }
 
-// Reject an incomplete plan rather than sending generic local directions to the image model.
-export function normalizeCoverPrompts(value: unknown, count: 2 | 4) {
-  if (!value || typeof value !== "object" || !("prompts" in value)) return null;
-  const prompts = value.prompts;
-  if (!Array.isArray(prompts) || prompts.length !== count) return null;
-  const normalized = prompts.map((prompt) =>
-    typeof prompt === "string" ? prompt.trim() : "",
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function text(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isConceptObject(value: unknown): value is CoverConceptObject {
+  if (!isRecord(value)) return false;
+  return (
+    text(value.description) && text(value.action) && text(value.appearance)
   );
+}
+
+function isConcept(value: unknown): value is CoverConcept {
+  if (!isRecord(value)) return false;
   if (
-    normalized.some((prompt) => !prompt || prompt.split(/\s+/).length > 200) ||
-    new Set(normalized.map((prompt) => prompt.toLowerCase())).size !== count
+    !Array.isArray(value.hero_subjects) ||
+    value.hero_subjects.length < 1 ||
+    value.hero_subjects.length > 2 ||
+    value.hero_subjects.some((item) => !isConceptObject(item)) ||
+    !Array.isArray(value.supporting_objects) ||
+    value.supporting_objects.length > 2 ||
+    value.supporting_objects.some((item) => !isConceptObject(item))
+  )
+    return false;
+  return (
+    text(value.scene) &&
+    text(value.upper_background) &&
+    text(value.style) &&
+    text(value.palette) &&
+    text(value.lighting) &&
+    text(value.mood_treatment)
+  );
+}
+
+const subjectPosition =
+  "Small focal subject anchored close to the bottom edge, entirely beneath the horizontal midpoint.";
+const subjectScale =
+  "Compact, occupying only the bottom quarter of the portrait.";
+const composition = {
+  framing: "Wide environmental composition with the camera pulled well back.",
+  focal_cluster:
+    "All focal subjects and props form one compact cluster near the bottom edge.",
+  headroom:
+    "The upper half is dominated by a softly detailed, naturally varied continuation of the same environment.",
+  continuity:
+    "Perspective, depth, texture, light, and colour flow naturally from the lower scene through the upper background.",
+  format: "Portrait 3:4 full bleed.",
+};
+
+function serializeObject(object: CoverConceptObject) {
+  return {
+    description: object.description,
+    position: subjectPosition,
+    scale: subjectScale,
+    action: object.action,
+    appearance: object.appearance,
+  };
+}
+
+export function serializeCoverConcept(concept: CoverConcept): string {
+  return JSON.stringify({
+    subjects: concept.hero_subjects.map(serializeObject),
+    style: concept.style,
+    scene: concept.scene,
+    upper_background: concept.upper_background,
+    composition,
+    supporting_objects: concept.supporting_objects.map(serializeObject),
+    palette: concept.palette,
+    lighting: concept.lighting,
+    mood_treatment: concept.mood_treatment,
+  });
+}
+
+export function normalizeCoverConcepts(value: unknown, count: 2 | 4) {
+  if (!isRecord(value) || !Array.isArray(value.concepts)) return null;
+  if (
+    value.concepts.length !== count ||
+    value.concepts.some((item) => !isConcept(item))
   )
     return null;
-  return normalized.map((prompt, index) => ({
+  return value.concepts.map((concept, index) => ({
     id: `concept-${String(index + 1).padStart(2, "0")}`,
-    prompt,
+    concept,
+    prompt: serializeCoverConcept(concept),
   }));
 }
 
@@ -132,7 +251,7 @@ export async function planCoverConcepts(
   input: PlannerInput,
 ): Promise<PlannerResult> {
   const requestText = [
-    `Create ${input.count} different prompts for textbook cover art.`,
+    `Create ${input.count} different structured concepts for textbook cover art.`,
     `School level: ${input.audience}`,
     `Subject: ${input.subject === "other" ? input.customSubject : input.subject}`,
     input.keywords ? `Theme / keywords: ${input.keywords}` : "",
@@ -181,7 +300,7 @@ export async function planCoverConcepts(
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "cover_art_prompts",
+          name: "cover_art_concepts",
           strict: true,
           schema: responseSchema(input.count),
         },
@@ -195,10 +314,10 @@ export async function planCoverConcepts(
   const parsed = parsePlannerJson(
     parseContent(result.choices?.[0]?.message?.content),
   );
-  const concepts = normalizeCoverPrompts(parsed, input.count);
+  const concepts = normalizeCoverConcepts(parsed, input.count);
   if (!concepts)
     throw new Error(
-      "The cover concept planner did not return distinct prompts of 200 words or fewer.",
+      "The cover concept planner did not return valid structured concepts.",
     );
   return {
     concepts,

@@ -744,6 +744,7 @@ button {
     box-shadow: 5px 5px 0 var(--orange);
 }
 .cover-image {
+    position: relative;
     display: block;
     width: 100%;
     padding: 0;
@@ -756,6 +757,15 @@ button {
     width: 100%;
     aspect-ratio: 3 / 4;
     object-fit: cover;
+}
+.cover-image .cover-text-overlay {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    pointer-events: none;
+    user-select: none;
 }
 .cover-card footer {
     display: grid;
@@ -1169,6 +1179,42 @@ button {
 .cover-input-control select:focus,
 .cover-input-control input:focus {
     box-shadow: inset 0 0 0 2px var(--teal);
+}
+.cover-overlay-control > label {
+    margin-bottom: 10px;
+}
+.cover-overlay-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cover-overlay-options button {
+    min-height: 34px;
+    padding: 0 8px;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font: 700 8px var(--font-sans);
+    letter-spacing: 0.08em;
+}
+.cover-overlay-options button + button {
+    border-left: 0;
+}
+.cover-overlay-options button:hover,
+.cover-overlay-options button:focus-visible {
+    background: color-mix(in srgb, var(--teal) 15%, var(--bg));
+    outline: 0;
+}
+.cover-overlay-options button.active {
+    background: var(--teal);
+    color: var(--on-accent);
+}
+.cover-overlay-control > small {
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.45;
 }
 .cover-render-controls label {
     margin: 5px 0 1px;
