@@ -101,7 +101,7 @@ The individual route files are deliberately small:
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts` and `diagrams/route.ts`: app-native model-backed generation adapters. `app/api/maps/generate/route.ts` preserves the legacy Map URL and returns `410 Gone` because Map Maker is local-only.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, and `typesetter/route.ts`: Cover Generator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, and Typesetter endpoint addresses.
+- `app/api/covers/route.ts`, `concept-illustrations/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, and `typesetter/route.ts`: Cover Generator, Concept Illustrator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, and Typesetter endpoint addresses.
 
 ### `app/_tools/`: tool ownership
 
@@ -164,6 +164,11 @@ Image apps:
 - `app/_tools/image/image-generator/code/server.ts`: private square-image generation through the app-specific OpenRouter key, with FLUX.2 Klein for fast output, FLUX.2 Pro for fidelity output, and optional FLUX.2 Pro generative upscaling.
 - `app/_tools/image/image-generator/prompts/generate.md`: stable image-generation instruction.
 - `app/_tools/image/image-generator/tests/prompts.test.mts`: queue splitting and limit regressions.
+- `app/_tools/image/concept-illustrator/MainInterface.tsx`: article-to-concept workflow, editable selected direction, single-image generation, natural-language revisions, explicit critique, editorial feedback, and three-column local project memory.
+- `app/_tools/image/concept-illustrator/code/server.ts`: strict three-concept planning, individual replacement, LLM visual compilation, FLUX.2 generation/editing, and vision critique through the app-specific OpenRouter key.
+- `app/_tools/image/concept-illustrator/code/history.ts`: browser-local IndexedDB projects and persistent house-style profile; images and references are not synchronized to a server database.
+- `app/_tools/image/concept-illustrator/prompts/`: stable concept planning, replacement, visual compilation, refinement, and critique instructions.
+- `app/_tools/image/concept-illustrator/tests/concept-illustrator.test.mts`: exact-three concept, replacement, prompt, aspect-ratio, and image-input validation regressions.
 
 Design apps:
 
@@ -346,6 +351,18 @@ The following completes the folder map by naming every source-file role. Repeate
 - `prompts/generate.md`: stable generation instruction.
 - `tests/prompts.test.mts`: prompt splitting and 15-image cap regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
+
+#### Concept Illustrator: `app/_tools/image/concept-illustrator/`
+
+- `MainInterface.tsx`: three-column browser-local memory, article and concept workflow, selected-concept editing, generated revision history, art direction, critique, and final editorial decision.
+- `copy.ts`: bilingual Concept Illustrator UI copy.
+- `code/types.ts`: persistent project, house-style, concept, revision, critique, and usage contracts.
+- `code/history.ts`: IndexedDB persistence and recent editorial-feedback context.
+- `code/contracts.ts`: server-neutral validation for concepts, prompts, aspect ratios, image references, edits, and critiques.
+- `code/server.ts`: action-dispatched OpenRouter planning, visual compilation, FLUX.2 generation/editing, and vision critique.
+- `prompts/`: stable planning, regeneration, compilation, editing, and critique instructions.
+- `tests/concept-illustrator.test.mts`: deterministic contract regressions.
+- `info.en.md`, `info.cs.md`: live drawer content, including local-memory and AI-processing privacy details.
 
 #### GREP Builder: `app/_tools/design/grep-builder/`
 

@@ -17,9 +17,7 @@ import type {
 } from "./code/types";
 
 export type CoverModel =
-  | "black-forest-labs/flux.2-pro"
-  | "google/gemini-3.1-flash-lite-image"
-  | "black-forest-labs/flux.2-klein-4b";
+  "black-forest-labs/flux.2-pro" | "google/gemini-3.1-flash-lite-image";
 export type { CoverAudience, CoverSubject, PlannedCoverConcept };
 export type CoverReference = { name: string; data: string; artData: string };
 export type CoverUsage = {
@@ -413,16 +411,11 @@ export function CoverGeneratorMainInterface({
             <option value="google/gemini-3.1-flash-lite-image">
               {t.modelGemini}
             </option>
-            <option value="black-forest-labs/flux.2-klein-4b">
-              {t.modelFlux}
-            </option>
           </select>
           <small>
             {model === "google/gemini-3.1-flash-lite-image"
               ? t.modelGeminiNote
-              : model === "black-forest-labs/flux.2-pro"
-                ? t.modelFluxProNote
-                : t.modelFluxNote}
+              : t.modelFluxProNote}
           </small>
         </section>
         {error && (

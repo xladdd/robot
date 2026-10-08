@@ -63,6 +63,7 @@ import type {
   LayerSplitterResult,
 } from "./_tools/image/layer-splitter/types";
 import { ImageGeneratorMainInterface } from "./_tools/image/image-generator/MainInterface";
+import { ConceptIllustratorMainInterface } from "./_tools/image/concept-illustrator/MainInterface";
 import {
   CoverGeneratorMainInterface,
   CoverLightbox,
@@ -1637,21 +1638,28 @@ export default function Workspace({
       `- Subject: ${coverSubject === "other" ? coverCustomSubject : coverSubject}`,
       `- Keywords: ${coverKeywords || "none"}`,
       `- Planner model: ${coverPlanner?.model || "not reported"}`,
-      `- Reference guidance: ${coverPlanner?.referenceGuidance ? JSON.stringify(coverPlanner.referenceGuidance) : "not reported"}`,
       `- Artwork-only reference crops: ${coverArtOnlyReferences ? "yes" : "no"}`,
       `- Generation tasks: ${tasks.length}`,
       `- Total credits: ${knownTotal.toFixed(6)}${unknownCosts ? ` (${unknownCosts} task${unknownCosts === 1 ? "" : "s"} did not report a cost)` : ""}`,
       "",
       "## Generation tasks",
       "",
-      `| # | Type | Concept | Viewpoint | Rendering | Model | Seed | Credits | OpenRouter generation |`,
-      `|---:|---|---|---|---|---|---:|---:|---|`,
-      `| — | planner | ${coverPlanner?.model || "not reported"} | — | ${coverPlanner?.usedFallback ? "local fallback" : "Mistral structured plan"} | ${coverPlanner?.model || "not reported"} | — | ${coverPlanner?.usage.cost === null || coverPlanner?.usage.cost === undefined ? "not reported" : coverPlanner.usage.cost.toFixed(6)} | ${coverPlanner?.generationId || "not reported"} |`,
+      `| # | Type | Model | Seed | Credits | OpenRouter generation |`,
+      `|---:|---|---|---:|---:|---|`,
+      `| — | planner | ${coverPlanner?.model || "not reported"} | — | ${coverPlanner?.usage.cost === null || coverPlanner?.usage.cost === undefined ? "not reported" : coverPlanner.usage.cost.toFixed(6)} | ${coverPlanner?.generationId || "not reported"} |`,
       ...tasks.map(
         (item, index) =>
-          `| ${index + 1} | concept | ${item.concept.coreIdea} | ${item.concept.viewpoint} | ${item.concept.renderingApproach} | ${item.model} | ${item.seed ?? "not supported"} | ${item.usage.cost === null ? "not reported" : item.usage.cost.toFixed(6)} | ${item.generationId || "not reported"} |`,
+          `| ${index + 1} | concept | ${item.model} | ${item.seed ?? "not supported"} | ${item.usage.cost === null ? "not reported" : item.usage.cost.toFixed(6)} | ${item.generationId || "not reported"} |`,
       ),
       "",
+      "## Image prompts",
+      "",
+      ...tasks.flatMap((item, index) => [
+        `### Concept ${index + 1}`,
+        "",
+        item.concept.prompt,
+        "",
+      ]),
       "> These images are text-free cover-art directions. Add typography and publisher elements later in InDesign.",
       "",
     ].join("\n");
@@ -2054,6 +2062,7 @@ export default function Workspace({
     selected === "bio" ||
     selected === "graph" ||
     selected === "cover" ||
+    selected === "conceptIllustrator" ||
     selected === "layerSplitter"
       ? selected
       : "general";
@@ -2240,7 +2249,12 @@ export default function Workspace({
           language={language}
           active={selected === "image"}
         />
-        {selected === "image" ? null : selected === "manual" ? (
+        <ConceptIllustratorMainInterface
+          language={language}
+          active={selected === "conceptIllustrator"}
+        />
+        {selected === "image" ||
+        selected === "conceptIllustrator" ? null : selected === "manual" ? (
           <DesignManualMainInterface
             language={language}
             content={

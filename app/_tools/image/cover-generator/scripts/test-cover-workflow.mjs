@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 
 const endpoint = process.argv[2] || "http://localhost:3001/api/covers";
-const model = process.argv[3] || "black-forest-labs/flux.2-klein-4b";
+const model = process.argv[3] || "black-forest-labs/flux.2-pro";
 const outputDir =
   process.argv[4] || "/private/tmp/robot-cover-eval/workflow-planner";
 const audience = process.argv[5] || "upper-secondary";

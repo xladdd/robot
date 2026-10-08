@@ -7836,3 +7836,851 @@ button {
         grid-template-columns: 1fr;
     }
 }
+
+/* Concept Illustrator */
+.concept-illustrator-module {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    overflow: hidden;
+    background: var(--bg);
+}
+.concept-illustrator-workbench {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 220px minmax(460px, 1fr) 250px;
+    grid-template-areas: "memory workflow style";
+}
+.concept-illustrator-memory-rail,
+.concept-illustrator-style-rail {
+    min-width: 0;
+    overflow-y: auto;
+    background: var(--panel);
+}
+.concept-illustrator-memory-rail {
+    grid-area: memory;
+    border-right: 1px solid var(--ink);
+}
+.concept-illustrator-style-rail {
+    grid-area: style;
+    border-left: 1px solid var(--ink);
+}
+.concept-illustrator-rail-header {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-bottom: 1px solid var(--ink);
+}
+.concept-illustrator-rail-header h2,
+.concept-illustrator-rail-header p {
+    margin: 0;
+}
+.concept-illustrator-rail-header h2 {
+    font: 10px var(--font-mono);
+    letter-spacing: 0.14em;
+}
+.concept-illustrator-rail-header p {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.45;
+}
+.concept-illustrator-new-project {
+    width: 100%;
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+}
+.concept-illustrator-memory-error,
+.concept-illustrator-error {
+    margin: 0;
+    border-bottom: 1px solid var(--error);
+    background: color-mix(in srgb, var(--error) 9%, var(--bg));
+    color: var(--error);
+    font-size: 8px;
+    line-height: 1.5;
+}
+.concept-illustrator-memory-error {
+    padding: 12px 18px;
+}
+.concept-illustrator-error {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--error);
+}
+.concept-illustrator-project-list {
+    display: grid;
+}
+.concept-illustrator-project-empty,
+.concept-illustrator-local-note {
+    margin: 0;
+    padding: 18px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.55;
+}
+.concept-illustrator-project-item {
+    position: relative;
+    border-bottom: 1px solid var(--line);
+}
+.concept-illustrator-project-item.is-active {
+    box-shadow: inset 4px 0 0 var(--orange);
+    background: var(--panel-2);
+}
+.concept-illustrator-project-open {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 7px;
+    padding: 15px 34px 15px 18px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+}
+.concept-illustrator-project-open:hover:not(:disabled),
+.concept-illustrator-project-open:focus-visible:not(:disabled) {
+    background: color-mix(in srgb, var(--teal) 12%, transparent);
+    outline: 0;
+}
+.concept-illustrator-project-open strong {
+    overflow: hidden;
+    font-size: 9px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+}
+.concept-illustrator-project-open small,
+.concept-illustrator-project-open span {
+    color: var(--muted);
+    font: 6px/1.4 var(--font-mono);
+    letter-spacing: 0.04em;
+}
+.concept-illustrator-project-open span {
+    width: fit-content;
+    padding: 3px 5px;
+    border: 1px solid currentColor;
+    text-transform: uppercase;
+}
+.concept-illustrator-project-open .concept-illustrator-project-approved {
+    color: var(--teal);
+}
+.concept-illustrator-project-open .concept-illustrator-project-rejected {
+    color: var(--orange);
+}
+.concept-illustrator-project-delete {
+    position: absolute;
+    top: 8px;
+    right: 7px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+}
+.concept-illustrator-project-delete:hover:not(:disabled) {
+    color: var(--orange);
+}
+.concept-illustrator-project-open:disabled,
+.concept-illustrator-project-delete:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+.concept-illustrator-workflow {
+    grid-area: workflow;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 24px clamp(18px, 3vw, 42px) 72px;
+}
+.concept-illustrator-titlebar {
+    max-width: 980px;
+    margin: 0 auto 22px;
+}
+.concept-illustrator-titlebar h1 {
+    margin: 7px 0 0;
+    font-size: clamp(30px, 4vw, 54px);
+    font-weight: 400;
+    letter-spacing: -0.055em;
+    line-height: 0.98;
+}
+.concept-illustrator-progress,
+.concept-illustrator-workflow > section,
+.concept-illustrator-workflow > .concept-illustrator-error {
+    width: min(980px, 100%);
+    margin-right: auto;
+    margin-left: auto;
+}
+.concept-illustrator-progress {
+    margin-bottom: 18px;
+    border: 1px solid var(--ink);
+    background: var(--panel);
+}
+.concept-illustrator-progress h2 {
+    margin: 0;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--ink);
+    font: 7px var(--font-mono);
+    letter-spacing: 0.12em;
+}
+.concept-illustrator-progress ol {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.concept-illustrator-progress li {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+    padding: 10px 8px;
+    border-right: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 6px;
+    letter-spacing: 0.05em;
+    text-align: center;
+}
+.concept-illustrator-progress li:last-child {
+    border-right: 0;
+}
+.concept-illustrator-progress li span {
+    font: 7px var(--font-mono);
+}
+.concept-illustrator-progress li.is-active {
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.concept-illustrator-progress li.is-complete {
+    color: var(--teal);
+    box-shadow: inset 0 3px 0 var(--teal);
+}
+.concept-illustrator-workflow > section:not(.concept-illustrator-progress) {
+    margin-bottom: 18px;
+    padding: clamp(18px, 2.5vw, 28px);
+    border: 1px solid var(--ink);
+    background: var(--panel-2);
+    box-shadow: var(--panel-shadow);
+}
+.concept-illustrator-workflow section > header h2,
+.concept-illustrator-workflow section > h2,
+.concept-illustrator-revision-history h3,
+.concept-illustrator-critique-result h3 {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.11em;
+}
+.concept-illustrator-workflow section > header p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.5;
+}
+.concept-illustrator-article-panel textarea,
+.concept-illustrator-selected-fields input,
+.concept-illustrator-selected-fields textarea,
+.concept-illustrator-advanced-prompt textarea,
+.concept-illustrator-refinement-panel > textarea,
+.concept-illustrator-note-field textarea,
+.concept-illustrator-style-guidance textarea,
+.concept-illustrator-aspect-ratio select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    outline: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 10px/1.55 var(--font-sans);
+}
+.concept-illustrator-article-panel textarea,
+.concept-illustrator-selected-fields textarea,
+.concept-illustrator-advanced-prompt textarea,
+.concept-illustrator-refinement-panel > textarea,
+.concept-illustrator-note-field textarea,
+.concept-illustrator-style-guidance textarea {
+    padding: 12px;
+    resize: vertical;
+}
+.concept-illustrator-article-panel textarea {
+    min-height: 220px;
+    margin-top: 15px;
+}
+.concept-illustrator-article-panel textarea:focus,
+.concept-illustrator-selected-fields :is(input, textarea):focus,
+.concept-illustrator-advanced-prompt textarea:focus,
+.concept-illustrator-refinement-panel > textarea:focus,
+.concept-illustrator-note-field textarea:focus,
+.concept-illustrator-style-guidance textarea:focus,
+.concept-illustrator-aspect-ratio select:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--teal);
+}
+.concept-illustrator-plan,
+.concept-illustrator-generate-image,
+.concept-illustrator-create-revision,
+.concept-illustrator-save-final {
+    display: flex;
+    width: 100%;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 0 14px;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+}
+.concept-illustrator-plan b,
+.concept-illustrator-generate-image b,
+.concept-illustrator-create-revision b {
+    font-size: 18px;
+    font-weight: 400;
+}
+.concept-illustrator-concepts-panel > h2 {
+    margin-bottom: 15px;
+}
+.concept-illustrator-concept-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+.concept-illustrator-concept-card {
+    display: flex;
+    min-width: 0;
+    min-height: 290px;
+    flex-direction: column;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+}
+.concept-illustrator-concept-card.is-selected {
+    box-shadow: 5px 5px 0 var(--teal);
+}
+.concept-illustrator-concept-card > header {
+    display: flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px;
+    border-bottom: 1px solid var(--ink);
+    font: 6px var(--font-mono);
+    letter-spacing: 0.08em;
+}
+.concept-illustrator-concept-card > header strong {
+    color: var(--teal);
+    font-weight: 400;
+}
+.concept-illustrator-concept-card h3 {
+    margin: 0;
+    padding: 14px 12px 10px;
+    color: var(--orange);
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.2;
+}
+.concept-illustrator-concept-card dl {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0 12px 14px;
+}
+.concept-illustrator-concept-card dt {
+    margin-bottom: 4px;
+    color: var(--teal);
+    font-size: 6px;
+    letter-spacing: 0.12em;
+}
+.concept-illustrator-concept-card dd {
+    margin: 0;
+    font-size: 8px;
+    line-height: 1.55;
+}
+.concept-illustrator-concept-card > footer {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: auto;
+    padding: 10px;
+    border-top: 1px solid var(--line);
+}
+.concept-illustrator-select-concept,
+.concept-illustrator-regenerate-concept {
+    min-height: 32px;
+    font-size: 6px;
+    letter-spacing: 0.05em;
+}
+.concept-illustrator-regenerate-concept {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+.concept-illustrator-regenerate-concept:hover:not(:disabled) {
+    color: var(--teal);
+}
+.concept-illustrator-selected-fields {
+    display: grid;
+    gap: 11px;
+    margin-top: 16px;
+}
+.concept-illustrator-selected-fields label,
+.concept-illustrator-note-field,
+.concept-illustrator-style-guidance,
+.concept-illustrator-aspect-ratio {
+    display: grid;
+    gap: 6px;
+}
+.concept-illustrator-selected-fields label > span,
+.concept-illustrator-note-field > span,
+.concept-illustrator-style-guidance > span,
+.concept-illustrator-aspect-ratio > span {
+    color: var(--teal);
+    font-size: 7px;
+    letter-spacing: 0.11em;
+}
+.concept-illustrator-selected-fields input {
+    min-height: 40px;
+    padding: 0 11px;
+}
+.concept-illustrator-advanced-prompt {
+    margin-top: 15px;
+    padding-top: 13px;
+    border-top: 1px solid var(--line);
+}
+.concept-illustrator-advanced-prompt summary {
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 7px;
+    letter-spacing: 0.09em;
+}
+.concept-illustrator-advanced-prompt > p {
+    margin: 9px 0;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.5;
+}
+.concept-illustrator-advanced-prompt textarea {
+    min-height: 145px;
+}
+.concept-illustrator-prompt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 9px;
+}
+.concept-illustrator-prompt-actions small {
+    color: var(--muted);
+    font-size: 7px;
+}
+.concept-illustrator-compile-prompt,
+.concept-illustrator-download,
+.concept-illustrator-run-critique,
+.concept-illustrator-apply-critique {
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 7px;
+}
+.concept-illustrator-image-panel > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+.concept-illustrator-image-panel > header span {
+    color: var(--orange);
+    font: 7px var(--font-mono);
+}
+.concept-illustrator-active-image {
+    margin: 0;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+}
+.concept-illustrator-active-image > img {
+    display: block;
+    width: 100%;
+    max-height: 68vh;
+    background: var(--panel);
+    object-fit: contain;
+}
+.concept-illustrator-active-image figcaption {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 5px 14px;
+    padding: 11px;
+    border-top: 1px solid var(--ink);
+}
+.concept-illustrator-active-image figcaption strong {
+    overflow: hidden;
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.concept-illustrator-active-image figcaption span {
+    grid-column: 1;
+    color: var(--muted);
+    font: 6px var(--font-mono);
+}
+.concept-illustrator-active-image figcaption button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+}
+.concept-illustrator-image-empty {
+    display: grid;
+    min-height: 240px;
+    margin: 0;
+    place-items: center;
+    padding: 30px;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: center;
+}
+.concept-illustrator-revision-history {
+    margin-top: 16px;
+}
+.concept-illustrator-revision-history h3 {
+    margin-bottom: 9px;
+    font-size: 7px;
+}
+.concept-illustrator-revision-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 7px;
+}
+.concept-illustrator-revision {
+    position: relative;
+    width: 104px;
+    min-width: 104px;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+}
+.concept-illustrator-revision.is-active {
+    border-color: var(--teal);
+    box-shadow: 3px 3px 0 var(--teal);
+}
+.concept-illustrator-revision.is-final::after {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: grid;
+    width: 16px;
+    height: 16px;
+    place-items: center;
+    background: var(--teal);
+    color: var(--on-accent);
+    content: "✓";
+    font-size: 9px;
+}
+.concept-illustrator-revision img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+.concept-illustrator-revision span {
+    display: block;
+    padding: 6px;
+    border-top: 1px solid var(--line);
+    font: 6px var(--font-mono);
+}
+.concept-illustrator-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 14px 0 9px;
+}
+.concept-illustrator-quick-actions button {
+    min-height: 30px;
+    padding: 0 9px;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 7px;
+}
+.concept-illustrator-quick-actions button:hover:not(:disabled) {
+    background: var(--teal);
+    color: var(--on-accent);
+}
+.concept-illustrator-critique-panel > header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 18px;
+}
+.concept-illustrator-critique-result {
+    display: grid;
+    gap: 14px;
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+}
+.concept-illustrator-critique-result h3 {
+    margin-bottom: 6px;
+    color: var(--teal);
+    font-size: 7px;
+}
+.concept-illustrator-critique-result p,
+.concept-illustrator-critique-result ul {
+    margin: 0;
+    font-size: 8px;
+    line-height: 1.55;
+}
+.concept-illustrator-critique-result ul {
+    padding-left: 17px;
+}
+.concept-illustrator-critique-result small {
+    color: var(--muted);
+    font-size: 7px;
+}
+.concept-illustrator-decision-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin: 14px 0;
+}
+.concept-illustrator-decision-options label {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 9px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    cursor: pointer;
+    font-size: 7px;
+}
+.concept-illustrator-decision-options label:has(input:checked) {
+    border-color: var(--teal);
+    box-shadow: inset 3px 0 0 var(--teal);
+}
+.concept-illustrator-save-final {
+    justify-content: center;
+}
+.concept-illustrator-style-rail {
+    padding-bottom: 40px;
+}
+.concept-illustrator-style-guidance,
+.concept-illustrator-aspect-ratio,
+.concept-illustrator-style-references {
+    margin: 18px;
+}
+.concept-illustrator-style-guidance textarea {
+    min-height: 178px;
+}
+.concept-illustrator-aspect-ratio select {
+    min-height: 40px;
+    padding: 0 10px;
+}
+.concept-illustrator-style-references {
+    padding-top: 17px;
+    border-top: 1px solid var(--line);
+}
+.concept-illustrator-style-references > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.concept-illustrator-style-references h3 {
+    margin: 0;
+    font-size: 7px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+}
+.concept-illustrator-style-references > header span {
+    color: var(--orange);
+    font: 7px var(--font-mono);
+}
+.concept-illustrator-style-references > p {
+    margin: 7px 0 11px;
+    color: var(--muted);
+    font-size: 6px;
+    line-height: 1.5;
+}
+.concept-illustrator-reference-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.concept-illustrator-reference-grid figure,
+.concept-illustrator-add-reference {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1;
+    margin: 0;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+}
+.concept-illustrator-reference-grid figure img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.concept-illustrator-reference-grid figcaption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    padding: 5px 22px 5px 5px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    font-size: 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.concept-illustrator-reference-grid figure button {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+}
+.concept-illustrator-add-reference {
+    display: grid;
+    place-content: center;
+    gap: 5px;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: center;
+}
+.concept-illustrator-add-reference:hover:not(:disabled) {
+    border-color: var(--teal);
+    color: var(--teal);
+}
+.concept-illustrator-add-reference b {
+    font-size: 18px;
+    font-weight: 400;
+}
+.concept-illustrator-add-reference span {
+    font-size: 6px;
+    letter-spacing: 0.06em;
+}
+.concept-illustrator-local-note {
+    margin: 0 18px;
+    padding: 15px 0 0;
+    border-top: 1px solid var(--line);
+}
+.concept-illustrator-module :is(textarea, input, select, button):disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+@media (max-width: 1180px) {
+    .concept-illustrator-workbench {
+        grid-template-columns: 184px minmax(400px, 1fr) 214px;
+    }
+    .concept-illustrator-workflow {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+    .concept-illustrator-concept-grid {
+        grid-template-columns: 1fr;
+    }
+    .concept-illustrator-concept-card {
+        min-height: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .concept-illustrator-module {
+        overflow-y: auto;
+    }
+    .concept-illustrator-workbench {
+        display: grid;
+        height: auto;
+        min-height: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "workflow"
+            "memory"
+            "style";
+    }
+    .concept-illustrator-workflow,
+    .concept-illustrator-memory-rail,
+    .concept-illustrator-style-rail {
+        overflow: visible;
+    }
+    .concept-illustrator-memory-rail,
+    .concept-illustrator-style-rail {
+        border: 0;
+        border-top: 1px solid var(--ink);
+    }
+    .concept-illustrator-workflow {
+        padding-bottom: 36px;
+    }
+    .concept-illustrator-project-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .concept-illustrator-project-item {
+        border-right: 1px solid var(--line);
+    }
+    .concept-illustrator-style-rail {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .concept-illustrator-style-rail > .concept-illustrator-rail-header,
+    .concept-illustrator-style-rail > .concept-illustrator-local-note {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .concept-illustrator-workflow {
+        padding: 18px 14px 32px;
+    }
+    .concept-illustrator-progress ol {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .concept-illustrator-progress li:nth-child(3) {
+        border-right: 0;
+    }
+    .concept-illustrator-progress li:nth-child(-n + 3) {
+        border-bottom: 1px solid var(--line);
+    }
+    .concept-illustrator-titlebar h1 {
+        font-size: 34px;
+    }
+    .concept-illustrator-workflow > section:not(.concept-illustrator-progress) {
+        padding: 16px;
+        box-shadow: var(--compact-shadow);
+    }
+    .concept-illustrator-active-image figcaption,
+    .concept-illustrator-decision-options,
+    .concept-illustrator-project-list,
+    .concept-illustrator-style-rail {
+        grid-template-columns: 1fr;
+    }
+    .concept-illustrator-active-image figcaption button {
+        grid-column: 1;
+        grid-row: auto;
+    }
+    .concept-illustrator-critique-panel > header,
+    .concept-illustrator-prompt-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .concept-illustrator-style-rail > .concept-illustrator-rail-header,
+    .concept-illustrator-style-rail > .concept-illustrator-local-note {
+        grid-column: 1;
+    }
+}

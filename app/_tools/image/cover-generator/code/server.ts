@@ -1,23 +1,14 @@
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
-import { fillPrompt, loadPrompt } from "../../../load-prompt";
+
 import {
   getOpenRouterContext,
   openRouterConfigurationError,
   requestOpenRouter,
   type OpenRouterContext,
 } from "../../../openrouter/server";
-import {
-  createFallbackCoverPlan,
-  planCoverConcepts,
-  type PlannerInput,
-} from "./concept-plan";
-import type {
-  CoverAudience,
-  CoverSubject,
-  PlannedCoverConcept,
-  ReferenceGuidance,
-} from "./types";
+import { planCoverConcepts, type PlannerInput } from "./concept-plan";
+import type { CoverAudience, CoverSubject, PlannedCoverConcept } from "./types";
 
 const MAX_REFERENCE_SIZE = 7_000_000;
 const MAX_KEYWORDS_LENGTH = 1_500;
@@ -26,12 +17,11 @@ const MAX_PREFERENCE_LENGTH = 1_000;
 const MAX_SEED = 2_000_000_000;
 const FLUX_PRO_MODEL = "black-forest-labs/flux.2-pro" as const;
 const GEMINI_MODEL = "google/gemini-3.1-flash-lite-image" as const;
-const FLUX_KLEIN_MODEL = "black-forest-labs/flux.2-klein-4b" as const;
+
 const DEFAULT_MODEL = FLUX_PRO_MODEL;
 const COVER_MODE = "sketch" as const;
 
-type CoverModel =
-  typeof FLUX_PRO_MODEL | typeof GEMINI_MODEL | typeof FLUX_KLEIN_MODEL;
+type CoverModel = typeof FLUX_PRO_MODEL | typeof GEMINI_MODEL;
 type GenerationCount = 2 | 4;
 
 type ImageResult = {
@@ -82,8 +72,6 @@ class CoverRequestError extends Error {
   }
 }
 
-const coverPrompt = loadPrompt("image/cover-generator/prompts/sketch.md");
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -125,14 +113,9 @@ function parseGenerationCount(value: unknown): GenerationCount {
 
 function parseModel(value: unknown): CoverModel {
   if (value === undefined) return DEFAULT_MODEL;
-  if (
-    value === FLUX_PRO_MODEL ||
-    value === GEMINI_MODEL ||
-    value === FLUX_KLEIN_MODEL
-  )
-    return value;
+  if (value === FLUX_PRO_MODEL || value === GEMINI_MODEL) return value;
   throw new CoverRequestError(
-    `Unknown cover model. Use ${FLUX_PRO_MODEL}, ${GEMINI_MODEL}, or ${FLUX_KLEIN_MODEL}.`,
+    `Unknown cover model. Use ${FLUX_PRO_MODEL} or ${GEMINI_MODEL}.`,
   );
 }
 
@@ -226,20 +209,19 @@ async function generate(
     prompt,
     aspect_ratio: "3:4" as const,
   };
-  const isFluxModel = model === FLUX_PRO_MODEL || model === FLUX_KLEIN_MODEL;
-  const requestBody = isFluxModel
-    ? {
-        ...baseRequest,
-        resolution:
-          model === FLUX_KLEIN_MODEL ? ("512" as const) : ("1K" as const),
-        output_format: "jpeg" as const,
-        seed,
-      }
-    : {
-        ...baseRequest,
-        resolution: "1K" as const,
-        n: 1 as const,
-      };
+  const requestBody =
+    model === FLUX_PRO_MODEL
+      ? {
+          ...baseRequest,
+          resolution: "1K" as const,
+          output_format: "jpeg" as const,
+          seed,
+        }
+      : {
+          ...baseRequest,
+          resolution: "1K" as const,
+          n: 1 as const,
+        };
 
   const { response, result } = await requestOpenRouter<{
     id?: string;
@@ -260,119 +242,6 @@ async function generate(
       totalTokens: result.usage?.total_tokens ?? null,
     },
   };
-}
-
-function languageScene(concept: PlannedCoverConcept) {
-  const treatment = concept.renderingApproach.toLowerCase();
-  const isPhotographic =
-    treatment.includes("photo") && !treatment.includes("photomontage");
-  if (isPhotographic || treatment.includes("cinematic"))
-    return {
-      coreIdea:
-        "A contemporary, recognisable environment where spoken communication connects people in a Czech cultural setting.",
-      heroSubject:
-        "two upper-secondary students in active conversation in a warmly lit recording and reading room",
-      supportingElements: [
-        "a vintage microphone and headphones",
-        "two closed books with plain featureless cloth covers",
-        "a fountain pen and a plain ceramic cup",
-        "a window view of recognisable Prague architecture",
-      ],
-      renderingApproach:
-        "one uninterrupted editorial photograph with natural scene depth; a real environment, not a designed cover, with no graphic overlays, layout panels, banners, logos, or inserted symbols",
-      quietSpace:
-        "a naturally softer area of plain wall or window atmosphere near the upper edge, physically empty and still part of the room",
-    };
-  return {
-    coreIdea:
-      "A dense editorial collage connecting contemporary communication, Czech cultural context, and historical perspective.",
-    heroSubject:
-      "a contemporary upper-secondary student in an expressive communication gesture and a separate anonymous nineteenth-century writer-inspired engraved portrait",
-    supportingElements: [
-      "a recognisable Prague architectural panorama",
-      "a vintage microphone",
-      "two or three closed books with plain featureless spines",
-      "a fountain pen",
-      "blank saturated torn-paper layers",
-      "one or two empty speech-bubble cutouts",
-    ],
-    renderingApproach:
-      "a tactile editorial photomontage with photographic and engraved cutouts, blank saturated paper, screen-print texture, dramatic overlap, and no cover-layout panels, banners, logos, or inserted typography",
-    quietSpace:
-      "one calm area of uninterrupted saturated paper near an edge, integrated into the collage without a frame, panel, banner, or placeholder",
-  };
-}
-
-function withTopThirdClearance(
-  concept: PlannedCoverConcept,
-): PlannedCoverConcept {
-  return {
-    ...concept,
-    composition: `${concept.composition} Use a render-time safety buffer: compose a low, wide horizontal tableau entirely in the lower 60%. Keep every recognisable person, animal, building, landscape feature, tree, flower, tool, specimen, book, machine, laboratory object, collage cutout, object edge, shadow, reflection, and crop below 40% of the image height. This protects the actual upper-third typography zone. Do not use suspended, hanging, tall, upward-reaching, or vertically dominant motifs: no trees, tall plants, reeds, birdhouses, streetlamps, lampposts, masts, towers, chimneys, poles, magnifying glasses, beams, plumes, wires, cords, or similar forms. Use the lower portion for the object-rich scene, with optional side and bottom crops only.`,
-    quietSpace:
-      "the complete upper 40% of the portrait image: one continuous render-time background-only safety field of colour, sky, wall, atmospheric light, low-contrast texture, or blurred depth; no recognisable objects, people, faces, animals, architecture, equipment, cutouts, panels, banners, cards, frames, or white placeholder",
-  };
-}
-
-function imageConcept(
-  concept: PlannedCoverConcept,
-  subject: CoverSubject,
-): PlannedCoverConcept {
-  const subjectPlan =
-    subject === "czech-language"
-      ? { ...concept, ...languageScene(concept) }
-      : concept;
-  return withTopThirdClearance(subjectPlan);
-}
-
-function conceptInstruction(
-  concept: PlannedCoverConcept,
-  guidance: ReferenceGuidance,
-  subject: CoverSubject,
-): string {
-  const imagePlan = imageConcept(concept, subject);
-  return JSON.stringify({
-    referenceGuidance: {
-      audienceCharacter: guidance.audienceCharacter,
-      paletteCharacter: guidance.paletteCharacter,
-      finish: guidance.finish,
-      energy: guidance.energy,
-      recurringMaterials: guidance.recurringMaterials,
-      acceptableRenderingApproaches: guidance.acceptableRenderingApproaches,
-    },
-    concept: {
-      coreIdea: imagePlan.coreIdea,
-      heroSubject: imagePlan.heroSubject,
-      supportingElements: imagePlan.supportingElements,
-      composition: imagePlan.composition,
-      viewpoint: imagePlan.viewpoint,
-      renderingApproach: imagePlan.renderingApproach,
-      palette: imagePlan.palette,
-      lighting: imagePlan.lighting,
-      quietSpace: imagePlan.quietSpace,
-    },
-  });
-}
-
-function imageSubject(subject: CoverSubject, customSubject: string) {
-  if (subject === "czech-language")
-    return "communication, expression, interpretation, and shared ideas";
-  return subject === "other" ? customSubject : subject;
-}
-
-function buildPrompt(
-  plan: PlannedCoverConcept,
-  guidance: ReferenceGuidance,
-  audience: CoverAudience,
-  subject: CoverSubject,
-  customSubject: string,
-) {
-  return fillPrompt(coverPrompt, {
-    audience,
-    subject: imageSubject(subject, customSubject),
-    referenceGuidance: JSON.stringify(guidance),
-    concept: conceptInstruction(plan, guidance, subject),
-  });
 }
 
 function requestError(message: string) {
@@ -430,35 +299,12 @@ export async function POST(request: Request) {
       count: generationCount,
     };
 
-    let plan;
-    try {
-      plan = await planCoverConcepts(openRouter, plannerInput);
-    } catch (error) {
-      plan = createFallbackCoverPlan(plannerInput);
-      plan.metadata.warning =
-        error instanceof Error
-          ? `The concept planner was unavailable (${error.message}); local directions were used.`
-          : plan.metadata.warning;
-    }
+    const plan = await planCoverConcepts(openRouter, plannerInput);
 
     const usedSeeds = new Set<number>();
     const generateSketch = async (concept: PlannedCoverConcept) => {
-      const seed =
-        model === FLUX_PRO_MODEL || model === FLUX_KLEIN_MODEL
-          ? nextSeed(usedSeeds)
-          : undefined;
-      const generated = await generate(
-        openRouter,
-        model,
-        buildPrompt(
-          concept,
-          plan.referenceGuidance,
-          audience,
-          subject,
-          customSubject,
-        ),
-        seed,
-      );
+      const seed = model === FLUX_PRO_MODEL ? nextSeed(usedSeeds) : undefined;
+      const generated = await generate(openRouter, model, concept.prompt, seed);
       return {
         ...generated,
         model,
@@ -475,7 +321,6 @@ export async function POST(request: Request) {
       result.status === "fulfilled" ? [result.value] : [],
     );
     const warnings = [
-      ...(plan.metadata.warning ? [plan.metadata.warning] : []),
       ...settled.flatMap((result, index) =>
         result.status === "rejected"
           ? [

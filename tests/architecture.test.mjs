@@ -145,6 +145,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     promptExtractor,
     coverGenerator,
     imageGenerator,
+    conceptIllustrator,
     graphGenerator,
     diagramGenerator,
     mapGenerator,
@@ -176,6 +177,10 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
       "utf8",
     ),
     readFile(
+      new URL("app/_tools/image/concept-illustrator/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(
       new URL("app/_tools/image/graph-generator/MainInterface.tsx", root),
       "utf8",
     ),
@@ -200,6 +205,7 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     "PromptExtractorMainInterface",
     "CoverGeneratorMainInterface",
     "ImageGeneratorMainInterface",
+    "ConceptIllustratorMainInterface",
     "GraphMainInterface",
     "DiagramMainInterface",
     "MapMainInterface",
@@ -225,6 +231,9 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
   assert.match(imageGenerator, /image-generator-module/);
   assert.match(imageGenerator, /if \(!active\) return null/);
   assert.doesNotMatch(imageGenerator, /hidden=\{!active\}/);
+  assert.match(conceptIllustrator, /concept-illustrator-module/);
+  assert.match(conceptIllustrator, /if \(!active\) return null/);
+  assert.doesNotMatch(conceptIllustrator, /hidden=\{!active\}/);
   assert.match(
     graphGenerator,
     /cover-module visual-single-module graph-module/,
@@ -335,7 +344,7 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
     loader,
     ocrServer,
     ocrPrompt,
-    coverServer,
+    coverPlanner,
     coverPrompt,
     graphServer,
     diagramServer,
@@ -354,11 +363,14 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
       "utf8",
     ),
     readFile(
-      new URL("app/_tools/image/cover-generator/code/server.ts", root),
+      new URL("app/_tools/image/cover-generator/code/concept-plan.ts", root),
       "utf8",
     ),
     readFile(
-      new URL("app/_tools/image/cover-generator/prompts/sketch.md", root),
+      new URL(
+        "app/_tools/image/cover-generator/prompts/plan-concepts.md",
+        root,
+      ),
       "utf8",
     ),
     readFile(
@@ -393,15 +405,9 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
     /loadPrompt\(\s*"text\/text-extractor\/prompts\/transcription\.md"\s*,?\s*\)/,
   );
   assert.match(ocrPrompt, /literal OCR transcription engine/);
-  assert.match(coverServer, /cover-generator\/prompts\/sketch\.md/);
-  assert.match(
-    coverPrompt,
-    /full-bleed, portrait-oriented standalone visual artwork/,
-  );
-  assert.match(
-    coverPrompt,
-    /Every potential writing or label surface is blank and unmarked/,
-  );
+  assert.match(coverPlanner, /cover-generator\/prompts\/plan-concepts\.md/);
+  assert.match(coverPrompt, /FLUX\.2 Pro textbook cover artwork/);
+  assert.match(coverPrompt, /upper third clear of subjects and text/);
   assert.match(graphServer, /graph-generator\/prompts\/system\.md/);
   assert.match(
     diagramServer,

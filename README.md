@@ -38,6 +38,10 @@ Creates up to 15 square images from prompts queued in order, with a choice of on
 
 Creates text-free textbook cover-art directions from an audience, subject, optional keywords, and optional reference covers. A Mistral-family vision planner expands the short input into deliberately different concepts for later typography and layout in InDesign. [English info drawer](app/_tools/image/cover-generator/info.en.md)
 
+### Concept Illustrator
+
+Turns an article into exactly three editorial visual metaphors, lets the editor choose and adjust one direction, then generates and art-directs one illustration through a revision history. Projects, house-style references, prompts, feedback, and final images are remembered locally in the browser. [English info drawer](app/_tools/image/concept-illustrator/info.en.md)
+
 ### Layer Splitter
 
 Reconstructs one supplied image as editable Photoshop layers. OpenRouter analyses the scene and generates a complete text-free background plus complete foreground objects with plausible hidden portions; the PSD is assembled and keyed locally. [English info drawer](app/_tools/image/layer-splitter/info.en.md)
@@ -135,11 +139,11 @@ Create the app keys automatically:
 npm run openrouter:provision
 ```
 
-The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their ten inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
+The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their eleven inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
 
 Only add the generated per-app inference variables to production deployment secrets. Do not deploy `OPENROUTER_MANAGEMENT_API_KEY`; it is deliberately kept in the nonstandard local file so the Next.js runtime does not load it.
 
-`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all ten per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
+`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all eleven per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
 
 Stable instructions sent to OpenRouter live as readable Markdown in each app's `prompts/` folder. TypeScript adds only current user data and other values that change per request.
 

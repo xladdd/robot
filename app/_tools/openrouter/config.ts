@@ -20,6 +20,10 @@ export const openRouterApps = {
     name: "Cover Generator",
     envName: "OPENROUTER_COVER_GENERATOR_API_KEY",
   },
+  conceptIllustrator: {
+    name: "Concept Illustrator",
+    envName: "OPENROUTER_CONCEPT_ILLUSTRATOR_API_KEY",
+  },
   layerSplitter: {
     name: "Layer Splitter",
     envName: "OPENROUTER_LAYER_SPLITTER_API_KEY",

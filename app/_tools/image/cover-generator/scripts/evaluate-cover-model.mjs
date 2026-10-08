@@ -5,9 +5,9 @@ const apiKey = process.env.OPENROUTER_API_KEY;
 if (!apiKey) throw new Error("OPENROUTER_API_KEY is not configured.");
 
 const outputDir = process.argv[2] || "/private/tmp/robot-cover-eval/results";
-const model = process.argv[3] || "black-forest-labs/flux.2-klein-4b";
+const model = process.argv[3] || "black-forest-labs/flux.2-pro";
 const variant = process.argv[4] || "structured";
-const resolution = process.argv[5] || "512";
+const resolution = process.argv[5] || "1K";
 const fullReferencePaths = [
   "/private/tmp/robot-cover-eval/refs/BI5.jpg",
   "/private/tmp/robot-cover-eval/refs/BI6.jpg",

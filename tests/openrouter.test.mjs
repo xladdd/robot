@@ -14,6 +14,7 @@ const root = new URL("../", import.meta.url);
 test("defines one unique OpenRouter key for every model-backed app", () => {
   assert.deepEqual(Object.keys(openRouterApps).sort(), [
     "bio",
+    "conceptIllustrator",
     "cover",
     "extraction",
     "graph",
@@ -62,6 +63,7 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
     "app/_tools/image/graph-generator/code/server.ts",
     "app/_tools/image/diagram-generator/code/server.ts",
     "app/_tools/image/cover-generator/code/server.ts",
+    "app/_tools/image/concept-illustrator/code/server.ts",
     "app/_tools/image/image-generator/code/server.ts",
     "app/_tools/image/layer-splitter/code/server.ts",
     "app/_tools/design/grep-builder/server.ts",
