@@ -54,7 +54,7 @@ export const appRegistry = [
     category: "image",
     folder: "image/graph-generator",
     available: true,
-    hidden: false,
+    hidden: true,
   },
   {
     id: "image",
@@ -109,7 +109,7 @@ export const appRegistry = [
     id: "scriptBuffet",
     category: "design",
     folder: "design/script-buffet",
-    available: true,
+    available: false,
     hidden: false,
   },
   {
@@ -131,7 +131,7 @@ export const appRegistry = [
     category: "design",
     folder: "design/typesetter",
     available: true,
-    hidden: false,
+    hidden: true,
   },
 ] as const;
 
@@ -140,10 +140,19 @@ export type SidebarStatus = "tested" | "to-test" | "alpha";
 export type Language = "en" | "cs";
 
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
+  extraction: "tested",
+  prompt: "to-test",
+  index: "to-test",
+  map: "alpha",
   bio: "alpha",
   image: "to-test",
+  cover: "tested",
   conceptIllustrator: "alpha",
   layerSplitter: "to-test",
+  barcode: "tested",
+  grep: "tested",
+  coverSplitter: "tested",
+  solutions: "tested",
   typesetter: "alpha",
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
