@@ -208,6 +208,34 @@ function resolutionForQuality(quality: LayerSplitterQuality) {
   return quality === "fidelity" ? "1K" : "512";
 }
 
+const MAX_IMAGE_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 2_000;
+
+function isTransientImageFailure(response: Response, result: ImageApiResult) {
+  if (response.status === 429 || response.status >= 500) return true;
+  const message = result.error?.message || "";
+  return (
+    response.status === 404 ||
+    /temporarily unavailable|unavailable dependency|overloaded|try again/i.test(
+      message,
+    )
+  );
+}
+
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }, ms);
+    function abort() {
+      clearTimeout(timer);
+      reject(new Error("The request was cancelled."));
+    }
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
 async function generateImage(
   openRouter: OpenRouterContext,
   operation: string,
@@ -220,27 +248,35 @@ async function generateImage(
   signal?: AbortSignal,
 ) {
   const model = modelForQuality(quality);
-  const { response, result } = await requestOpenRouter<ImageApiResult>(
-    openRouter,
-    "images",
-    operation,
-    {
-      model,
-      prompt,
-      input_references: [{ type: "image_url", image_url: { url: source } }],
-      aspect_ratio: aspectRatio(width, height),
-      resolution: resolutionForQuality(quality),
-      output_format: "png",
-      seed,
-    },
-    { signal },
-  );
-  const dataUrl = result.data?.[0] ? imageDataUrl(result.data[0]) : "";
-  if (!response.ok || !dataUrl)
-    throw new Error(
-      result.error?.message || "OpenRouter returned no generated image.",
+  let lastError = "OpenRouter returned no generated image.";
+  for (let attempt = 0; attempt < MAX_IMAGE_ATTEMPTS; attempt += 1) {
+    const { response, result } = await requestOpenRouter<ImageApiResult>(
+      openRouter,
+      "images",
+      operation,
+      {
+        model,
+        prompt,
+        input_references: [{ type: "image_url", image_url: { url: source } }],
+        aspect_ratio: aspectRatio(width, height),
+        resolution: resolutionForQuality(quality),
+        output_format: "png",
+        seed,
+      },
+      { signal },
     );
-  return { model, bytes: await fetchImageBytes(dataUrl) };
+    const dataUrl = result.data?.[0] ? imageDataUrl(result.data[0]) : "";
+    if (response.ok && dataUrl)
+      return { model, bytes: await fetchImageBytes(dataUrl) };
+    lastError = result.error?.message || lastError;
+    if (
+      attempt + 1 >= MAX_IMAGE_ATTEMPTS ||
+      !isTransientImageFailure(response, result)
+    )
+      throw new Error(lastError);
+    await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt, signal);
+  }
+  throw new Error(lastError);
 }
 
 function keyColourText(key: readonly number[]) {
