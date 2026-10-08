@@ -123,6 +123,12 @@ The PDF uses the same Markdown content as the website, but it has its own print 
 
 ## Configuration
 
+### Sidebar release visibility
+
+`app/_tools/registry.ts` is the single release list for tools. Set a tool's `hidden` value to `true` to remove it from the sidebar without deleting its implementation. Hidden tools remain in the repository and deployment; this flag is navigation visibility, not an API access restriction.
+
+The existing `available` flag is independent: an app with `hidden: false` and `available: false` remains visible but disabled with the coming-soon behavior. If every tool in a category is hidden, that empty category is also omitted from the sidebar.
+
 Read `.env.example` for the current settings. At minimum, local use needs the login values and session secret. Model names are settings so they can be changed without editing request code.
 
 The Bugs and Feedback dialog uses the server-only Asana variables listed in `.env.example`: `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET`, `ASANA_REFRESH_TOKEN`, `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. Never prefix these with `NEXT_PUBLIC_` or expose their values to the browser. The scoped Asana app cannot list empty sections, so after placing a temporary task in the exact `Bugs and Feedback` section, run `npm run feedback:section` once; the command discovers the section membership and saves only its GID to the ignored `.env.local`.

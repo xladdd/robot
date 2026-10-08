@@ -72,6 +72,18 @@ test("loads the retained Cliopatria data from its single repository location", a
   assert.ok(Object.keys(timeline).length > 0);
 });
 
+test("hides registry tools independently from availability", async () => {
+  const { createSidebarGroups } = await import("../app/_tools/registry.ts");
+  const groups = createSidebarGroups([
+    { id: "ready", category: "text", available: true, hidden: false },
+    { id: "comingSoon", category: "text", available: false, hidden: false },
+    { id: "hidden", category: "text", available: true, hidden: true },
+    { id: "hiddenCategory", category: "image", available: true, hidden: true },
+  ]);
+
+  assert.deepEqual(groups, [{ key: "text", items: ["ready", "comingSoon"] }]);
+});
+
 test("keeps static content outside the main page component", async () => {
   const [workspace, ui, registry, englishManual, czechManual] =
     await Promise.all([

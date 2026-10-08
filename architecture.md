@@ -105,7 +105,7 @@ The individual route files are deliberately small:
 
 ### `app/_tools/`: tool ownership
 
-- `app/_tools/registry.ts`: the one ordered list behind the sidebar. It records each app key, category, folder, and availability.
+- `app/_tools/registry.ts`: the one ordered list behind the sidebar. It records each app key, category, folder, availability, and release visibility. `hidden` removes a tool from navigation, while `available` independently keeps its enabled/coming-soon behavior.
 - `app/_tools/info.ts`: server-side Markdown loader for the info drawer.
 - `app/_tools/load-prompt.ts`: reads an app's prompt Markdown and fills named values in prompt templates.
 - `app/_tools/openrouter/config.ts`: maps each model-backed app to its dedicated server-only inference-key environment variable.
