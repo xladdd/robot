@@ -96,6 +96,26 @@ export async function fetchOpenRouter<T extends object>(
   return { response, result };
 }
 
+// OpenRouter's unparameterized /models listing omits part of the image
+// catalog (including the whole FLUX family); the output_modalities filter
+// returns the complete image model list.
+export async function fetchOpenRouterPublicImageModels<T extends object>(
+  options: { signal?: AbortSignal } = {},
+) {
+  const response = await fetch(
+    `${OPENROUTER_API_URL}/models?output_modalities=image`,
+    {
+      method: "GET",
+      signal: options.signal,
+      // Modern image models are priced per generated image; avoid the
+      // browser default so the upstream response is never cached.
+      headers: { "Cache-Control": "no-cache" },
+    },
+  );
+  const result = (await response.json()) as T;
+  return { response, result };
+}
+
 export async function requestOpenRouter<T extends object>(
   context: OpenRouterContext,
   endpoint: "chat/completions" | "images",

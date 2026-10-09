@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
 import {
   fetchOpenRouter,
+  fetchOpenRouterPublicImageModels,
   getOpenRouterContext,
   openRouterConfigurationError,
   requestOpenRouter,
@@ -55,7 +56,7 @@ type RawCatalogModel = {
   id?: unknown;
   name?: unknown;
   architecture?: { output_modalities?: unknown };
-  pricing?: { image?: unknown };
+  pricing?: { image?: unknown; image_output?: unknown };
 };
 
 type RawCredits = {
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
       );
 
     const [modelsRequest, creditsRequest] = await Promise.all([
-      fetchOpenRouter<{ data?: RawCatalogModel[] }>(openRouter, "models", {
+      fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
         signal: request.signal,
       }),
       fetchOpenRouter<RawCredits>(openRouter, "credits", {
@@ -96,17 +97,32 @@ export async function GET(request: Request) {
           ),
       )
       .map((entry) => {
-        const price =
-          typeof entry.pricing?.image === "string"
+        // pricing.image is the flat per-image rate; per-token image models
+        // bill 4096 image tokens per megapixel and this tool generates 1K
+        // (~1MP) images, so the token price approximates the per-image cost.
+        const flatPrice =
+          typeof entry.pricing?.image === "string" &&
+          Number.isFinite(Number(entry.pricing.image))
             ? Number(entry.pricing.image)
-            : Number.NaN;
+            : null;
+        const tokenPrice =
+          typeof entry.pricing?.image_output === "string" &&
+          Number.isFinite(Number(entry.pricing.image_output))
+            ? Number(entry.pricing.image_output)
+            : null;
+        const price =
+          flatPrice !== null
+            ? flatPrice
+            : tokenPrice !== null
+              ? tokenPrice * 4096
+              : null;
         return {
           id: entry.id,
           name:
             typeof entry.name === "string" && entry.name.trim()
               ? entry.name
               : entry.id,
-          pricePerImage: Number.isFinite(price) ? price : null,
+          pricePerImage: price,
         };
       })
       .sort((a, b) => a.id.localeCompare(b.id));
