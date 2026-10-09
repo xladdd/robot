@@ -6967,6 +6967,91 @@ button {
     opacity: 0.55;
 }
 
+/* Image Generator – Advanced mode */
+
+.image-generator-model-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 8px;
+    border: 1px solid var(--ink);
+}
+.image-generator-model-meta > div {
+    min-width: 0;
+    padding: 7px 8px;
+}
+.image-generator-model-meta > div + div {
+    border-left: 1px solid var(--ink);
+}
+.image-generator-model-meta small {
+    display: block;
+    color: var(--muted);
+    font-size: 7px;
+    letter-spacing: 0.08em;
+}
+.image-generator-model-meta b {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+}
+.image-generator-subject {
+    display: grid;
+    gap: 7px;
+    padding: 10px;
+    border: 1px solid var(--line);
+}
+.image-generator-subject label {
+    margin-bottom: 0;
+}
+.image-generator-subject-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.image-generator-remove-subject {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+}
+.image-generator-remove-subject:hover:not(:disabled) {
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.image-generator-remove-subject:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-add-subject {
+    width: 100%;
+    min-height: 30px;
+    margin-top: 2px;
+    border: 1px dashed var(--ink);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 7px;
+    letter-spacing: 0.08em;
+}
+.image-generator-add-subject:hover:not(:disabled) {
+    border-style: solid;
+    background: color-mix(in srgb, var(--teal) 13%, transparent);
+}
+.image-generator-add-subject:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-toolbar input:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
 /* Visual Workbench – Multiple */
 .cover-splitter-module.has-files {
     inset: var(--wide-app-gutter) auto auto 50%;

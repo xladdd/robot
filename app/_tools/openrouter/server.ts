@@ -78,6 +78,24 @@ function refererFor(app: OpenRouterAppId) {
   return url.toString();
 }
 
+export async function fetchOpenRouter<T extends object>(
+  context: OpenRouterContext,
+  path: "models" | "credits",
+  options: { signal?: AbortSignal } = {},
+) {
+  const response = await fetch(`${OPENROUTER_API_URL}/${path}`, {
+    method: "GET",
+    signal: options.signal,
+    headers: {
+      Authorization: `Bearer ${context.apiKey}`,
+      "HTTP-Referer": refererFor(context.app),
+      "X-OpenRouter-Title": context.title,
+    },
+  });
+  const result = (await response.json()) as T;
+  return { response, result };
+}
+
 export async function requestOpenRouter<T extends object>(
   context: OpenRouterContext,
   endpoint: "chat/completions" | "images",

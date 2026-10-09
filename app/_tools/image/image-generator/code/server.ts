@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
 import {
+  fetchOpenRouter,
   getOpenRouterContext,
   openRouterConfigurationError,
   requestOpenRouter,
@@ -50,6 +51,90 @@ function userFacingError(error: unknown) {
   return error instanceof Error ? error.message : "Image generation failed.";
 }
 
+type RawCatalogModel = {
+  id?: unknown;
+  name?: unknown;
+  architecture?: { output_modalities?: unknown };
+  pricing?: { image?: unknown };
+};
+
+type RawCredits = {
+  data?: { total_credits?: unknown; total_usage?: unknown };
+};
+
+export async function GET(request: Request) {
+  try {
+    const openRouter = await getOpenRouterContext(request, "image");
+    if (!openRouter)
+      return NextResponse.json(
+        { error: openRouterConfigurationError("image") },
+        { status: 503 },
+      );
+
+    const [modelsRequest, creditsRequest] = await Promise.all([
+      fetchOpenRouter<{ data?: RawCatalogModel[] }>(openRouter, "models", {
+        signal: request.signal,
+      }),
+      fetchOpenRouter<RawCredits>(openRouter, "credits", {
+        signal: request.signal,
+      }).catch(() => null),
+    ]);
+    if (!modelsRequest.response.ok)
+      throw new Error("The OpenRouter model catalog could not be loaded.");
+
+    const entries = Array.isArray(modelsRequest.result.data)
+      ? modelsRequest.result.data
+      : [];
+    const models = entries
+      .filter(
+        (entry): entry is RawCatalogModel & { id: string } =>
+          typeof entry?.id === "string" &&
+          entry.id.toLowerCase().includes("flux") &&
+          Array.isArray(entry.architecture?.output_modalities) &&
+          (entry.architecture.output_modalities as unknown[]).includes(
+            "image",
+          ),
+      )
+      .map((entry) => {
+        const price =
+          typeof entry.pricing?.image === "string"
+            ? Number(entry.pricing.image)
+            : Number.NaN;
+        return {
+          id: entry.id,
+          name:
+            typeof entry.name === "string" && entry.name.trim()
+              ? entry.name
+              : entry.id,
+          pricePerImage: Number.isFinite(price) ? price : null,
+        };
+      })
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    const credits = creditsRequest?.result.data;
+    const totalCredits =
+      typeof credits?.total_credits === "number" ? credits.total_credits : null;
+    const totalUsage =
+      typeof credits?.total_usage === "number" ? credits.total_usage : null;
+    const credit =
+      totalCredits !== null && totalUsage !== null
+        ? Math.max(0, totalCredits - totalUsage)
+        : null;
+
+    return NextResponse.json(
+      { models, credit },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError")
+      return new Response(null, { status: 499 });
+    return NextResponse.json(
+      { error: userFacingError(error) },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const openRouter = await getOpenRouterContext(request, "image");
@@ -67,6 +152,7 @@ export async function POST(request: Request) {
       quality?: unknown;
       image?: unknown;
       sourceResolution?: unknown;
+      model?: unknown;
     };
     const prompt =
       typeof body.prompt === "string" ? body.prompt.trim().slice(0, 8_000) : "";
@@ -113,28 +199,49 @@ export async function POST(request: Request) {
           { error: "One or more reference images did not pass validation." },
           { status: 400 },
         );
-      const medium =
-        body.medium === "photo" ||
-        body.medium === "illustration" ||
-        body.medium === "3d"
-          ? body.medium
-          : "match";
-      const highFidelity = body.quality !== "fast";
-      model = highFidelity
-        ? process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
-          "black-forest-labs/flux.2-pro"
-        : process.env.OPENROUTER_COVER_SKETCH_MODEL ||
-          "black-forest-labs/flux.2-klein-4b";
-      completePrompt = fillPrompt(generationPrompt, {
-        referenceInstruction: references.length
-          ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`
-          : "No reference images are supplied. Build the image entirely from the written request.",
-        mediumInstruction: mediumInstructions[medium],
-        prompt,
-      });
-      inputReferences = references;
-      resolution = highFidelity ? "1K" : "512";
-      operation = "generate-image";
+      if (body.mode === "advanced") {
+        const requestedModel =
+          typeof body.model === "string" ? body.model.trim() : "";
+        model = /^[\w][\w.-]*\/[\w][\w.:-]*$/.test(requestedModel)
+          ? requestedModel
+          : process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
+            "black-forest-labs/flux.2-pro";
+        try {
+          JSON.parse(prompt);
+        } catch {
+          return NextResponse.json(
+            { error: "The structured prompt is not valid JSON." },
+            { status: 400 },
+          );
+        }
+        completePrompt = prompt;
+        inputReferences = references;
+        resolution = "1K";
+        operation = "generate-image";
+      } else {
+        const medium =
+          body.medium === "photo" ||
+          body.medium === "illustration" ||
+          body.medium === "3d"
+            ? body.medium
+            : "match";
+        const highFidelity = body.quality !== "fast";
+        model = highFidelity
+          ? process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
+            "black-forest-labs/flux.2-pro"
+          : process.env.OPENROUTER_COVER_SKETCH_MODEL ||
+            "black-forest-labs/flux.2-klein-4b";
+        completePrompt = fillPrompt(generationPrompt, {
+          referenceInstruction: references.length
+            ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`
+            : "No reference images are supplied. Build the image entirely from the written request.",
+          mediumInstruction: mediumInstructions[medium],
+          prompt,
+        });
+        inputReferences = references;
+        resolution = highFidelity ? "1K" : "512";
+        operation = "generate-image";
+      }
     }
 
     const seed = Math.floor(Math.random() * 2_000_000_000);

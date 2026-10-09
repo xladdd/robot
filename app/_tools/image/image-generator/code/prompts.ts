@@ -1,4 +1,95 @@
 export const MAX_IMAGE_QUEUE = 15;
+export const MAX_ADVANCED_SUBJECTS = 5;
+
+export type AdvancedImageSubject = {
+  description: string;
+  position: string;
+  action: string;
+};
+
+export type AdvancedImageFields = {
+  scene: string;
+  subjects: AdvancedImageSubject[];
+  style: string;
+  prompt: string;
+  lighting: string;
+  mood: string;
+  background: string;
+  composition: string;
+  colorPalette: string;
+  cameraAngle: string;
+  cameraLens: string;
+  cameraDepthOfField: string;
+};
+
+export function emptyAdvancedImageFields(): AdvancedImageFields {
+  return {
+    scene: "",
+    subjects: [{ description: "", position: "", action: "" }],
+    style: "",
+    prompt: "",
+    lighting: "",
+    mood: "",
+    background: "",
+    composition: "",
+    colorPalette: "",
+    cameraAngle: "",
+    cameraLens: "",
+    cameraDepthOfField: "",
+  };
+}
+
+function trimmed(value: string) {
+  return value.trim();
+}
+
+export function buildAdvancedImagePrompt(fields: AdvancedImageFields) {
+  const subjects = fields.subjects
+    .map((subject) => {
+      const entry: {
+        description?: string;
+        position?: string;
+        action?: string;
+      } = {};
+      if (trimmed(subject.description))
+        entry.description = trimmed(subject.description);
+      if (trimmed(subject.position)) entry.position = trimmed(subject.position);
+      if (trimmed(subject.action)) entry.action = trimmed(subject.action);
+      return entry;
+    })
+    .filter((entry) => Object.keys(entry).length > 0);
+
+  const camera: {
+    angle?: string;
+    lens?: string;
+    depth_of_field?: string;
+  } = {};
+  if (trimmed(fields.cameraAngle)) camera.angle = trimmed(fields.cameraAngle);
+  if (trimmed(fields.cameraLens)) camera.lens = trimmed(fields.cameraLens);
+  if (trimmed(fields.cameraDepthOfField))
+    camera.depth_of_field = trimmed(fields.cameraDepthOfField);
+
+  const colorPalette = fields.colorPalette
+    .split(",")
+    .map(trimmed)
+    .filter(Boolean);
+
+  const structured: Record<string, unknown> = {};
+  if (trimmed(fields.scene)) structured.scene = trimmed(fields.scene);
+  if (subjects.length) structured.subjects = subjects;
+  if (trimmed(fields.style)) structured.style = trimmed(fields.style);
+  if (colorPalette.length) structured.color_palette = colorPalette;
+  if (trimmed(fields.lighting)) structured.lighting = trimmed(fields.lighting);
+  if (trimmed(fields.mood)) structured.mood = trimmed(fields.mood);
+  if (trimmed(fields.background))
+    structured.background = trimmed(fields.background);
+  if (trimmed(fields.composition))
+    structured.composition = trimmed(fields.composition);
+  if (Object.keys(camera).length) structured.camera = camera;
+  if (trimmed(fields.prompt)) structured.prompt = trimmed(fields.prompt);
+
+  return JSON.stringify(structured, null, 2);
+}
 
 export function splitImagePrompts(value: string, limit = MAX_IMAGE_QUEUE) {
   return value
