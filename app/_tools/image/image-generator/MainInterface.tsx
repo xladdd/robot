@@ -12,7 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
-import type { Language } from "../../registry";
+import { appRegistry, type Language } from "../../registry";
 import { imageGeneratorUi } from "./copy";
 import {
   buildAdvancedImagePrompt,
@@ -64,6 +64,7 @@ type QueueJob = {
   error?: string;
   mode?: GeneratorMode;
   model?: string;
+  seed?: number;
 };
 
 type ImageRequest = {
@@ -75,9 +76,25 @@ type ImageRequest = {
   image?: string;
   sourceResolution?: ImageResolution;
   model?: string;
+  seed?: number;
 };
 
 const DEFAULT_ADVANCED_MODEL = "black-forest-labs/flux.2-pro";
+const MAX_SEED = 2_000_000_000;
+
+// Registry flag: when false, the mode switcher and the advanced panel are
+// not rendered at all and the tool shows the default interface only.
+const advancedModeEnabled = appRegistry.some(
+  (app) => app.id === "image" && app.advancedMode,
+);
+
+function parseSeed(value: string) {
+  if (!value.trim()) return null;
+  const parsed = Number(value.replace(/[\s_]/g, ""));
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_SEED)
+    return Number.NaN;
+  return parsed;
+}
 
 function formatUsd(value: number) {
   return `$${value.toFixed(4).replace(/\.?0+$/, "")}`;
@@ -183,6 +200,8 @@ export function ImageGeneratorMainInterface({
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogRefresh, setCatalogRefresh] = useState(0);
   const [model, setModel] = useState("");
+  const [seed, setSeed] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const activeControllersRef = useRef(new Set<AbortController>());
@@ -348,7 +367,12 @@ export function ImageGeneratorMainInterface({
 
   function jobRequest(job: QueueJob): ImageRequest {
     if (job.mode === "advanced" && job.model)
-      return { mode: "advanced", prompt: job.prompt, model: job.model };
+      return {
+        mode: "advanced",
+        prompt: job.prompt,
+        model: job.model,
+        seed: job.seed,
+      };
     return {
       prompt: job.prompt,
       references: references.map((reference) => reference.data),
@@ -428,6 +452,11 @@ export function ImageGeneratorMainInterface({
         setError(t.modelRequired);
         return;
       }
+      const requestedSeed = parseSeed(seed);
+      if (Number.isNaN(requestedSeed)) {
+        setError(t.seedInvalid);
+        return;
+      }
       const runId = queueRunRef.current + 1;
       queueRunRef.current = runId;
       const job: QueueJob = {
@@ -436,13 +465,19 @@ export function ImageGeneratorMainInterface({
         status: "queued",
         mode: "advanced",
         model,
+        ...(requestedSeed !== null ? { seed: requestedSeed } : {}),
       };
       setJobs((current) => [...current, job]);
       setError("");
       setIsGenerating(true);
       await requestImage(
         job,
-        { mode: "advanced", prompt: advancedJson, model },
+        {
+          mode: "advanced",
+          prompt: advancedJson,
+          model,
+          seed: job.seed,
+        },
         "generating",
         runId,
       );
@@ -641,34 +676,36 @@ export function ImageGeneratorMainInterface({
           hidden
         />
 
-        <section className="cover-control cover-overlay-control image-generator-mode-control">
-          <label>{t.mode}</label>
-          <div
-            className="cover-overlay-options"
-            role="group"
-            aria-label={t.mode}
-          >
-            <button
-              type="button"
-              className={mode === "default" ? "active" : ""}
-              aria-pressed={mode === "default"}
-              onClick={() => setMode("default")}
-              disabled={isGenerating}
+        {advancedModeEnabled && (
+          <section className="cover-control cover-overlay-control image-generator-mode-control">
+            <label>{t.mode}</label>
+            <div
+              className="cover-overlay-options"
+              role="group"
+              aria-label={t.mode}
             >
-              {t.modeDefault}
-            </button>
-            <button
-              type="button"
-              className={mode === "advanced" ? "active" : ""}
-              aria-pressed={mode === "advanced"}
-              onClick={() => setMode("advanced")}
-              disabled={isGenerating}
-            >
-              {t.modeAdvanced}
-            </button>
-          </div>
-          <small>{t.modeHelp}</small>
-        </section>
+              <button
+                type="button"
+                className={mode === "default" ? "active" : ""}
+                aria-pressed={mode === "default"}
+                onClick={() => setMode("default")}
+                disabled={isGenerating}
+              >
+                {t.modeDefault}
+              </button>
+              <button
+                type="button"
+                className={mode === "advanced" ? "active" : ""}
+                aria-pressed={mode === "advanced"}
+                onClick={() => setMode("advanced")}
+                disabled={isGenerating}
+              >
+                {t.modeAdvanced}
+              </button>
+            </div>
+            <small>{t.modeHelp}</small>
+          </section>
+        )}
 
         {mode === "default" ? (
           <>
@@ -954,9 +991,8 @@ export function ImageGeneratorMainInterface({
                 disabled={isGenerating}
               />
               <label htmlFor="image-generator-advanced-style">{t.style}</label>
-              <input
+              <textarea
                 id="image-generator-advanced-style"
-                type="text"
                 value={advancedFields.style}
                 onChange={(event) =>
                   setAdvancedFields((current) => ({
@@ -964,6 +1000,8 @@ export function ImageGeneratorMainInterface({
                     style: event.target.value,
                   }))
                 }
+                placeholder={t.stylePlaceholder}
+                rows={4}
                 disabled={isGenerating}
               />
               <label htmlFor="image-generator-advanced-prompt">
@@ -982,133 +1020,179 @@ export function ImageGeneratorMainInterface({
                 rows={4}
                 disabled={isGenerating}
               />
-              <label htmlFor="image-generator-lighting">{t.lighting}</label>
-              <input
-                id="image-generator-lighting"
-                type="text"
-                value={advancedFields.lighting}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    lighting: event.target.value,
-                  }))
-                }
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-mood">{t.mood}</label>
-              <input
-                id="image-generator-mood"
-                type="text"
-                value={advancedFields.mood}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    mood: event.target.value,
-                  }))
-                }
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-background">
-                {t.background}
-              </label>
-              <input
-                id="image-generator-background"
-                type="text"
-                value={advancedFields.background}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    background: event.target.value,
-                  }))
-                }
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-composition">
-                {t.composition}
-              </label>
-              <input
-                id="image-generator-composition"
-                type="text"
-                value={advancedFields.composition}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    composition: event.target.value,
-                  }))
-                }
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-color-palette">
-                {t.colorPalette}
-              </label>
-              <input
-                id="image-generator-color-palette"
-                type="text"
-                value={advancedFields.colorPalette}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    colorPalette: event.target.value,
-                  }))
-                }
-                placeholder={t.colorPalettePlaceholder}
-                disabled={isGenerating}
-              />
             </section>
 
-            <section className="cover-control cover-input-control image-generator-camera-control">
-              <label>{t.camera}</label>
-              <label htmlFor="image-generator-camera-angle">
-                {t.cameraAngle}
-              </label>
-              <input
-                id="image-generator-camera-angle"
-                type="text"
-                value={advancedFields.cameraAngle}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    cameraAngle: event.target.value,
-                  }))
-                }
-                placeholder={t.cameraAnglePlaceholder}
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-camera-lens">
-                {t.cameraLens}
-              </label>
-              <input
-                id="image-generator-camera-lens"
-                type="text"
-                value={advancedFields.cameraLens}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    cameraLens: event.target.value,
-                  }))
-                }
-                placeholder={t.cameraLensPlaceholder}
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-camera-depth">
-                {t.cameraDepthOfField}
-              </label>
-              <input
-                id="image-generator-camera-depth"
-                type="text"
-                value={advancedFields.cameraDepthOfField}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    cameraDepthOfField: event.target.value,
-                  }))
-                }
-                placeholder={t.cameraDepthOfFieldPlaceholder}
-                disabled={isGenerating}
-              />
+            <section className="cover-control cover-input-control image-generator-details-control">
+              <div className="image-generator-details-head">
+                <label>
+                  {t.advancedDetails} <b>{t.advancedDetailsHint}</b>
+                </label>
+                <button
+                  type="button"
+                  className="image-generator-details-toggle"
+                  onClick={() => setDetailsOpen((open) => !open)}
+                  aria-expanded={detailsOpen}
+                  aria-controls="image-generator-details"
+                  disabled={isGenerating}
+                >
+                  {detailsOpen ? "−" : "+"}
+                </button>
+              </div>
+              {detailsOpen && (
+                <div
+                  id="image-generator-details"
+                  className="image-generator-details"
+                >
+                  <label htmlFor="image-generator-lighting">
+                    {t.lighting}
+                  </label>
+                  <input
+                    id="image-generator-lighting"
+                    type="text"
+                    value={advancedFields.lighting}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        lighting: event.target.value,
+                      }))
+                    }
+                    placeholder={t.lightingPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-mood">{t.mood}</label>
+                  <input
+                    id="image-generator-mood"
+                    type="text"
+                    value={advancedFields.mood}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        mood: event.target.value,
+                      }))
+                    }
+                    placeholder={t.moodPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-background">
+                    {t.background}
+                  </label>
+                  <input
+                    id="image-generator-background"
+                    type="text"
+                    value={advancedFields.background}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        background: event.target.value,
+                      }))
+                    }
+                    placeholder={t.backgroundPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-composition">
+                    {t.composition}
+                  </label>
+                  <input
+                    id="image-generator-composition"
+                    type="text"
+                    value={advancedFields.composition}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        composition: event.target.value,
+                      }))
+                    }
+                    placeholder={t.compositionPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-color-palette">
+                    {t.colorPalette}
+                  </label>
+                  <input
+                    id="image-generator-color-palette"
+                    type="text"
+                    value={advancedFields.colorPalette}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        colorPalette: event.target.value,
+                      }))
+                    }
+                    placeholder={t.colorPalettePlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label>{t.camera}</label>
+                  <label htmlFor="image-generator-camera-angle">
+                    {t.cameraAngle}
+                  </label>
+                  <input
+                    id="image-generator-camera-angle"
+                    type="text"
+                    value={advancedFields.cameraAngle}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        cameraAngle: event.target.value,
+                      }))
+                    }
+                    placeholder={t.cameraAnglePlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-camera-lens">
+                    {t.cameraLens}
+                  </label>
+                  <input
+                    id="image-generator-camera-lens"
+                    type="text"
+                    value={advancedFields.cameraLens}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        cameraLens: event.target.value,
+                      }))
+                    }
+                    placeholder={t.cameraLensPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <label htmlFor="image-generator-camera-depth">
+                    {t.cameraDepthOfField}
+                  </label>
+                  <input
+                    id="image-generator-camera-depth"
+                    type="text"
+                    value={advancedFields.cameraDepthOfField}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => ({
+                        ...current,
+                        cameraDepthOfField: event.target.value,
+                      }))
+                    }
+                    placeholder={t.cameraDepthOfFieldPlaceholder}
+                    disabled={isGenerating}
+                  />
+                </div>
+              )}
             </section>
 
             <p className="cover-note">{t.advancedNote}</p>
+
+            <section className="cover-control cover-input-control image-generator-seed-control">
+              <label htmlFor="image-generator-seed">
+                {t.seed} <b>{t.seedHint}</b>
+              </label>
+              <input
+                id="image-generator-seed"
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                value={seed}
+                onChange={(event) =>
+                  setSeed(event.target.value.replace(/[^\d]/g, ""))
+                }
+                placeholder={t.seedPlaceholder}
+                disabled={isGenerating}
+              />
+            </section>
           </>
         )}
 

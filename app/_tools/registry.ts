@@ -62,6 +62,9 @@ export const appRegistry = [
     folder: "image/image-generator",
     available: true,
     hidden: false,
+    // Controls whether the Image Generator shows the DEFAULT/ADVANCED mode
+    // switcher; when false the app renders the default interface only.
+    advancedMode: true,
   },
   {
     id: "cover",

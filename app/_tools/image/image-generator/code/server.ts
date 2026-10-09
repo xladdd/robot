@@ -169,6 +169,7 @@ export async function POST(request: Request) {
       image?: unknown;
       sourceResolution?: unknown;
       model?: unknown;
+      seed?: unknown;
     };
     const prompt =
       typeof body.prompt === "string" ? body.prompt.trim().slice(0, 8_000) : "";
@@ -260,7 +261,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const seed = Math.floor(Math.random() * 2_000_000_000);
+    const requestedSeed =
+      typeof body.seed === "number" &&
+      Number.isInteger(body.seed) &&
+      body.seed >= 0 &&
+      body.seed <= 2_000_000_000
+        ? body.seed
+        : null;
+    const seed = requestedSeed ?? Math.floor(Math.random() * 2_000_000_000);
     const { response, result } = await requestOpenRouter<{
       id?: string;
       data?: ImageResult[];

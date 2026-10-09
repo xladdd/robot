@@ -7051,6 +7051,42 @@ button {
     cursor: default;
     opacity: 0.55;
 }
+.image-generator-details-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.image-generator-details-head label {
+    margin-bottom: 0;
+}
+.image-generator-details-toggle {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+}
+.image-generator-details-toggle:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--teal) 13%, transparent);
+}
+.image-generator-details-toggle:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-details {
+    display: grid;
+    gap: 7px;
+    margin-top: 7px;
+}
+.image-generator-details label {
+    margin-bottom: 0;
+}
 
 /* Visual Workbench – Multiple */
 .cover-splitter-module.has-files {
