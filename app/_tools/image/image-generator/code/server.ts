@@ -63,6 +63,10 @@ type RawCredits = {
   data?: { total_credits?: unknown; total_usage?: unknown };
 };
 
+type RawKeyInfo = {
+  data?: { limit?: unknown; limit_remaining?: unknown; usage?: unknown };
+};
+
 export async function GET(request: Request) {
   try {
     const openRouter = await getOpenRouterContext(request, "image");
@@ -72,11 +76,14 @@ export async function GET(request: Request) {
         { status: 503 },
       );
 
-    const [modelsRequest, creditsRequest] = await Promise.all([
+    const [modelsRequest, creditsRequest, keyRequest] = await Promise.all([
       fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
         signal: request.signal,
       }),
       fetchOpenRouter<RawCredits>(openRouter, "credits", {
+        signal: request.signal,
+      }).catch(() => null),
+      fetchOpenRouter<RawKeyInfo>(openRouter, "key", {
         signal: request.signal,
       }).catch(() => null),
     ]);
@@ -132,10 +139,29 @@ export async function GET(request: Request) {
       typeof credits?.total_credits === "number" ? credits.total_credits : null;
     const totalUsage =
       typeof credits?.total_usage === "number" ? credits.total_usage : null;
-    const credit =
+    const accountCredit =
       totalCredits !== null && totalUsage !== null
         ? Math.max(0, totalCredits - totalUsage)
         : null;
+
+    // /credits requires a management key; inference keys fall back to the
+    // remaining credit the key itself reports via /key.
+    const keyInfo = keyRequest?.result.data;
+    const limitRemaining =
+      typeof keyInfo?.limit_remaining === "number"
+        ? keyInfo.limit_remaining
+        : null;
+    const keyLimit =
+      typeof keyInfo?.limit === "number" ? keyInfo.limit : null;
+    const keyUsage =
+      typeof keyInfo?.usage === "number" ? keyInfo.usage : null;
+    const keyCredit =
+      limitRemaining !== null
+        ? Math.max(0, limitRemaining)
+        : keyLimit !== null && keyUsage !== null
+          ? Math.max(0, keyLimit - keyUsage)
+          : null;
+    const credit = accountCredit ?? keyCredit;
 
     return NextResponse.json(
       { models, credit },

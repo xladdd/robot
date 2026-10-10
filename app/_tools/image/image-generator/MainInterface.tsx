@@ -24,6 +24,7 @@ import {
   type AdvancedImageFields,
   type AdvancedImageSubject,
 } from "./code/prompts";
+import { imageStylePresets } from "./code/style-presets";
 
 type ImageReference = { name: string; data: string };
 type ImageMedium = "match" | "photo" | "illustration" | "3d";
@@ -201,11 +202,26 @@ export function ImageGeneratorMainInterface({
   const [catalogRefresh, setCatalogRefresh] = useState(0);
   const [model, setModel] = useState("");
   const [seed, setSeed] = useState("");
+  const [stylePreset, setStylePreset] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const activeControllersRef = useRef(new Set<AbortController>());
   const queueRunRef = useRef(0);
+  const stylePresetLabels: Record<string, string> = {
+    "atmospheric environmental photomontage":
+      t.stylePresetAtmosphericPhotomontage,
+    "tactile editorial object montage": t.stylePresetObjectMontage,
+    "scientific macro or material study": t.stylePresetScientificStudy,
+    "detailed stylized illustration montage": t.stylePresetIllustrationMontage,
+    "coloured wood engraving": t.stylePresetWoodEngraving,
+    "modern risograph": t.stylePresetRisograph,
+    "ink-lined watercolour": t.stylePresetInkWatercolour,
+    "20th century-style propaganda watercolour":
+      t.stylePresetPropagandaWatercolour,
+    "storybook-object": t.stylePresetStorybookObject,
+    "storybook-character": t.stylePresetStorybookCharacter,
+  };
 
   useEffect(
     () => () => {
@@ -994,16 +1010,46 @@ export function ImageGeneratorMainInterface({
               <textarea
                 id="image-generator-advanced-style"
                 value={advancedFields.style}
-                onChange={(event) =>
+                onChange={(event) => {
+                  setStylePreset("");
                   setAdvancedFields((current) => ({
                     ...current,
                     style: event.target.value,
-                  }))
-                }
+                  }));
+                }}
                 placeholder={t.stylePlaceholder}
                 rows={4}
                 disabled={isGenerating}
               />
+              <label htmlFor="image-generator-style-preset">
+                {t.stylePreset}
+              </label>
+              <select
+                id="image-generator-style-preset"
+                value={stylePreset}
+                onChange={(event) => {
+                  const presetId = event.target.value;
+                  setStylePreset(presetId);
+                  const preset = imageStylePresets.find(
+                    (entry) => entry.id === presetId,
+                  );
+                  if (!preset) return;
+                  setAdvancedFields((current) => ({
+                    ...current,
+                    style: preset.prompt,
+                  }));
+                  if (preset.seed !== undefined) setSeed(String(preset.seed));
+                }}
+                disabled={isGenerating}
+              >
+                <option value="">{t.stylePresetCustom}</option>
+                {imageStylePresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {stylePresetLabels[preset.id]}
+                  </option>
+                ))}
+              </select>
+              <small>{t.stylePresetHelp}</small>
               <label htmlFor="image-generator-advanced-prompt">
                 {t.advancedPrompt}
               </label>

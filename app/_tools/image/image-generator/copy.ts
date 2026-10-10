@@ -82,6 +82,22 @@ export const imageGeneratorUi = {
     scene: "SCENE",
     scenePlaceholder: "Overall scene description…",
     stylePlaceholder: "Art direction, medium, rendering aesthetic…",
+    stylePreset: "VISUAL TREATMENT",
+    stylePresetCustom: "Custom — keep the text above",
+    stylePresetHelp:
+      "Pick a preset to fill the style field above; editing the text keeps your custom style.",
+    stylePresetAtmosphericPhotomontage:
+      "Atmospheric environmental photomontage",
+    stylePresetObjectMontage: "Tactile editorial object montage",
+    stylePresetScientificStudy: "Scientific macro / material study",
+    stylePresetIllustrationMontage: "Detailed stylized illustration montage",
+    stylePresetWoodEngraving: "Coloured wood engraving",
+    stylePresetRisograph: "Modern risograph",
+    stylePresetInkWatercolour: "Ink-lined watercolour",
+    stylePresetPropagandaWatercolour:
+      "20th century-style propaganda watercolour",
+    stylePresetStorybookObject: "Storybook - Object",
+    stylePresetStorybookCharacter: "Storybook - Character",
     advancedPrompt: "FREE-FORM PROMPT",
     advancedPromptPlaceholder:
       "Additional instructions sent as the prompt field…",
@@ -195,6 +211,22 @@ export const imageGeneratorUi = {
     scene: "SCÉNA",
     scenePlaceholder: "Celkový popis scény…",
     stylePlaceholder: "Umělecká stylizace, médium, estetika…",
+    stylePreset: "VÝTVARNÉ ZPRACOVÁNÍ",
+    stylePresetCustom: "Vlastní — ponechat text výše",
+    stylePresetHelp:
+      "Výběrem přednastaveného stylu vyplníte pole výše; úprava textu ponechá váš vlastní styl.",
+    stylePresetAtmosphericPhotomontage:
+      "Atmosférická environmentální fotomontáž",
+    stylePresetObjectMontage: "Taktilní redakční montáž objektů",
+    stylePresetScientificStudy: "Vědecká makro / materiálová studie",
+    stylePresetIllustrationMontage: "Montáž detailních stylizovaných ilustrací",
+    stylePresetWoodEngraving: "Barevný dřevoryt",
+    stylePresetRisograph: "Moderní risograf",
+    stylePresetInkWatercolour: "Akvarel s inkoustovou kresbou",
+    stylePresetPropagandaWatercolour:
+      "Propagandistický akvarel ve stylu 20. století",
+    stylePresetStorybookObject: "Pohádka - objekt",
+    stylePresetStorybookCharacter: "Pohádka - postava",
     advancedPrompt: "VOLNÝ PROMPT",
     advancedPromptPlaceholder: "Další instrukce odeslané jako pole prompt…",
     advancedDetails: "POKROČILÉ DETAILY",

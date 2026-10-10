@@ -80,7 +80,7 @@ function refererFor(app: OpenRouterAppId) {
 
 export async function fetchOpenRouter<T extends object>(
   context: OpenRouterContext,
-  path: "models" | "credits",
+  path: "models" | "credits" | "key",
   options: { signal?: AbortSignal } = {},
 ) {
   const response = await fetch(`${OPENROUTER_API_URL}/${path}`, {
