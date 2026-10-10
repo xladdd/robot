@@ -197,6 +197,7 @@ export function ImageGeneratorMainInterface({
   );
   const [models, setModels] = useState<FluxModelOption[]>([]);
   const [credit, setCredit] = useState<number | null>(null);
+  const [creditLimit, setCreditLimit] = useState<number | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogRefresh, setCatalogRefresh] = useState(0);
@@ -240,6 +241,7 @@ export function ImageGeneratorMainInterface({
         const result = (await response.json()) as {
           models?: FluxModelOption[];
           credit?: number | null;
+          creditLimit?: number | null;
           error?: string;
         };
         if (!response.ok || !Array.isArray(result.models))
@@ -247,6 +249,9 @@ export function ImageGeneratorMainInterface({
         setModels(result.models);
         setCredit(
           typeof result.credit === "number" ? result.credit : null,
+        );
+        setCreditLimit(
+          typeof result.creditLimit === "number" ? result.creditLimit : null,
         );
         setCatalogError("");
       } catch (reason) {
@@ -896,10 +901,14 @@ export function ImageGeneratorMainInterface({
                       : formatUsd(selectedModel.pricePerImage)}
                   </b>
                 </div>
-                <div>
+                <div title={creditLimit !== null ? t.creditHint : undefined}>
                   <small>{t.credit}</small>
                   <b>
-                    {credit === null ? t.creditUnavailable : formatUsd(credit)}
+                    {credit === null
+                      ? t.creditUnavailable
+                      : creditLimit !== null
+                        ? `${formatUsd(credit)} / ${formatUsd(creditLimit)}`
+                        : formatUsd(credit)}
                   </b>
                 </div>
               </div>

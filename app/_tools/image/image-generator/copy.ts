@@ -67,6 +67,8 @@ export const imageGeneratorUi = {
     pricePerImage: "$/img",
     credit: "Credit",
     creditUnavailable: "—",
+    creditHint:
+      "Credit left on this app's OpenRouter key this month (monthly cap). The account balance is only visible with a management key.",
     catalogError: "The OpenRouter model catalog could not be loaded.",
     subjects: "SUBJECTS",
     subjectsHint: "max 5",
@@ -196,6 +198,8 @@ export const imageGeneratorUi = {
     pricePerImage: "$/img",
     credit: "Kredit",
     creditUnavailable: "—",
+    creditHint:
+      "Kredit zbývající na klíči aplikace tento měsíc (měsíční limit). Zůstatek účtu je viditelný pouze se správcovským klíčem.",
     catalogError: "Katalog modelů OpenRouter se nepodařilo načíst.",
     subjects: "SUBJEKTY",
     subjectsHint: "max 5",

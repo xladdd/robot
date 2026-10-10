@@ -162,9 +162,12 @@ export async function GET(request: Request) {
           ? Math.max(0, keyLimit - keyUsage)
           : null;
     const credit = accountCredit ?? keyCredit;
+    // The per-key cap is only meaningful when the displayed credit is the
+    // key's own remaining credit; an account-level credit has no cap context.
+    const creditLimit = accountCredit !== null ? null : keyLimit;
 
     return NextResponse.json(
-      { models, credit },
+      { models, credit, creditLimit },
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {
