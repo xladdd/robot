@@ -42,7 +42,10 @@ export type LayerSplitterResult = {
   previewDataUrl: string;
   layerNames: string[];
   planModel: string;
+  maskModel?: string;
+  maskFallbackModel?: string;
   generationModel: string;
+  objectCompletionModel?: string;
   quality: LayerSplitterQuality;
   validation: LayerSplitterValidation;
 };
