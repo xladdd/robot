@@ -27,7 +27,13 @@ import {
 import { imageStylePresets } from "./code/style-presets";
 
 type ImageReference = { name: string; data: string };
-type ImageMedium = "match" | "photo" | "illustration" | "3d";
+type ImageMedium =
+  | "match"
+  | "photo"
+  | "illustration"
+  | "3d"
+  | "storybook-object"
+  | "storybook-character";
 type ImageQuality = "fast" | "fidelity";
 type ImageResolution = "512" | "1K" | "2K";
 type QueueConcurrency = 1 | 2 | 3;
@@ -205,7 +211,6 @@ export function ImageGeneratorMainInterface({
   const [model, setModel] = useState("");
   const [seed, setSeed] = useState("");
   const [stylePreset, setStylePreset] = useState("");
-  const [defaultStylePreset, setDefaultStylePreset] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -392,15 +397,6 @@ export function ImageGeneratorMainInterface({
         (_, itemIndex) => itemIndex !== index,
       ),
     }));
-  }
-
-  function applyDefaultStylePreset(presetId: string) {
-    setDefaultStylePreset("");
-    const preset = imageStylePresets.find((entry) => entry.id === presetId);
-    if (!preset) return;
-    setPrompt((current) =>
-      current.trim() ? `${current.trim()}, ${preset.prompt}` : preset.prompt,
-    );
   }
 
   function jobRequest(job: QueueJob): ImageRequest {
@@ -854,19 +850,6 @@ export function ImageGeneratorMainInterface({
                 <option value="photo">{t.stylePhoto}</option>
                 <option value="illustration">{t.styleIllustration}</option>
                 <option value="3d">{t.style3d}</option>
-              </select>
-              <label htmlFor="image-generator-default-style-preset">
-                {t.stylePreset}
-              </label>
-              <select
-                id="image-generator-default-style-preset"
-                value={defaultStylePreset}
-                onChange={(event) =>
-                  applyDefaultStylePreset(event.target.value)
-                }
-                disabled={isGenerating}
-              >
-                <option value="">{t.stylePresetCustom}</option>
                 <option value="storybook-object">
                   {t.stylePresetStorybookObject}
                 </option>
@@ -874,7 +857,6 @@ export function ImageGeneratorMainInterface({
                   {t.stylePresetStorybookCharacter}
                 </option>
               </select>
-              <small>{t.stylePresetAppendHelp}</small>
               <label htmlFor="image-generator-quality">{t.quality}</label>
               <select
                 id="image-generator-quality"

@@ -1,6 +1,6 @@
 ### What is this?
 
-Enter up to 15 prompts, or import them from a DOCX, Markdown, or text file, and optionally add up to three reference images. You will get separate square images that can be retried, downloaded, or generatively upscaled to the next size. The **Visual treatment** dropdown in the render controls appends one of the two storybook style prompts to the prompt.
+Enter up to 15 prompts, or import them from a DOCX, Markdown, or text file, and optionally add up to three reference images. You will get separate square images that can be retried, downloaded, or generatively upscaled to the next size. The **Style** dropdown in the render controls also offers two storybook styles, which are used as the image's style prompt.
 
 ### How does it work?
 

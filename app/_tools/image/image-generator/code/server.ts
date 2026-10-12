@@ -8,6 +8,7 @@ import {
   openRouterConfigurationError,
   requestOpenRouter,
 } from "../../../openrouter/server";
+import { imageStylePresets } from "./style-presets";
 
 const MAX_REFERENCE_SIZE = 7_000_000;
 const isImageDataUrl = (value: unknown): value is string =>
@@ -29,6 +30,14 @@ const generationPrompt = loadPrompt(
 );
 const upscalePrompt = loadPrompt("image/image-generator/prompts/upscale.md");
 
+// The storybook styles are shared with the Advanced mode preset dropdown; in
+// Default mode they act as full medium instructions.
+function storybookMediumInstruction(id: string) {
+  const preset = imageStylePresets.find((entry) => entry.id === id);
+  if (!preset) throw new Error(`Unknown storybook style preset: ${id}`);
+  return preset.prompt;
+}
+
 const mediumInstructions = {
   match:
     "Infer and faithfully match the dominant visual medium, texture, realism level, palette, lighting, and finish of the reference images. If no references are supplied, use a polished editorial illustration.",
@@ -37,7 +46,9 @@ const mediumInstructions = {
   illustration:
     "Create a polished editorial illustration with intentional mark-making, texture, colour, depth, and a publication-ready finish.",
   "3d": "Create a polished 3D editorial render with coherent materials, lighting, camera perspective, depth, and a publication-ready finish.",
-} as const;
+  "storybook-object": storybookMediumInstruction("storybook-object"),
+  "storybook-character": storybookMediumInstruction("storybook-character"),
+};
 
 function outputDataUrl(image: ImageResult) {
   if (image.b64_json) return `data:image/jpeg;base64,${image.b64_json}`;
@@ -293,7 +304,9 @@ export async function POST(request: Request) {
         const medium =
           body.medium === "photo" ||
           body.medium === "illustration" ||
-          body.medium === "3d"
+          body.medium === "3d" ||
+          body.medium === "storybook-object" ||
+          body.medium === "storybook-character"
             ? body.medium
             : "match";
         const highFidelity = body.quality !== "fast";

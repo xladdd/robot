@@ -1,6 +1,6 @@
 ### Co to je?
 
-Zadejte až 15 promptů nebo je importujte ze souboru DOCX, Markdown či TXT a případně přidejte až tři referenční obrázky. Získáte samostatné čtvercové obrázky, které lze vygenerovat znovu, stáhnout nebo generativně zvětšit na další velikost. Rozbalovací nabídka **Výtvarné zpracování** v ovládacích prvcích připojí k zadání jeden ze dvou pohádkových stylových promptů.
+Zadejte až 15 promptů nebo je importujte ze souboru DOCX, Markdown či TXT a případně přidejte až tři referenční obrázky. Získáte samostatné čtvercové obrázky, které lze vygenerovat znovu, stáhnout nebo generativně zvětšit na další velikost. Nabídka **Styl** v ovládacích prvcích přidává také dva pohádkové styly, které se použijí jako stylový prompt obrázku.
 
 ### Jak to funguje?
 

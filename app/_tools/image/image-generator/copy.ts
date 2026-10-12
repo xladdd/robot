@@ -91,8 +91,6 @@ export const imageGeneratorUi = {
     stylePresetCustom: "Custom — keep the text above",
     stylePresetHelp:
       "Pick a preset to fill the style field above; editing the text keeps your custom style.",
-    stylePresetAppendHelp:
-      "Pick a storybook style to append its style prompt to the prompt above.",
     stylePresetAtmosphericPhotomontage:
       "Atmospheric environmental photomontage",
     stylePresetObjectMontage: "Tactile editorial object montage",
@@ -227,8 +225,6 @@ export const imageGeneratorUi = {
     stylePresetCustom: "Vlastní — ponechat text výše",
     stylePresetHelp:
       "Výběrem přednastaveného stylu vyplníte pole výše; úprava textu ponechá váš vlastní styl.",
-    stylePresetAppendHelp:
-      "Vyberte pohádkový styl; jeho stylový prompt se připojí k zadání výše.",
     stylePresetAtmosphericPhotomontage:
       "Atmosférická environmentální fotomontáž",
     stylePresetObjectMontage: "Taktilní redakční montáž objektů",
