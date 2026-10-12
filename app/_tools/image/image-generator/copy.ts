@@ -45,7 +45,7 @@ export const imageGeneratorUi = {
     upscale: "UPSCALE 2×",
     upscaling: "UPSCALING 2×…",
     upscaleMaximum: "MAX 2K",
-    downloadAll: "DOWNLOAD ALL ↓",
+    downloadAll: "DOWNLOAD ZIP ↓",
     clear: "CLEAR",
     close: "Close",
     previous: "Previous image",
@@ -129,6 +129,9 @@ export const imageGeneratorUi = {
     seedHint: "optional",
     seedPlaceholder: "Leave empty for a random seed",
     seedInvalid: "The seed must be a whole number between 0 and 2,000,000,000.",
+    transparentBackground: "TRANSPARENT BACKGROUND",
+    transparentBackgroundHelp:
+      "Background removal is done in-browser. It works best on pure-colour, light backgrounds.",
     advancedRequired: "Fill at least one advanced field before generating.",
     advancedNote:
       "Fields are assembled into a structured FLUX JSON prompt; empty fields are omitted.",
@@ -179,7 +182,7 @@ export const imageGeneratorUi = {
     upscale: "ZVĚTŠIT 2×",
     upscaling: "ZVĚTŠUJI 2×…",
     upscaleMaximum: "MAX 2K",
-    downloadAll: "STÁHNOUT VŠE ↓",
+    downloadAll: "STÁHNOUT ZIP ↓",
     clear: "VYMAZAT",
     close: "Zavřít",
     previous: "Předchozí obrázek",
@@ -262,6 +265,9 @@ export const imageGeneratorUi = {
     seedHint: "volitelné",
     seedPlaceholder: "Ponechte prázdné pro náhodný seed",
     seedInvalid: "Seed musí být celé číslo mezi 0 a 2 000 000 000.",
+    transparentBackground: "PRŮHLEDNÉ POZADÍ",
+    transparentBackgroundHelp:
+      "Odstranění pozadí probíhá v prohlížeči. Nejlépe funguje na jednolitých, světlých pozadích.",
     advancedRequired:
       "Před generováním vyplňte alespoň jedno pole pokročilého režimu.",
     advancedNote:

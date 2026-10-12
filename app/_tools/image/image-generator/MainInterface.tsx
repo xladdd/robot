@@ -25,6 +25,8 @@ import {
   type AdvancedImageSubject,
 } from "./code/prompts";
 import { imageStylePresets } from "./code/style-presets";
+import { cutoutDataUrl } from "./code/cutout";
+import { createZip, type ZipEntry } from "./code/zip";
 
 type ImageReference = { name: string; data: string };
 type ImageMedium =
@@ -51,6 +53,9 @@ type ImageUsage = {
 };
 type GeneratedImage = {
   data: string;
+  // The untouched FLUX output when in-browser background removal was
+  // applied; the zip download keeps it alongside the cutout version.
+  originalData?: string;
   seed: number;
   model: string;
   resolution: ImageResolution;
@@ -166,7 +171,7 @@ function prepareReferenceImage(file: File) {
   });
 }
 
-function safeFilename(
+function safeFileStem(
   prompt: string,
   index: number,
   resolution: ImageResolution,
@@ -177,7 +182,7 @@ function safeFilename(
     .replace(/^-|-$/g, "")
     .slice(0, 70)
     .toLocaleLowerCase("en-US");
-  return `${String(index + 1).padStart(2, "0")}-${stem || "image"}-${resolution}.jpg`;
+  return `${String(index + 1).padStart(2, "0")}-${stem || "image"}-${resolution}`;
 }
 
 export function ImageGeneratorMainInterface({
@@ -212,6 +217,7 @@ export function ImageGeneratorMainInterface({
   const [seed, setSeed] = useState("");
   const [stylePreset, setStylePreset] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const activeControllersRef = useRef(new Set<AbortController>());
@@ -444,7 +450,19 @@ export function ImageGeneratorMainInterface({
       if (!response.ok || !result.image)
         throw new Error(result.error || t.generationError);
       if (runId !== undefined && queueRunRef.current !== runId) return;
-      updateJob(job.id, { status: "complete", image: result.image });
+      let image = result.image;
+      if (removeBackground) {
+        // Best-effort in-browser cutout: on failure the untouched
+        // FLUX output is kept so a generation is never lost.
+        try {
+          const cutout = await cutoutDataUrl(image.data);
+          if (cutout)
+            image = { ...image, data: cutout, originalData: image.data };
+        } catch {
+          // Keep the original image.
+        }
+      }
+      updateJob(job.id, { status: "complete", image });
     } catch (reason) {
       if (
         controller.signal.aborted ||
@@ -587,15 +605,53 @@ export function ImageGeneratorMainInterface({
     if (!job.image) return;
     const link = document.createElement("a");
     link.href = job.image.data;
-    link.download = safeFilename(job.prompt, index, job.image.resolution);
+    link.download = `${safeFileStem(job.prompt, index, job.image.resolution)}.${
+      job.image.originalData ? "png" : "jpg"
+    }`;
     link.click();
   }
 
-  async function downloadAll() {
-    for (const [index, job] of completedJobs.entries()) {
-      downloadImage(job, index);
-      await new Promise((resolve) => window.setTimeout(resolve, 120));
+  async function dataUrlBytes(dataUrl: string): Promise<Uint8Array | null> {
+    try {
+      const response = await fetch(dataUrl);
+      return new Uint8Array(await response.arrayBuffer());
+    } catch {
+      return null;
     }
+  }
+
+  async function downloadAll() {
+    const jobs = completedJobs.filter((job) => job.image);
+    if (!jobs.length) return;
+    const hasCutouts = jobs.some((job) => job.image?.originalData);
+    const entries: ZipEntry[] = [];
+    for (const [index, job] of jobs.entries()) {
+      const image = job.image;
+      if (!image) continue;
+      const stem = safeFileStem(job.prompt, index, image.resolution);
+      const originalBytes = await dataUrlBytes(image.originalData ?? image.data);
+      if (!originalBytes) continue;
+      entries.push({
+        name: hasCutouts ? `originals/${stem}.jpg` : `${stem}.jpg`,
+        data: originalBytes,
+      });
+      if (image.originalData) {
+        const cutoutBytes = await dataUrlBytes(image.data);
+        if (cutoutBytes)
+          entries.push({ name: `transparent/${stem}.png`, data: cutoutBytes });
+      }
+    }
+    if (!entries.length) return;
+    const url = URL.createObjectURL(
+      new Blob([createZip(entries)], { type: "application/zip" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "images.zip";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
   }
 
   function moveLightbox(direction: number) {
@@ -1311,6 +1367,18 @@ export function ImageGeneratorMainInterface({
               </button>
             </div>
           )}
+          <label className="cover-checkbox image-generator-transparent-control">
+            <input
+              type="checkbox"
+              checked={removeBackground}
+              onChange={(event) => setRemoveBackground(event.target.checked)}
+              disabled={isGenerating}
+            />
+            <span>
+              <b>{t.transparentBackground}</b>
+              <small>{t.transparentBackgroundHelp}</small>
+            </span>
+          </label>
           <div className="cover-generate-group image-generator-generate-group">
             <button
               className={`cover-generate action-button action-button-primary ${isGenerating ? "image-generator-stop" : ""}`}
