@@ -69,6 +69,9 @@ export const imageGeneratorUi = {
     creditUnavailable: "—",
     creditHint:
       "Credit left on this app's OpenRouter key this month (monthly cap). The account balance is only visible with a management key.",
+    accountCredit: "Account",
+    accountCreditHint:
+      "Full OpenRouter account balance, read with the management key (OPENROUTER_MANAGEMENT_API_KEY).",
     catalogError: "The OpenRouter model catalog could not be loaded.",
     subjects: "SUBJECTS",
     subjectsHint: "max 5",
@@ -88,6 +91,8 @@ export const imageGeneratorUi = {
     stylePresetCustom: "Custom — keep the text above",
     stylePresetHelp:
       "Pick a preset to fill the style field above; editing the text keeps your custom style.",
+    stylePresetAppendHelp:
+      "Pick a storybook style to append its style prompt to the prompt above.",
     stylePresetAtmosphericPhotomontage:
       "Atmospheric environmental photomontage",
     stylePresetObjectMontage: "Tactile editorial object montage",
@@ -200,6 +205,9 @@ export const imageGeneratorUi = {
     creditUnavailable: "—",
     creditHint:
       "Kredit zbývající na klíči aplikace tento měsíc (měsíční limit). Zůstatek účtu je viditelný pouze se správcovským klíčem.",
+    accountCredit: "Účet",
+    accountCreditHint:
+      "Plný zůstatek účtu OpenRouter, načtený správcovským klíčem (OPENROUTER_MANAGEMENT_API_KEY).",
     catalogError: "Katalog modelů OpenRouter se nepodařilo načíst.",
     subjects: "SUBJEKTY",
     subjectsHint: "max 5",
@@ -219,6 +227,8 @@ export const imageGeneratorUi = {
     stylePresetCustom: "Vlastní — ponechat text výše",
     stylePresetHelp:
       "Výběrem přednastaveného stylu vyplníte pole výše; úprava textu ponechá váš vlastní styl.",
+    stylePresetAppendHelp:
+      "Vyberte pohádkový styl; jeho stylový prompt se připojí k zadání výše.",
     stylePresetAtmosphericPhotomontage:
       "Atmosférická environmentální fotomontáž",
     stylePresetObjectMontage: "Taktilní redakční montáž objektů",

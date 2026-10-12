@@ -96,6 +96,29 @@ export async function fetchOpenRouter<T extends object>(
   return { response, result };
 }
 
+// The account-level balance is only visible to management keys; app
+// inference keys are rejected by /credits. When a management key is
+// configured, use it read-only to surface the account balance.
+export async function fetchOpenRouterAccountCredits(
+  apiKey: string,
+  app: OpenRouterAppId,
+  options: { signal?: AbortSignal } = {},
+) {
+  const response = await fetch(`${OPENROUTER_API_URL}/credits`, {
+    method: "GET",
+    signal: options.signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": refererFor(app),
+      "X-OpenRouter-Title": `Taktik Robot: ${openRouterApps[app].name} (account credits)`,
+    },
+  });
+  const result = (await response.json()) as {
+    data?: { total_credits?: unknown; total_usage?: unknown };
+  };
+  return { response, result };
+}
+
 // OpenRouter's unparameterized /models listing omits part of the image
 // catalog (including the whole FLUX family); the output_modalities filter
 // returns the complete image model list.

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
 import {
   fetchOpenRouter,
+  fetchOpenRouterAccountCredits,
   fetchOpenRouterPublicImageModels,
   getOpenRouterContext,
   openRouterConfigurationError,
@@ -76,17 +77,24 @@ export async function GET(request: Request) {
         { status: 503 },
       );
 
-    const [modelsRequest, creditsRequest, keyRequest] = await Promise.all([
-      fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
-        signal: request.signal,
-      }),
-      fetchOpenRouter<RawCredits>(openRouter, "credits", {
-        signal: request.signal,
-      }).catch(() => null),
-      fetchOpenRouter<RawKeyInfo>(openRouter, "key", {
-        signal: request.signal,
-      }).catch(() => null),
-    ]);
+    const managementKey = process.env.OPENROUTER_MANAGEMENT_API_KEY?.trim();
+    const [modelsRequest, creditsRequest, keyRequest, accountCreditsRequest] =
+      await Promise.all([
+        fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
+          signal: request.signal,
+        }),
+        fetchOpenRouter<RawCredits>(openRouter, "credits", {
+          signal: request.signal,
+        }).catch(() => null),
+        fetchOpenRouter<RawKeyInfo>(openRouter, "key", {
+          signal: request.signal,
+        }).catch(() => null),
+        managementKey
+          ? fetchOpenRouterAccountCredits(managementKey, "image", {
+              signal: request.signal,
+            }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
     if (!modelsRequest.response.ok)
       throw new Error("The OpenRouter model catalog could not be loaded.");
 
@@ -139,7 +147,7 @@ export async function GET(request: Request) {
       typeof credits?.total_credits === "number" ? credits.total_credits : null;
     const totalUsage =
       typeof credits?.total_usage === "number" ? credits.total_usage : null;
-    const accountCredit =
+    const appKeyAccountCredit =
       totalCredits !== null && totalUsage !== null
         ? Math.max(0, totalCredits - totalUsage)
         : null;
@@ -161,13 +169,30 @@ export async function GET(request: Request) {
         : keyLimit !== null && keyUsage !== null
           ? Math.max(0, keyLimit - keyUsage)
           : null;
-    const credit = accountCredit ?? keyCredit;
+    const credit = appKeyAccountCredit ?? keyCredit;
     // The per-key cap is only meaningful when the displayed credit is the
     // key's own remaining credit; an account-level credit has no cap context.
-    const creditLimit = accountCredit !== null ? null : keyLimit;
+    const creditLimit = appKeyAccountCredit !== null ? null : keyLimit;
+
+    // The full account balance is only visible to a management key; when one
+    // is configured, read it so the UI can show it next to the per-key credit.
+    const managementCredits = accountCreditsRequest?.result.data;
+    const managementTotalCredits =
+      typeof managementCredits?.total_credits === "number"
+        ? managementCredits.total_credits
+        : null;
+    const managementTotalUsage =
+      typeof managementCredits?.total_usage === "number"
+        ? managementCredits.total_usage
+        : null;
+    const accountCredit =
+      appKeyAccountCredit ??
+      (managementTotalCredits !== null && managementTotalUsage !== null
+        ? Math.max(0, managementTotalCredits - managementTotalUsage)
+        : null);
 
     return NextResponse.json(
-      { models, credit, creditLimit },
+      { models, credit, creditLimit, accountCredit },
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {

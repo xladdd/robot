@@ -198,12 +198,14 @@ export function ImageGeneratorMainInterface({
   const [models, setModels] = useState<FluxModelOption[]>([]);
   const [credit, setCredit] = useState<number | null>(null);
   const [creditLimit, setCreditLimit] = useState<number | null>(null);
+  const [accountCredit, setAccountCredit] = useState<number | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogRefresh, setCatalogRefresh] = useState(0);
   const [model, setModel] = useState("");
   const [seed, setSeed] = useState("");
   const [stylePreset, setStylePreset] = useState("");
+  const [defaultStylePreset, setDefaultStylePreset] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +244,7 @@ export function ImageGeneratorMainInterface({
           models?: FluxModelOption[];
           credit?: number | null;
           creditLimit?: number | null;
+          accountCredit?: number | null;
           error?: string;
         };
         if (!response.ok || !Array.isArray(result.models))
@@ -252,6 +255,11 @@ export function ImageGeneratorMainInterface({
         );
         setCreditLimit(
           typeof result.creditLimit === "number" ? result.creditLimit : null,
+        );
+        setAccountCredit(
+          typeof result.accountCredit === "number"
+            ? result.accountCredit
+            : null,
         );
         setCatalogError("");
       } catch (reason) {
@@ -384,6 +392,15 @@ export function ImageGeneratorMainInterface({
         (_, itemIndex) => itemIndex !== index,
       ),
     }));
+  }
+
+  function applyDefaultStylePreset(presetId: string) {
+    setDefaultStylePreset("");
+    const preset = imageStylePresets.find((entry) => entry.id === presetId);
+    if (!preset) return;
+    setPrompt((current) =>
+      current.trim() ? `${current.trim()}, ${preset.prompt}` : preset.prompt,
+    );
   }
 
   function jobRequest(job: QueueJob): ImageRequest {
@@ -838,6 +855,26 @@ export function ImageGeneratorMainInterface({
                 <option value="illustration">{t.styleIllustration}</option>
                 <option value="3d">{t.style3d}</option>
               </select>
+              <label htmlFor="image-generator-default-style-preset">
+                {t.stylePreset}
+              </label>
+              <select
+                id="image-generator-default-style-preset"
+                value={defaultStylePreset}
+                onChange={(event) =>
+                  applyDefaultStylePreset(event.target.value)
+                }
+                disabled={isGenerating}
+              >
+                <option value="">{t.stylePresetCustom}</option>
+                <option value="storybook-object">
+                  {t.stylePresetStorybookObject}
+                </option>
+                <option value="storybook-character">
+                  {t.stylePresetStorybookCharacter}
+                </option>
+              </select>
+              <small>{t.stylePresetAppendHelp}</small>
               <label htmlFor="image-generator-quality">{t.quality}</label>
               <select
                 id="image-generator-quality"
@@ -909,6 +946,14 @@ export function ImageGeneratorMainInterface({
                       : creditLimit !== null
                         ? `${formatUsd(credit)} / ${formatUsd(creditLimit)}`
                         : formatUsd(credit)}
+                  </b>
+                </div>
+                <div title={t.accountCreditHint}>
+                  <small>{t.accountCredit}</small>
+                  <b>
+                    {accountCredit === null
+                      ? t.creditUnavailable
+                      : formatUsd(accountCredit)}
                   </b>
                 </div>
               </div>
