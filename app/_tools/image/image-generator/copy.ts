@@ -87,7 +87,7 @@ export const imageGeneratorUi = {
     scene: "SCENE",
     scenePlaceholder: "Overall scene description…",
     stylePlaceholder: "Art direction, medium, rendering aesthetic…",
-    stylePreset: "VISUAL TREATMENT",
+    stylePreset: "STYLE",
     stylePresetCustom: "Custom — keep the text above",
     stylePresetHelp:
       "Pick a preset to fill the style field above; editing the text keeps your custom style.",
@@ -221,7 +221,7 @@ export const imageGeneratorUi = {
     scene: "SCÉNA",
     scenePlaceholder: "Celkový popis scény…",
     stylePlaceholder: "Umělecká stylizace, médium, estetika…",
-    stylePreset: "VÝTVARNÉ ZPRACOVÁNÍ",
+    stylePreset: "STYL",
     stylePresetCustom: "Vlastní — ponechat text výše",
     stylePresetHelp:
       "Výběrem přednastaveného stylu vyplníte pole výše; úprava textu ponechá váš vlastní styl.",
