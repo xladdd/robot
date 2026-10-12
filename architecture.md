@@ -84,6 +84,7 @@ Cons:
 - `app/_components/LoadingText.tsx`: shared rotating progress-text component used by several interfaces.
 - `app/_components/BugFeedbackDialog.tsx`: accessible bilingual feedback modal. It sends only an explicit, privacy-safe diagnostic snapshot and the user's description.
 - `app/_feedback/`: server-side feedback validation, Asana OAuth refresh, task formatting, and typed diagnostic data. The authenticated Robot username is read from the signed session on the server.
+- `app/_feedback/asana.ts`: shared server-only Asana client (config, OAuth token cache, task payload assembly, and task creation with 401 retry) used by both the feedback endpoint and Style Trainer style requests.
 - `app/layout.tsx`: page metadata, icons, manifest, and global CSS import.
 - `app/globals.css`: handwritten CSS, divided by labelled sections. Tailwind is not used.
 - `app/login/page.tsx`: login form.
@@ -101,7 +102,7 @@ The individual route files are deliberately small:
 - `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
 - `app/api/graphs/route.ts` and `diagrams/route.ts`: app-native model-backed generation adapters. `app/api/maps/generate/route.ts` preserves the legacy Map URL and returns `410 Gone` because Map Maker is local-only.
 - `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `concept-illustrations/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, and `typesetter/route.ts`: Cover Generator, Concept Illustrator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, and Typesetter endpoint addresses.
+- `app/api/covers/route.ts`, `concept-illustrations/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, `style-trainer/route.ts`, and `typesetter/route.ts`: Cover Generator, Concept Illustrator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, Style Trainer, and Typesetter endpoint addresses.
 
 ### `app/_tools/`: tool ownership
 
@@ -202,6 +203,7 @@ Design apps:
 - `app/_tools/design/typesetter/public/`: browser-local Python extractor, Pyodide worker, and downloadable unanchored-frame InDesign importer.
 - `app/_tools/design/typesetter/prompts/`: stable pre-scan and classification instructions.
 - `app/_tools/design/typesetter/tests/`: mapping, source-preservation, summary, and importer-contract regressions.
+- `app/_tools/design/style-trainer/`: reference-to-style-prompt trainer with seeded FLUX.2 Pro test rounds, voting, chat refinement, and Asana style requests; see its file guide below.
 
 Design Manual:
 
@@ -217,7 +219,9 @@ Design Manual:
 
 The feedback dialog sends a deliberately allowlisted snapshot: the selected tool, language, theme, shell state, route pathname, viewport, browser user agent, online state, high-level operation status, safe file metadata, reference count, result availability, timestamp, and the user's description. Uploaded files, extracted text, prompts, generated output, cookies, credentials, and arbitrary React state are never serialized.
 
-The feedback endpoint independently validates the signed `ta_session` cookie and derives the Robot username server-side. It exchanges the server-only `ASANA_REFRESH_TOKEN` for a short-lived Asana access token, caches it in memory, and creates a task using `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. The Asana section is supplied as a configured GID because the scoped OAuth account cannot use the sections-list endpoint without legacy full permissions.
+The feedback endpoint independently validates the signed `ta_session` cookie and derives the Robot username server-side. `app/_feedback/asana.ts` is the shared server-only Asana client: it exchanges the server-only `ASANA_REFRESH_TOKEN` for a short-lived access token, caches it in memory, and creates tasks using `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. The Asana section is supplied as a configured GID because the scoped OAuth account cannot use the sections-list endpoint without legacy full permissions.
+
+The Style Trainer reuses the same shared Asana client and section for its style requests. Those tasks contain only the reviewed style name, ID, prompt, pinned seed, test prompt, round count, and an optional note; reference and generated images are never attached.
 
 ## `public/`: stable browser URLs
 
@@ -424,6 +428,19 @@ The following completes the folder map by naming every source-file role. Repeate
 - `public/import_typesetter.jsx`: one-undo InDesign importer for a labelled main story and unanchored image-request frames.
 - `tests/typesetter.test.mts`: mapping, source-preservation, summary, and importer-contract tests.
 - `plan.md`: agreed V1 product and implementation plan.
+- `info.en.md`, `info.cs.md`: live drawer content.
+
+#### Style Trainer: `app/_tools/design/style-trainer/`
+
+- `MainInterface.tsx`: reference upload, test prompt, round gallery with voting, editable style prompt, refinement chat, final review, and Asana submission UI.
+- `copy.ts`: bilingual interface copy.
+- `code/plan.ts`: pure style-plan contract, planner response schema, and strict normalizer shared with tests.
+- `code/validation.ts`: pure request validators for references, prompts, seeds, and the final submission.
+- `code/style-plan.ts`: Mistral vision analyze and refine calls with a Ministral fallback through the shared OpenRouter transport.
+- `code/style-request.ts`: Asana task formatting with a ready-to-paste Image Generator preset entry.
+- `code/server.ts`: one POST handler for the analyze, refine, generate, and submit modes; generations use FLUX.2 Pro with server-chosen random seeds.
+- `prompts/analyze-style.md`, `prompts/refine-style.md`, `prompts/generate.md`: stable planner and test-generation instructions.
+- `tests/style-trainer.test.mts`: plan normalization, reference, seed, and submission validation, and Asana payload regressions.
 - `info.en.md`, `info.cs.md`: live drawer content.
 
 #### Design Manual: `app/_tools/design-manual/`
@@ -878,6 +895,38 @@ One undoable import fills the threaded story and creates unanchored image-reques
 
 **Dependencies:** browser File/Worker APIs, Pyodide with Python standard-library ZIP/XML parsing, OpenRouter structured outputs, and Adobe InDesign. The DOCX and IDML files remain local; only extracted manuscript blocks and controlled role context are sent to OpenRouter. The pre-scan defaults to `mistralai/ministral-14b-2512`, and full classification defaults to `mistralai/mistral-large-2512`.
 
+### Style Trainer
+
+**Input:** one to six style reference images plus a test prompt naming the subject to test the style on.
+
+**Flow:**
+
+```text
+Reference images and test prompt
+↓
+POST /api/style-trainer analyze sends the references to the Mistral vision planner
+↓
+The planner returns a validated style plan (kebab-case ID, name, FLUX.2 Pro prompt, analysis)
+↓
+A round runs: three generate requests combine the style prompt and test prompt
+↓
+Each FLUX.2 Pro 1K image returns with its own server-chosen random seed
+↓
+The editor votes for the best image, pinning its seed as the candidate style seed
+↓
+Refine rounds: a chat instruction revises the style prompt (optionally with the voted image as guidance) and start the next round automatically
+↓
+Finish Style shows the final prompt and pinned seed with copy actions
+↓
+POST /api/style-trainer submit files an Asana style request with a ready-to-paste Image Generator preset entry
+```
+
+Test generations deliberately exclude the reference images: the finished style ships to the Image Generator as a prompt plus a pinned seed alone, so each round must reproduce the style without them, the same way the storybook presets pin their seed. The style prompt remains editable during testing, and manual edits survive planner revisions of other rounds.
+
+**Output:** a reviewed style prompt plus pinned seed, and an Asana task containing exactly the ready-to-paste `style-presets.ts` entry. No reference or generated image is uploaded to Asana.
+
+**Dependencies:** browser File/Canvas APIs for reference preparation, OpenRouter structured outputs for planning, FLUX.2 Pro for seeded 1K square test generations, and the shared Asana client for style requests. Planning defaults to `mistralai/mistral-medium-3-5` with a `mistralai/ministral-14b-2512` fallback; test generation defaults to `black-forest-labs/flux.2-pro`.
+
 ## OpenRouter model map
 
 `.env.example` lists the environment setting for each configurable model. A dash means the current model is an intentional code constant and changing it requires a code change.
@@ -905,8 +954,10 @@ One undoable import fills the threaded story and creates unanchored image-reques
 | Prompt Extractor | page-image reading | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b` |
 | Typesetter | semantic pre-scan | `OPENROUTER_TYPESETTER_PRESCAN_MODEL` | `mistralai/ministral-14b-2512` |
 | Typesetter | block classification | `OPENROUTER_TYPESETTER_MODEL` | `mistralai/mistral-large-2512` |
+| Style Trainer | style planning and revision | `OPENROUTER_STYLE_TRAINER_MODEL` | `mistralai/mistral-medium-3-5` |
+| Style Trainer | seeded test rounds | `OPENROUTER_STYLE_TRAINER_IMAGE_MODEL`* | `black-forest-labs/flux.2-pro` |
 
-`*` `OPENROUTER_IMAGE_UPSCALE_MODEL` is optional; the Image Generator otherwise uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
+`*` `OPENROUTER_STYLE_TRAINER_IMAGE_MODEL` and `OPENROUTER_IMAGE_UPSCALE_MODEL` are optional; the Style Trainer otherwise uses `OPENROUTER_COVER_FIDELITY_MODEL`, then `black-forest-labs/flux.2-pro`, and the Image Generator uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
 
 Map Maker, Solutions Importer, Script Buffet, Barcode Generator, and Design Manual make no OpenRouter call in their current visible flows. Map Maker's legacy generated-map endpoint remains at its stable URL but returns `410 Gone`.
 

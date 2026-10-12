@@ -83,6 +83,7 @@ import type {
 } from "./_tools/image/cover-generator/code/types";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
 import { TypesetterMainInterface } from "./_tools/design/typesetter/MainInterface";
+import { StyleTrainerMainInterface } from "./_tools/design/style-trainer/MainInterface";
 import {
   completedApps,
   groups,
@@ -2307,8 +2308,13 @@ export default function Workspace({
           language={language}
           active={selected === "conceptIllustrator"}
         />
+        <StyleTrainerMainInterface
+          language={language}
+          active={selected === "styleTrainer"}
+        />
         {selected === "image" ||
-        selected === "conceptIllustrator" ? null : selected === "manual" ? (
+        selected === "conceptIllustrator" ||
+        selected === "styleTrainer" ? null : selected === "manual" ? (
           <DesignManualMainInterface
             language={language}
             content={

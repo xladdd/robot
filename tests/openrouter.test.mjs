@@ -23,6 +23,7 @@ test("defines one unique OpenRouter key for every model-backed app", () => {
     "index",
     "layerSplitter",
     "prompt",
+    "styleTrainer",
     "typesetter",
   ]);
   const envNames = Object.values(openRouterApps).map(({ envName }) => envName);
@@ -67,6 +68,7 @@ test("routes every OpenRouter handler through the shared tracked transport", asy
     "app/_tools/image/image-generator/code/server.ts",
     "app/_tools/image/layer-splitter/code/server.ts",
     "app/_tools/design/grep-builder/server.ts",
+    "app/_tools/design/style-trainer/code/server.ts",
     "app/_tools/design/typesetter/code/server.ts",
     "app/_tools/text/prompt-extractor/code/server.ts",
   ];

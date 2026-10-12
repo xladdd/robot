@@ -72,6 +72,10 @@ Checks ISBN-10 or ISBN-13 and creates a print-ready vector EAN-13 PDF locally. [
 
 Reads a Word manuscript and an InDesign IDML template, inventories the template locally, suggests controlled semantic roles with AI, lets the designer map those roles to real paragraph styles, and exports reviewed `indesign-typesetter-v1` JSON plus an InDesign importer. V1 fills one labelled threaded story and creates unanchored image-request frames for manual placement. [English info drawer](app/_tools/design/typesetter/info.en.md)
 
+### Style Trainer
+
+Turns up to six style reference images and a test prompt into a reusable FLUX.2 Pro style prompt through a Mistral vision planner, tests it with rounds of three seeded `flux.2-pro` images, and lets the editor refine the prompt by chat and vote for the image whose seed to pin. The final prompt, seed, and a ready-to-paste Image Generator preset can be filed as an Asana style request. [English info drawer](app/_tools/design/style-trainer/info.en.md)
+
 ## Reference
 
 The Design Manual is built into the workspace from local English and Czech Markdown without changing its existing chapter layout. Its images live beside it in `app/_tools/design-manual/images`. `npm run manual:pdf` creates both downloadable PDF editions and appends [the changelog](app/_tools/design-manual/changelog.md). [English Design Manual source](app/_tools/design-manual/manual.en.md)

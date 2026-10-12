@@ -123,6 +123,13 @@ export const appRegistry = [
     hidden: false,
   },
   {
+    id: "styleTrainer",
+    category: "design",
+    folder: "design/style-trainer",
+    available: true,
+    hidden: true,
+  },
+  {
     id: "prompt",
     category: "text",
     folder: "text/prompt-extractor",
@@ -153,6 +160,7 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   conceptIllustrator: "alpha",
   layerSplitter: "to-test",
   barcode: "tested",
+  styleTrainer: "alpha",
   grep: "tested",
   coverSplitter: "tested",
   solutions: "tested",

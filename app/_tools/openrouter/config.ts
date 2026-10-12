@@ -32,6 +32,10 @@ export const openRouterApps = {
     name: "Image Generator",
     envName: "OPENROUTER_IMAGE_GENERATOR_API_KEY",
   },
+  styleTrainer: {
+    name: "Style Trainer",
+    envName: "OPENROUTER_STYLE_TRAINER_API_KEY",
+  },
   grep: {
     name: "GREP Builder",
     envName: "OPENROUTER_GREP_BUILDER_API_KEY",

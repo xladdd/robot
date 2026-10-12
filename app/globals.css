@@ -7012,6 +7012,171 @@ button {
     opacity: 0.55;
 }
 
+/* Style Trainer */
+
+.style-trainer-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.style-trainer-grid .cover-image img {
+    aspect-ratio: 1;
+}
+.style-trainer-grid.has-results .cover-card {
+    max-width: calc(100vh - 245px);
+}
+.style-trainer-references {
+    grid-template-columns: repeat(3, 1fr);
+}
+.style-trainer-references figure,
+.style-trainer-references .cover-add-reference {
+    aspect-ratio: 1;
+}
+.style-trainer-toolbar textarea:disabled,
+.style-trainer-toolbar input:disabled,
+.style-trainer-references button:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+.style-trainer-card-actions {
+    justify-content: space-between;
+}
+.style-trainer-select.action-button {
+    border-color: var(--orange);
+}
+.style-trainer-select-active {
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.style-trainer-plan label:first-child,
+.style-trainer-plan label:nth-of-type(2) {
+    margin-bottom: 6px;
+}
+.style-trainer-chat small {
+    display: block;
+    margin: -4px 0 9px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.45;
+}
+.style-trainer-chat-log {
+    display: grid;
+    max-height: 190px;
+    margin-bottom: 9px;
+    border: 1px solid var(--line);
+    overflow-y: auto;
+    gap: 0;
+}
+.style-trainer-chat-entry {
+    margin: 0;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 9px;
+    line-height: 1.55;
+}
+.style-trainer-chat-entry:last-child {
+    border-bottom: 0;
+}
+.style-trainer-chat-planner {
+    color: var(--ink);
+}
+.style-trainer-chat-user {
+    color: var(--teal);
+}
+.style-trainer-revise {
+    width: 100%;
+    min-height: 37px;
+    margin-top: 9px;
+}
+.style-trainer-summary dl {
+    display: grid;
+    margin: 0;
+    border: 1px solid var(--line);
+}
+.style-trainer-summary dl > div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--line);
+}
+.style-trainer-summary dl > div:last-child {
+    border-bottom: 0;
+}
+.style-trainer-summary dt {
+    margin: 0;
+    color: var(--muted);
+    font-size: 7px;
+    letter-spacing: 0.09em;
+}
+.style-trainer-summary dd {
+    margin: 0;
+    font-size: 9px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.style-trainer-summary dd code {
+    font: 9px var(--font-mono);
+}
+.style-trainer-summary textarea {
+    background: color-mix(in srgb, var(--panel-2) 92%, transparent);
+}
+.style-trainer-summary-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 9px;
+}
+.style-trainer-summary hr {
+    margin: 15px 0;
+    border: 0;
+    border-top: 1px solid var(--ink);
+}
+.style-trainer-submit-heading {
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-size: 8px;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+.style-trainer-summary > small {
+    display: block;
+    margin: -4px 0 10px;
+    color: var(--muted);
+    font-size: 7px;
+    line-height: 1.45;
+}
+.style-trainer-submit {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 9px;
+}
+.style-trainer-submit-result {
+    margin: 9px 0 0;
+    border: 1px solid var(--teal);
+    padding: 9px 10px;
+    color: var(--ink);
+    font-size: 8px;
+    line-height: 1.5;
+}
+.style-trainer-back {
+    width: 100%;
+    min-height: 30px;
+    margin-top: 8px;
+}
+.style-trainer-generate-group .cover-generate {
+    margin-top: 0;
+}
+
+@media (max-width: 600px) {
+    .style-trainer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .style-trainer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Image Generator – Advanced mode */
 
 .image-generator-model-meta {
