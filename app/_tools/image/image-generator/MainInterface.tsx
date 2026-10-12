@@ -407,11 +407,17 @@ export function ImageGeneratorMainInterface({
         model: job.model,
         seed: job.seed,
       };
+    // Storybook styles pin their seed the same way Advanced mode does; other
+    // media leave the seed unset so the server picks a random one.
+    const storybookSeed = imageStylePresets.find(
+      (entry) => entry.id === medium,
+    )?.seed;
     return {
       prompt: job.prompt,
       references: references.map((reference) => reference.data),
       medium,
       quality,
+      seed: storybookSeed,
     };
   }
 

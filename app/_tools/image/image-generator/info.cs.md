@@ -1,6 +1,6 @@
 ### Co to je?
 
-Zadejte až 15 promptů nebo je importujte ze souboru DOCX, Markdown či TXT a případně přidejte až tři referenční obrázky. Získáte samostatné čtvercové obrázky, které lze vygenerovat znovu, stáhnout nebo generativně zvětšit na další velikost. Nabídka **Styl** v ovládacích prvcích přidává také dva pohádkové styly, které se použijí jako stylový prompt obrázku.
+Zadejte až 15 promptů nebo je importujte ze souboru DOCX, Markdown či TXT a případně přidejte až tři referenční obrázky. Získáte samostatné čtvercové obrázky, které lze vygenerovat znovu, stáhnout nebo generativně zvětšit na další velikost. Nabídka **Styl** v ovládacích prvcích přidává také dva pohádkové styly, které se použijí jako stylový prompt obrázku a nastaví seed na 8701.
 
 ### Jak to funguje?
 
