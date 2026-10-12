@@ -28,15 +28,7 @@ export const layerSplitterUi: Record<
     note: string;
     dropFile: string;
     fileSelected: string;
-    console: string;
-    consoleRunning: string;
-    consoleReady: string;
-    consoleFailed: string;
-    consoleAccepted: string;
-    consoleWorking: string;
-    consoleComplete: string;
-    consoleValidated: string;
-    consoleStopped: string;
+    keepOnscreen: string;
   }
 > = {
   en: {
@@ -71,17 +63,7 @@ export const layerSplitterUi: Record<
     note: "Fast uses Seedream 5 Flash for background holes. Fidelity uses Seedream 5 Pro and transparently completes occluded object parts with GPT Image 2.5 Sunburst.",
     dropFile: "Drop file here, or click to select",
     fileSelected: "IMAGE SELECTED",
-    console: "PROCESS CONSOLE",
-    consoleRunning: "RUNNING",
-    consoleReady: "READY",
-    consoleFailed: "STOPPED",
-    consoleAccepted: "Source accepted: {name}",
-    consoleWorking:
-      "The splitting request is running. This may take several minutes.",
-    consoleComplete: "PSD assembled with {count} layers.",
-    consoleValidated:
-      "Extracted {valid} of {requested} object layers from the source.",
-    consoleStopped: "Splitting stopped before a PSD could be assembled.",
+    keepOnscreen: "Keep application onscreen while generation is active.",
   },
   cs: {
     code: "OBRAZ / ROZDĚLOVAČ VRSTEV",
@@ -112,16 +94,6 @@ export const layerSplitterUi: Record<
     note: "Rychlá volba doplní díry v pozadí modelem Seedream 5 Flash. Věrná použije Seedream 5 Pro a skryté části objektů průhledně doplní přes GPT Image 2.5 Sunburst.",
     dropFile: "Přetáhněte soubor sem nebo klikněte pro výběr",
     fileSelected: "VYBRANÝ OBRÁZEK",
-    console: "KONZOLE ZPRACOVÁNÍ",
-    consoleRunning: "PROBÍHÁ",
-    consoleReady: "HOTOVO",
-    consoleFailed: "ZASTAVENO",
-    consoleAccepted: "Zdroj přijat: {name}",
-    consoleWorking:
-      "Požadavek na rozdělení se zpracovává. Může to trvat několik minut.",
-    consoleComplete: "PSD bylo sestaveno s {count} vrstvami.",
-    consoleValidated:
-      "Extrahováno {valid} z {requested} vrstev objektů ze zdroje.",
-    consoleStopped: "Rozdělování se zastavilo před sestavením PSD.",
+    keepOnscreen: "Během generování ponechte aplikaci zobrazenou na obrazovce.",
   },
 };

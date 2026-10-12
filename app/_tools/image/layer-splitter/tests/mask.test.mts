@@ -8,6 +8,7 @@ import {
   componentsToMask,
   connectedMaskBounds,
   countOpaquePixels,
+  dilateMask,
   fractionInsideBounds,
   hardenMask,
   makeMasksExclusive,
@@ -17,8 +18,10 @@ import {
   upscaleMask,
 } from "../code/mask.ts";
 import {
+  clipPixelsToMask,
   compositeOriginalOverGenerated,
   eraseMaskedPixels,
+  eraseTransparentPixels,
   extractLayerFromSource,
   patchBackground,
 } from "../code/extract.ts";
@@ -73,6 +76,15 @@ test("extractLayerFromSource multiplies source alpha by mask alpha", () => {
   );
 });
 
+test("eraseTransparentPixels removes RGB hidden under transparent alpha", () => {
+  const source = new Uint8ClampedArray([
+    10, 20, 30, 0, 40, 50, 60, 8, 70, 80, 90, 9,
+  ]);
+  const result = eraseTransparentPixels(source, 3, 1);
+  assert.deepEqual([...result], [0, 0, 0, 0, 0, 0, 0, 0, 70, 80, 90, 9]);
+  assert.equal(source[0], 10);
+});
+
 test("eraseMaskedPixels removes hidden RGB as well as alpha", () => {
   const source = new Uint8ClampedArray([10, 20, 30, 255, 200, 150, 100, 255]);
   const result = eraseMaskedPixels(source, new Uint8Array([0, 255]), 2, 1);
@@ -94,12 +106,46 @@ test("patchBackground uses original where mask is 0 and generated where mask is 
   assert.deepEqual([...result], [100, 100, 100, 255, 200, 200, 200, 255]);
 });
 
+test("patchBackground blends inward while preserving pixels outside the cleanup mask", () => {
+  const original = new Uint8ClampedArray(5 * 4);
+  const generated = new Uint8ClampedArray(5 * 4);
+  for (let index = 0; index < 5; index++) {
+    original[index * 4] = 100;
+    original[index * 4 + 3] = 255;
+    generated[index * 4] = 200;
+    generated[index * 4 + 3] = 255;
+  }
+  const result = patchBackground(
+    original,
+    generated,
+    new Uint8Array([0, 255, 255, 255, 0]),
+    5,
+    1,
+    1,
+  );
+  assert.deepEqual(
+    [result[0], result[4], result[8], result[12], result[16]],
+    [100, 150, 150, 150, 100],
+  );
+});
+
 test("patchBackground rejects partial mask values instead of interpolating", () => {
   const original = new Uint8ClampedArray([0, 0, 0, 255]);
   const generated = new Uint8ClampedArray([200, 200, 200, 255]);
   assert.throws(
     () => patchBackground(original, generated, new Uint8Array([128]), 1, 1),
     /binary/,
+  );
+});
+
+test("clipPixelsToMask keeps generated alpha only in the allowed region", () => {
+  const pixels = new Uint8ClampedArray([
+    10, 20, 30, 255, 40, 50, 60, 128, 70, 80, 90, 255,
+  ]);
+  const result = clipPixelsToMask(pixels, new Uint8Array([0, 255, 128]), 3, 1);
+  assert.deepEqual(
+    [...result],
+    [10, 20, 30, 0, 40, 50, 60, 128, 70, 80, 90, 128],
   );
 });
 
@@ -129,6 +175,17 @@ test("combineMasks takes the maximum of overlapping masks", () => {
 test("countOpaquePixels counts pixels above the visibility threshold", () => {
   const mask = new Uint8Array([0, 8, 9, 255]);
   assert.equal(countOpaquePixels(mask), 2);
+});
+
+test("dilateMask expands a binary silhouette without changing its input", () => {
+  const mask = new Uint8Array(5 * 5);
+  mask[2 * 5 + 2] = 255;
+  const result = dilateMask(mask, 5, 5, 1);
+  assert.equal(countOpaquePixels(result), 9);
+  assert.equal(result[1 * 5 + 1], 255);
+  assert.equal(result[3 * 5 + 3], 255);
+  assert.equal(result[0], 0);
+  assert.equal(countOpaquePixels(mask), 1);
 });
 
 test("hardenMask supports foreground and opaque-interior thresholds", () => {

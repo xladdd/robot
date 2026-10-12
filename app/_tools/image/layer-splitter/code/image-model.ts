@@ -1,11 +1,12 @@
 import type { LayerSplitterQuality } from "../types";
 
-export type ImagePurpose = "background" | "object-completion";
+export type ImagePurpose =
+  "background" | "object-completion" | "subject-regeneration";
 
 export type ImageRequestInput = {
   model: string;
   prompt: string;
-  reference: string;
+  reference: string | readonly string[];
   purpose: ImagePurpose;
   quality: LayerSplitterQuality;
   width: number;
@@ -69,8 +70,9 @@ function closestAspectRatio(width: number, height: number, ratios: Ratio[]) {
   ).value;
 }
 
-function reference(url: string) {
-  return [{ type: "image_url", image_url: { url } }];
+function references(input: string | readonly string[]) {
+  const urls = typeof input === "string" ? [input] : input;
+  return urls.map((url) => ({ type: "image_url", image_url: { url } }));
 }
 
 export function backgroundModelForQuality(quality: LayerSplitterQuality) {
@@ -100,7 +102,7 @@ export function buildImageRequest(
   const base: Record<string, unknown> = {
     model: input.model,
     prompt: input.prompt,
-    input_references: reference(input.reference),
+    input_references: references(input.reference),
     n: 1,
   };
 

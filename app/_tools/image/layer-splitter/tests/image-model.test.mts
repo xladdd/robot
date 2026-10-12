@@ -40,6 +40,39 @@ test("buildImageRequest requests transparent GPT object completion", () => {
   assert.ok(!("output_format" in request));
 });
 
+test("buildImageRequest requests an opaque GPT subject regeneration", () => {
+  const request = buildImageRequest({
+    ...common,
+    model: "openai/gpt-image-2.5-sunburst",
+    purpose: "subject-regeneration",
+    quality: "fidelity",
+  });
+  assert.equal(request.background, "opaque");
+  assert.equal(request.quality, "high");
+  assert.ok(!("resolution" in request));
+  assert.ok(!("seed" in request));
+});
+
+test("buildImageRequest preserves multiple ordered image references", () => {
+  const request = buildImageRequest({
+    ...common,
+    reference: ["data:image/png;base64,FIRST", "data:image/png;base64,SECOND"],
+    model: "openai/gpt-image-2.5-sunburst",
+    purpose: "object-completion",
+    quality: "fidelity",
+  });
+  assert.deepEqual(request.input_references, [
+    {
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,FIRST" },
+    },
+    {
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,SECOND" },
+    },
+  ]);
+});
+
 test("buildImageRequest uses FLUX.3-supported fidelity parameters", () => {
   const request = buildImageRequest({
     ...common,

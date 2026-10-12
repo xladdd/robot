@@ -290,6 +290,49 @@ export function hardenMask(
   return result;
 }
 
+export function dilateMask(
+  mask: Uint8Array,
+  width: number,
+  height: number,
+  radius: number,
+): Uint8Array {
+  if (mask.length !== width * height)
+    throw new Error("Mask dimensions do not match the image.");
+  if (!Number.isInteger(radius) || radius < 0)
+    throw new Error("Mask dilation radius must be a non-negative integer.");
+  const binary = hardenMask(mask);
+  if (radius === 0) return binary;
+
+  const horizontal = new Uint8Array(binary.length);
+  for (let y = 0; y < height; y++) {
+    let covered = 0;
+    for (let x = 0; x < Math.min(width, radius + 1); x++)
+      if (binary[y * width + x]) covered++;
+    for (let x = 0; x < width; x++) {
+      horizontal[y * width + x] = covered ? 255 : 0;
+      const leaving = x - radius;
+      const entering = x + radius + 1;
+      if (leaving >= 0 && binary[y * width + leaving]) covered--;
+      if (entering < width && binary[y * width + entering]) covered++;
+    }
+  }
+
+  const result = new Uint8Array(binary.length);
+  for (let x = 0; x < width; x++) {
+    let covered = 0;
+    for (let y = 0; y < Math.min(height, radius + 1); y++)
+      if (horizontal[y * width + x]) covered++;
+    for (let y = 0; y < height; y++) {
+      result[y * width + x] = covered ? 255 : 0;
+      const leaving = y - radius;
+      const entering = y + radius + 1;
+      if (leaving >= 0 && horizontal[leaving * width + x]) covered--;
+      if (entering < height && horizontal[entering * width + x]) covered++;
+    }
+  }
+  return result;
+}
+
 export function makeMasksExclusive(
   masksTopFirst: readonly Uint8Array[],
   width: number,

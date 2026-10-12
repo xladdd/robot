@@ -1,5 +1,11 @@
 import Image from "next/image";
-import { type ChangeEvent, type DragEvent, type RefObject } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type RefObject,
+  useEffect,
+  useState,
+} from "react";
 import {
   CrosshairInstruction,
   ToolMeta,
@@ -7,6 +13,19 @@ import {
 import { layerSplitterUi } from "./copy";
 import type { Language } from "../../registry";
 import type { LayerSplitterQuality, LayerSplitterResult } from "./types";
+
+const ESTIMATED_SECONDS: Record<LayerSplitterQuality, number> = {
+  fast: 90,
+  fidelity: 240,
+};
+
+function formatCountdown(seconds: number) {
+  const sign = seconds < 0 ? "-" : "";
+  const absolute = Math.abs(seconds);
+  const minutes = Math.floor(absolute / 60);
+  const remainder = absolute % 60;
+  return `${sign}${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
 
 export function LayerSplitterMainInterface({
   language,
@@ -38,6 +57,19 @@ export function LayerSplitterMainInterface({
   onDownload: () => void;
 }) {
   const t = layerSplitterUi[language];
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  useEffect(() => {
+    if (!isSplitting) return;
+    const interval = window.setInterval(
+      () => setRemainingSeconds((seconds) => seconds - 1),
+      1_000,
+    );
+    return () => window.clearInterval(interval);
+  }, [isSplitting]);
+  const handleSplit = () => {
+    setRemainingSeconds(ESTIMATED_SECONDS[quality]);
+    onSplit();
+  };
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) onFile(file);
@@ -51,13 +83,6 @@ export function LayerSplitterMainInterface({
     );
     if (file) onFile(file);
   };
-  const consoleVisible =
-    isSplitting || Boolean(result) || Boolean(imageData && error);
-  const consoleState = error
-    ? t.consoleFailed
-    : result
-      ? t.consoleReady
-      : t.consoleRunning;
 
   return (
     <div className="compact-utility-module layer-splitter-module">
@@ -143,72 +168,19 @@ export function LayerSplitterMainInterface({
         <button
           type="button"
           className="layer-splitter-start action-button action-button-primary"
-          onClick={onSplit}
+          onClick={handleSplit}
           disabled={!imageData || isSplitting}
         >
           <span>{isSplitting ? t.splitting : t.split}</span>
-          <b aria-hidden="true">{isSplitting ? "…" : "→"}</b>
-        </button>
-
-        {consoleVisible && (
-          <section
-            className={`layer-splitter-console ${result ? "is-ready" : ""} ${error ? "has-error" : ""}`}
-            aria-label={t.console}
+          <b
+            className={isSplitting ? "layer-splitter-countdown" : undefined}
+            aria-hidden="true"
           >
-            <header>
-              <span>{t.console}</span>
-              <b>{consoleState}</b>
-            </header>
-            <div aria-live="polite">
-              {imageData && (
-                <p>
-                  <i aria-hidden="true">›</i>
-                  {t.consoleAccepted.replace("{name}", imageName)}
-                </p>
-              )}
-              {isSplitting && (
-                <p>
-                  <i aria-hidden="true">›</i>
-                  {t.consoleWorking}
-                </p>
-              )}
-              {result && (
-                <>
-                  <p>
-                    <i aria-hidden="true">›</i>
-                    {t.consoleComplete.replace(
-                      "{count}",
-                      String(result.layerNames.length),
-                    )}
-                  </p>
-                  <p>
-                    <i aria-hidden="true">›</i>
-                    {t.consoleValidated
-                      .replace(
-                        "{valid}",
-                        String(result.validation.validObjectLayers),
-                      )
-                      .replace(
-                        "{requested}",
-                        String(result.validation.requestedObjectLayers),
-                      )}
-                  </p>
-                  {result.validation.warnings.map((warning) => (
-                    <p className="is-warning" key={warning}>
-                      <i aria-hidden="true">!</i>
-                      {warning}
-                    </p>
-                  ))}
-                </>
-              )}
-              {imageData && error && (
-                <p className="is-error">
-                  <i aria-hidden="true">!</i>
-                  {t.consoleStopped}
-                </p>
-              )}
-            </div>
-          </section>
+            {isSplitting ? formatCountdown(remainingSeconds) : "→"}
+          </b>
+        </button>
+        {isSplitting && (
+          <p className="layer-splitter-active-note">{t.keepOnscreen}</p>
         )}
 
         {result && (

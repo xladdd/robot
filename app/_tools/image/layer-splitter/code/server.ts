@@ -9,13 +9,19 @@ import {
 } from "../../../openrouter/server";
 import { assertOpaqueBackground } from "./keying";
 import { compositeLayers } from "./composite";
-import { createLayeredPsd } from "./psd";
-import { MAX_LAYER_COUNT, parseJsonObject, parseLayerPlan } from "./layer-plan";
+import { createLayeredPsd, type PsdLayerInput } from "./psd";
+import {
+  MAX_LAYER_COUNT,
+  parseJsonObject,
+  parseLayerPlan,
+  shouldRegenerateFullSubject,
+} from "./layer-plan";
 import {
   combineMasks,
   componentsToMask,
   connectedMaskBounds,
   countOpaquePixels,
+  dilateMask,
   fractionInsideBounds,
   hardenMask,
   makeMasksExclusive,
@@ -23,8 +29,10 @@ import {
   type PixelBounds,
 } from "./mask";
 import {
+  clipPixelsToMask,
   compositeOriginalOverGenerated,
   eraseMaskedPixels,
+  eraseTransparentPixels,
   extractLayerFromSource,
   patchBackground,
 } from "./extract";
@@ -39,7 +47,21 @@ import {
   matchDecompositionMasks,
   retainVisibleLayerMasks,
 } from "./decomposition";
-import type { LayerPlanItem, LayerSplitterQuality } from "../types";
+import { resolveOcclusions } from "./occlusion";
+import { selectCompletionCandidate } from "./completion";
+import {
+  createSupportVisibilityMask,
+  replaceAlpha,
+  selectSubjectMaskAndAlignment,
+  transformMask,
+  transformRgbaPixels,
+} from "./subject-regeneration";
+import type {
+  LayerPlanItem,
+  LayerSplitterQuality,
+  ShadowRegion,
+  SupportSurface,
+} from "../types";
 
 const MAX_SOURCE_DATA_URL_LENGTH = 24_000_000;
 const MAX_PIXELS = 36_000_000;
@@ -54,9 +76,13 @@ const backgroundPrompt = loadPrompt(
 const objectPrompt = loadPrompt(
   "image/layer-splitter/prompts/reconstruct-object.md",
 );
+const subjectPrompt = loadPrompt(
+  "image/layer-splitter/prompts/regenerate-subject.md",
+);
 const contourPrompt = loadPrompt(
   "image/layer-splitter/prompts/trace-contour.md",
 );
+const shadowPrompt = loadPrompt("image/layer-splitter/prompts/trace-shadow.md");
 
 type Usage = {
   cost?: number;
@@ -207,40 +233,59 @@ async function analyseLayers(
 ) {
   const model = planModel();
   const provider = planProviderRouting(model);
-  const { response, result } = await requestOpenRouter<ChatResult>(
-    openRouter,
-    "chat/completions",
-    "analyse-layer-plan",
-    {
-      model,
-      ...(provider ? { provider } : {}),
-      temperature: 0,
-      reasoning: { enabled: false },
-      max_tokens: 6_000,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: fillPrompt(analysisPrompt, { maxLayers }) },
-            { type: "image_url", image_url: { url: source } },
-          ],
-        },
-      ],
-    },
-    { signal },
-  );
-  const raw = messageText(result);
-  if (!response.ok)
-    throw new Error(
-      result.error?.message ||
-        `Layer analysis failed with OpenRouter HTTP ${response.status}.`,
+  let lastError = "the model returned no usable layer plan";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const correction = attempt
+      ? `\n\nYour previous response was invalid JSON: ${lastError}. Return the complete JSON object again, with a comma between every array element and object property.`
+      : "";
+    const { response, result } = await requestOpenRouter<ChatResult>(
+      openRouter,
+      "chat/completions",
+      attempt ? "retry-layer-plan" : "analyse-layer-plan",
+      {
+        model,
+        ...(provider ? { provider } : {}),
+        temperature: 0,
+        reasoning: { enabled: false },
+        max_tokens: 6_000,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `${fillPrompt(analysisPrompt, { maxLayers })}${correction}`,
+              },
+              { type: "image_url", image_url: { url: source } },
+            ],
+          },
+        ],
+      },
+      { signal },
     );
-  if (!raw)
-    throw new Error(
-      `Layer analysis returned no text from ${model} via ${provider?.only?.join(", ") || "automatic routing"}.`,
-    );
-  return { model, plan: parseLayerPlan(parseJsonObject(raw)) };
+    const raw = messageText(result);
+    if (!response.ok)
+      throw new Error(
+        result.error?.message ||
+          `Layer analysis failed with OpenRouter HTTP ${response.status}.`,
+      );
+    try {
+      if (!raw)
+        throw new Error(
+          `Layer analysis returned no text from ${model} via ${provider?.only?.join(", ") || "automatic routing"}.`,
+        );
+      return { model, plan: parseLayerPlan(parseJsonObject(raw)) };
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error instanceof Error ? error.message : String(error);
+      if (!attempt)
+        console.warn(
+          `[layer-splitter] Retrying malformed layer plan with ${model}: ${lastError}`,
+        );
+    }
+  }
+  throw new Error(`Could not analyse image layers: ${lastError}`);
 }
 
 function maskModels() {
@@ -470,6 +515,154 @@ async function generateMask(
   throw new Error(`Could not trace layer "${layer.name}": ${lastError}`);
 }
 
+async function generateSemanticMask(
+  openRouter: OpenRouterContext,
+  sourceDataUrl: string,
+  operation: string,
+  target: string,
+  width: number,
+  height: number,
+  signal?: AbortSignal,
+): Promise<Uint8Array> {
+  const models = [
+    process.env.OPENROUTER_LAYER_SPLITTER_MASK_FALLBACK_MODEL ||
+      "google/gemini-3.6-flash",
+    process.env.OPENROUTER_LAYER_SPLITTER_MASK_MODEL || "qwen/qwen3.7-flash",
+  ].filter((model, index, values) => values.indexOf(model) === index);
+  let lastError = "the model returned no usable semantic mask";
+  for (let attempt = 0; attempt < models.length; attempt++) {
+    const model = models[attempt];
+    try {
+      const prompt = `Inspect the supplied image and trace ${target}. Exclude every other body part, object, backdrop, glow, and shadow. Return JSON only as {"confidence":0.0,"components":[{"outer":[{"x":0,"y":0}],"holes":[]}]}. Coordinates use 0..1000 across the full image. Preserve disconnected components, fingers, and fine contours. Do not use a rectangle.`;
+      const { response, result } = await requestOpenRouter<ChatResult>(
+        openRouter,
+        "chat/completions",
+        attempt ? `fallback-${operation}` : operation,
+        {
+          model,
+          provider: maskProviderRouting(model),
+          temperature: 0,
+          ...(model.startsWith("qwen/")
+            ? { reasoning: { enabled: false } }
+            : {}),
+          max_tokens: 8_000,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: sourceDataUrl } },
+              ],
+            },
+          ],
+        },
+        { signal },
+      );
+      const raw = messageText(result);
+      if (!response.ok || !raw)
+        throw new Error(
+          result.error?.message ||
+            `OpenRouter returned HTTP ${response.status}.`,
+        );
+      const parsed = parseMaskComponents(parseJsonObject(raw));
+      if (parsed.confidence < 0.45)
+        throw new Error(
+          `confidence ${parsed.confidence.toFixed(2)} is below the semantic-mask threshold`,
+        );
+      const mask = componentsToMask(parsed.components, width, height);
+      if (countOpaquePixels(mask) < 16)
+        throw new Error("the returned semantic mask is empty or too small");
+      return mask;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  throw new Error(`Could not trace ${target}: ${lastError}`);
+}
+
+async function generateShadowMask(
+  openRouter: OpenRouterContext,
+  sourceDataUrl: string,
+  shadow: ShadowRegion,
+  ownerName: string,
+  width: number,
+  height: number,
+  signal?: AbortSignal,
+): Promise<Uint8Array> {
+  const models = maskModels();
+  const expectedBounds = normalizedToPixelBounds(shadow.bounds, width, height);
+  const prompt = fillPrompt(shadowPrompt, {
+    name: ownerName,
+    description: shadow.description,
+    region: regionHint(expectedBounds, width, height),
+  });
+  let lastError = "the model returned no usable shadow geometry";
+  for (let attempt = 0; attempt < models.length; attempt++) {
+    const model = models[attempt];
+    try {
+      const correction = attempt
+        ? `\n\nThe previous trace was unusable: ${lastError}. Trace the complete soft shadow footprint, not the object that casts it.`
+        : "";
+      const { response, result } = await requestOpenRouter<ChatResult>(
+        openRouter,
+        "chat/completions",
+        attempt ? "fallback-shadow-mask" : "trace-shadow-mask",
+        {
+          model,
+          provider: maskProviderRouting(model),
+          temperature: 0,
+          ...(model.startsWith("perceptron/") || model.startsWith("qwen/")
+            ? { reasoning: { enabled: false } }
+            : {}),
+          max_tokens: 8_000,
+          response_format: model.startsWith("perceptron/")
+            ? maskResponseFormat
+            : { type: "json_object" },
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: `${prompt}${correction}` },
+                { type: "image_url", image_url: { url: sourceDataUrl } },
+              ],
+            },
+          ],
+        },
+        { signal },
+      );
+      const raw = messageText(result);
+      if (!response.ok || !raw)
+        throw new Error(
+          result.error?.message ||
+            `OpenRouter returned HTTP ${response.status}.`,
+        );
+      const parsed = parseMaskComponents(parseJsonObject(raw));
+      if (parsed.confidence < 0.45)
+        throw new Error(
+          `confidence ${parsed.confidence.toFixed(2)} is below the shadow threshold`,
+        );
+      const mask = componentsToMask(parsed.components, width, height);
+      if (countOpaquePixels(mask) < 32)
+        throw new Error("the returned shadow mask is empty or too small");
+      if (fractionInsideBounds(mask, width, height, shadow.bounds) < 0.5)
+        throw new Error(
+          "the returned shadow mask does not match the planned region",
+        );
+      return mask;
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      lastError = error instanceof Error ? error.message : String(error);
+      if (attempt + 1 < models.length)
+        console.warn(
+          `[layer-splitter] Retrying shadow for "${ownerName}" with ${models[attempt + 1]}: ${lastError}`,
+        );
+    }
+  }
+  throw new Error(`Could not trace shadow for "${ownerName}": ${lastError}`);
+}
+
 const MAX_IMAGE_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 2_000;
 
@@ -502,7 +695,7 @@ async function generateImage(
   openRouter: OpenRouterContext,
   operation: string,
   model: string,
-  source: string,
+  source: string | readonly string[],
   prompt: string,
   purpose: ImagePurpose,
   quality: LayerSplitterQuality,
@@ -601,6 +794,52 @@ async function generateDecompositionMasks(
     model,
     masks: matchDecompositionMasks(masks, layers, source.width, source.height),
   };
+}
+
+async function generateSubjectIsolationMasks(
+  openRouter: OpenRouterContext,
+  generatedDataUrl: string,
+  layer: LayerPlanItem,
+  width: number,
+  height: number,
+  signal?: AbortSignal,
+) {
+  const model = decompositionModel();
+  const { response, result } = await requestOpenRouter<ImageApiResult>(
+    openRouter,
+    "images",
+    "isolate-regenerated-subject",
+    buildImageRequest({
+      model,
+      prompt: `Isolate the single complete ${layer.subjectKind || "subject"} named "${layer.name}" as one precise RGBA foreground cutout. Preserve hair or fur, fingers or paws, every limb, clothing, torso, and all extremities. Exclude every backdrop pixel, glow, shadow, and halo. Also return the clean backdrop as a separate layer.`,
+      reference: generatedDataUrl,
+      purpose: "subject-regeneration",
+      quality: "fidelity",
+      width,
+      height,
+      seed: 0,
+    }),
+    { signal },
+  );
+  if (!response.ok)
+    throw new Error(
+      result.error?.message ||
+        `Regenerated-subject isolation failed with OpenRouter HTTP ${response.status}.`,
+    );
+  if (!result.data?.length)
+    throw new Error("The subject isolation model returned no images.");
+  return Promise.all(
+    result.data.map(async (image) => {
+      const dataUrl = imageDataUrl(image);
+      if (!dataUrl)
+        throw new Error("The subject isolation model returned an empty image.");
+      return alphaMaskFromPixels(
+        await prepareImage(await fetchImageBytes(dataUrl), width, height),
+        width,
+        height,
+      );
+    }),
+  );
 }
 
 function cropPixels(
@@ -705,6 +944,32 @@ function mergeBounds(bounds: PixelBounds[]): PixelBounds[] {
   return merged.sort((left, right) => left.y - right.y || left.x - right.x);
 }
 
+function shadowBoundsFallbackMask(
+  shadow: ShadowRegion,
+  width: number,
+  height: number,
+) {
+  const bounds = normalizedToPixelBounds(shadow.bounds, width, height, 0.03);
+  const mask = new Uint8Array(width * height);
+  for (let y = bounds.y; y < bounds.y + bounds.height; y++)
+    for (let x = bounds.x; x < bounds.x + bounds.width; x++)
+      mask[y * width + x] = 255;
+  return mask;
+}
+
+function supportSurfaceMask(
+  surface: SupportSurface,
+  width: number,
+  height: number,
+) {
+  const bounds = normalizedToPixelBounds(surface.bounds, width, height);
+  const mask = new Uint8Array(width * height);
+  for (let y = bounds.y; y < bounds.y + bounds.height; y++)
+    for (let x = bounds.x; x < bounds.x + bounds.width; x++)
+      mask[y * width + x] = 255;
+  return mask;
+}
+
 function backgroundCropBounds(mask: Uint8Array, width: number, height: number) {
   return mergeBounds(
     connectedMaskBounds(mask, width, height).map((bounds) =>
@@ -726,7 +991,10 @@ async function backgroundReference(
       cropMask[y * bounds.width + x] = hardHoleMask[sourceIndex];
     }
   const erased = eraseMaskedPixels(crop, cropMask, bounds.width, bounds.height);
-  return pixelsDataUrl(erased, bounds.width, bounds.height);
+  return Promise.all([
+    pixelsDataUrl(erased, bounds.width, bounds.height),
+    pixelsDataUrl(crop, bounds.width, bounds.height),
+  ]);
 }
 
 function assertTransparentObject(
@@ -834,12 +1102,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const tracedObjects = await mapConcurrent(
+    const tracedResults = await mapConcurrent(
       analysed.plan.layers,
       2,
-      async (layer: LayerPlanItem, index) => {
-        const decomposed = decompositionMasks[index];
-        const mask =
+      async (layer: LayerPlanItem, planIndex) => {
+        const decomposed = decompositionMasks[planIndex];
+        if (
           decomposed &&
           fractionInsideBounds(
             decomposed,
@@ -847,126 +1115,478 @@ export async function POST(request: Request) {
             source.height,
             layer.visibleBounds,
           ) >= 0.55
-            ? decomposed
-            : await generateMask(
-                openRouter,
-                source.pngDataUrl,
-                layer,
-                source.width,
-                source.height,
-                request.signal,
-              );
-        return { layer, mask };
+        )
+          return { layer, mask: decomposed, planIndex, warning: "" };
+        try {
+          return {
+            layer,
+            mask: await generateMask(
+              openRouter,
+              source.pngDataUrl,
+              layer,
+              source.width,
+              source.height,
+              request.signal,
+            ),
+            planIndex,
+            warning: "",
+          };
+        } catch (error) {
+          if (request.signal.aborted) throw error;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[layer-splitter] Dropping untraceable layer "${layer.name}": ${message}`,
+          );
+          return {
+            layer,
+            mask: null,
+            planIndex,
+            warning: `Could not trace ${layer.name}: ${message}`,
+          };
+        }
       },
     );
+    const tracedObjects: Array<{
+      layer: LayerPlanItem;
+      mask: Uint8Array;
+      planIndex: number;
+    }> = [];
+    const maskTraceWarnings: string[] = [];
+    const untraceableLayerNames: string[] = [];
+    for (const result of tracedResults)
+      if (result.mask)
+        tracedObjects.push({
+          layer: result.layer,
+          mask: result.mask,
+          planIndex: result.planIndex,
+        });
+      else {
+        untraceableLayerNames.push(result.layer.name);
+        if (result.warning) maskTraceWarnings.push(result.warning);
+      }
+    if (!tracedObjects.length)
+      throw new Error("No object layer could be traced from the source image.");
+
     const exclusiveMasks = makeMasksExclusive(
       tracedObjects.map(({ mask }) => mask),
       source.width,
       source.height,
     ).map((mask) => hardenMask(mask));
-    const { retained, droppedLayerNames } = retainVisibleLayerMasks(
-      tracedObjects.map(({ layer }) => layer),
-      exclusiveMasks,
-    );
+    const { retained, droppedLayerNames: overlapDroppedLayerNames } =
+      retainVisibleLayerMasks(
+        tracedObjects.map(({ layer }) => layer),
+        exclusiveMasks,
+      );
+    const droppedLayerNames = [
+      ...untraceableLayerNames,
+      ...overlapDroppedLayerNames,
+    ];
     if (!retained.length)
       throw new Error("No object layer retained any visible source pixels.");
 
-    const extractedObjects = retained.map(({ layer, mask, sourceIndex }) => ({
-      layer,
-      mask,
-      usedDecomposition:
-        tracedObjects[sourceIndex].mask === decompositionMasks[sourceIndex],
-      pixels: extractLayerFromSource(
-        source.pixels,
+    const extractedObjects = retained.map(({ layer, mask, sourceIndex }) => {
+      const traced = tracedObjects[sourceIndex];
+      return {
+        layer,
         mask,
-        source.width,
-        source.height,
-      ),
-    }));
+        usedDecomposition: traced.mask === decompositionMasks[traced.planIndex],
+        pixels: extractLayerFromSource(
+          source.pixels,
+          mask,
+          source.width,
+          source.height,
+        ),
+      };
+    });
     const decomposedLayerCount = extractedObjects.filter(
       ({ usedDecomposition }) => usedDecomposition,
     ).length;
 
+    const resolvedOcclusions = resolveOcclusions(
+      extractedObjects.map(({ layer, mask }) => ({ layer, mask })),
+      source.width,
+      source.height,
+    );
     const completionModel = objectCompletionModel();
-    const objectLayers = await mapConcurrent(
+    const configuredCompletionCandidates = Number(
+      process.env.OPENROUTER_LAYER_SPLITTER_COMPLETION_CANDIDATES,
+    );
+    const completionCandidateCount = Number.isInteger(
+      configuredCompletionCandidates,
+    )
+      ? Math.min(3, Math.max(1, configuredCompletionCandidates))
+      : 3;
+    const supportSurfaceById = new Map(
+      analysed.plan.supportSurfaces.map((surface) => [surface.id, surface]),
+    );
+    const objectCompletionResults = await mapConcurrent(
       extractedObjects,
       2,
-      async ({ layer, pixels }, index) => {
-        if (quality !== "fidelity" || layer.occludedBy.length === 0)
-          return { name: layer.name, pixels };
-        const cropBounds = normalizedToPixelBounds(
-          layer.reconstructionBounds,
-          source.width,
-          source.height,
-        );
-        const visibleCrop = cropPixels(
-          pixels,
-          source.width,
-          source.height,
-          cropBounds,
-        );
-        const reference = await pixelsDataUrl(
-          visibleCrop,
-          cropBounds.width,
-          cropBounds.height,
-        );
-        const generated = await generateImage(
-          openRouter,
-          "complete-layer-object",
-          completionModel,
-          reference,
-          fillPrompt(objectPrompt, {
+      async ({ layer, mask, pixels }, index) => {
+        const occlusion = resolvedOcclusions[index];
+        let regenerationWarning = "";
+        const visiblePixelFraction =
+          countOpaquePixels(mask) / (source.width * source.height);
+        if (shouldRegenerateFullSubject(layer, quality, visiblePixelFraction)) {
+          try {
+            const supportOcclusion = layer.supportOcclusion;
+            const supportSurface = supportOcclusion
+              ? supportSurfaceById.get(supportOcclusion.supportSurfaceId)
+              : undefined;
+            if (!supportOcclusion || !supportSurface)
+              throw new Error("The planned support surface is unavailable.");
+            const reference = await pixelsDataUrl(
+              eraseTransparentPixels(pixels, source.width, source.height),
+              source.width,
+              source.height,
+            );
+            const generated = await generateImage(
+              openRouter,
+              "regenerate-complete-subject",
+              completionModel,
+              [reference, source.pngDataUrl],
+              fillPrompt(subjectPrompt, {
+                subjectKind: layer.subjectKind || "subject",
+                name: layer.name,
+                description: layer.description,
+                visibleBounds: JSON.stringify(layer.visibleBounds),
+                reconstructionBounds: JSON.stringify(
+                  layer.reconstructionBounds,
+                ),
+                supportSurface: `${supportSurface.name}: ${supportSurface.description}`,
+                foregroundParts: supportOcclusion.foregroundPartsDescription,
+              }),
+              "subject-regeneration",
+              quality,
+              source.width,
+              source.height,
+              baseSeed + 10_000 + index,
+              request.signal,
+            );
+            const generatedPixels = await prepareImage(
+              generated.bytes,
+              source.width,
+              source.height,
+            );
+            const generatedDataUrl = await pixelsDataUrl(
+              generatedPixels,
+              source.width,
+              source.height,
+            );
+            const candidateMasks = await generateSubjectIsolationMasks(
+              openRouter,
+              generatedDataUrl,
+              layer,
+              source.width,
+              source.height,
+              request.signal,
+            );
+            const selected = selectSubjectMaskAndAlignment(
+              generatedPixels,
+              candidateMasks,
+              pixels,
+              mask,
+              source.width,
+              source.height,
+            );
+            if (!selected)
+              throw new Error(
+                "No isolated subject candidate aligned reliably with the source.",
+              );
+            const isolated = replaceAlpha(
+              generatedPixels,
+              selected.mask,
+              source.width,
+              source.height,
+            );
+            const completePixels = transformRgbaPixels(
+              isolated,
+              source.width,
+              source.height,
+              selected.alignment,
+            );
+            const foregroundPartsMask = await generateSemanticMask(
+              openRouter,
+              generatedDataUrl,
+              "trace-regenerated-foreground-parts",
+              `only ${supportOcclusion.foregroundPartsDescription} belonging to the single regenerated ${layer.subjectKind || "subject"}`,
+              source.width,
+              source.height,
+              request.signal,
+            );
+            const transformedForegroundParts = transformMask(
+              foregroundPartsMask,
+              source.width,
+              source.height,
+              selected.alignment,
+            );
+            const completeAlpha = alphaMaskFromPixels(
+              completePixels,
+              source.width,
+              source.height,
+            );
+            const visibilityMask = createSupportVisibilityMask(
+              completeAlpha,
+              supportSurface.bounds,
+              transformedForegroundParts,
+              source.width,
+              source.height,
+            );
+            if (countOpaquePixels(visibilityMask) < 32)
+              throw new Error("The editable subject visibility mask is empty.");
+            return {
+              name: layer.name,
+              order: layer.order,
+              pixels: completePixels,
+              renderPixels: clipPixelsToMask(
+                completePixels,
+                visibilityMask,
+                source.width,
+                source.height,
+              ),
+              mask: visibilityMask,
+              completed: false,
+              regenerated: true,
+              hiddenPixelCount: Math.max(
+                0,
+                countOpaquePixels(completeAlpha) -
+                  countOpaquePixels(visibilityMask),
+              ),
+              warning: "",
+            };
+          } catch (error) {
+            if (request.signal.aborted) throw error;
+            const message =
+              error instanceof Error ? error.message : String(error);
+            regenerationWarning = `Could not fully regenerate ${layer.name}; used the source-preserving fallback: ${message}`;
+            console.warn(`[layer-splitter] ${regenerationWarning}`);
+          }
+        }
+        if (quality !== "fidelity" || occlusion.occluderIds.length === 0)
+          return {
+            name: layer.name,
+            order: layer.order,
+            pixels,
+            renderPixels: pixels,
+            completed: false,
+            regenerated: false,
+            hiddenPixelCount: 0,
+            warning: regenerationWarning,
+          };
+        try {
+          const cropBounds = normalizedToPixelBounds(
+            layer.reconstructionBounds,
+            source.width,
+            source.height,
+          );
+          const visibleCrop = cropPixels(
+            pixels,
+            source.width,
+            source.height,
+            cropBounds,
+          );
+          const reference = await pixelsDataUrl(
+            eraseTransparentPixels(
+              visibleCrop,
+              cropBounds.width,
+              cropBounds.height,
+            ),
+            cropBounds.width,
+            cropBounds.height,
+          );
+          const contextReference = await pixelsDataUrl(
+            cropPixels(source.pixels, source.width, source.height, cropBounds),
+            cropBounds.width,
+            cropBounds.height,
+          );
+          const prompt = fillPrompt(objectPrompt, {
             name: layer.name,
             description: layer.description,
             visibleBounds: JSON.stringify(layer.visibleBounds),
             reconstructionBounds: JSON.stringify(layer.reconstructionBounds),
-            occludedBy: layer.occludedBy.join(", "),
-          }),
-          "object-completion",
-          quality,
-          cropBounds.width,
-          cropBounds.height,
-          baseSeed + index + 1,
-          request.signal,
-        );
-        const generatedCrop = await prepareImage(
-          generated.bytes,
-          cropBounds.width,
-          cropBounds.height,
-        );
-        assertTransparentObject(
-          generatedCrop,
-          cropBounds.width,
-          cropBounds.height,
-        );
-        const generatedPixels = new Uint8ClampedArray(
-          source.width * source.height * 4,
-        );
-        placePixels(
-          generatedPixels,
-          source.width,
-          source.height,
-          generatedCrop,
-          cropBounds,
-        );
-        return {
-          name: layer.name,
-          pixels: compositeOriginalOverGenerated(
+            occludedBy: occlusion.occluderNames.join(", "),
+          });
+          const settledCandidates = await Promise.allSettled(
+            Array.from(
+              { length: completionCandidateCount },
+              async (_, candidateIndex) => {
+                const generated = await generateImage(
+                  openRouter,
+                  `complete-layer-object-${candidateIndex + 1}`,
+                  completionModel,
+                  [reference, contextReference],
+                  prompt,
+                  "object-completion",
+                  quality,
+                  cropBounds.width,
+                  cropBounds.height,
+                  baseSeed +
+                    index * completionCandidateCount +
+                    candidateIndex +
+                    1,
+                  request.signal,
+                );
+                const generatedCrop = await prepareImage(
+                  generated.bytes,
+                  cropBounds.width,
+                  cropBounds.height,
+                );
+                assertTransparentObject(
+                  generatedCrop,
+                  cropBounds.width,
+                  cropBounds.height,
+                );
+                const generatedPixels = new Uint8ClampedArray(
+                  source.width * source.height * 4,
+                );
+                placePixels(
+                  generatedPixels,
+                  source.width,
+                  source.height,
+                  generatedCrop,
+                  cropBounds,
+                );
+                return generatedPixels;
+              },
+            ),
+          );
+          const generatedCandidates: Uint8ClampedArray[] = [];
+          for (const candidate of settledCandidates)
+            if (candidate.status === "fulfilled")
+              generatedCandidates.push(candidate.value);
+          const selection = selectCompletionCandidate(
             pixels,
-            generatedPixels,
+            mask,
+            occlusion.completionMask,
+            generatedCandidates,
             source.width,
             source.height,
-          ),
-        };
+          );
+          if (!selection)
+            throw new Error(
+              "No generated candidate produced a consistent hidden continuation.",
+            );
+          const completedPixels = compositeOriginalOverGenerated(
+            pixels,
+            selection.hiddenPixels,
+            source.width,
+            source.height,
+          );
+          return {
+            name: layer.name,
+            order: layer.order,
+            pixels: completedPixels,
+            renderPixels: completedPixels,
+            completed: true,
+            regenerated: false,
+            hiddenPixelCount: selection.hiddenPixelCount,
+            warning: regenerationWarning,
+          };
+        } catch (error) {
+          if (request.signal.aborted) throw error;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[layer-splitter] Skipping hidden completion for "${layer.name}": ${message}`,
+          );
+          return {
+            name: layer.name,
+            order: layer.order,
+            pixels,
+            renderPixels: pixels,
+            completed: false,
+            regenerated: false,
+            hiddenPixelCount: 0,
+            warning: [
+              regenerationWarning,
+              `Could not reconstruct the hidden part of ${layer.name}: ${message}`,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          };
+        }
       },
     );
-
-    const hardHoleMask = hardenMask(
+    const ownerNames = new Map(
+      extractedObjects.map(({ layer }) => [layer.id, layer.name]),
+    );
+    const plannedShadows = analysed.plan.shadowRegions.filter(({ ownerId }) =>
+      ownerNames.has(ownerId),
+    );
+    const shadowSafetyRadius = Math.max(
+      4,
+      Math.round(
+        Math.min(source.width, source.height) *
+          (quality === "fidelity" ? 0.02 : 0.015),
+      ),
+    );
+    const shadowResults = await mapConcurrent(
+      plannedShadows,
+      2,
+      async (shadow) => {
+        const ownerName = ownerNames.get(shadow.ownerId) || shadow.ownerId;
+        try {
+          const traced = await generateShadowMask(
+            openRouter,
+            source.pngDataUrl,
+            shadow,
+            ownerName,
+            source.width,
+            source.height,
+            request.signal,
+          );
+          return {
+            ownerName,
+            mask: dilateMask(
+              traced,
+              source.width,
+              source.height,
+              shadowSafetyRadius,
+            ),
+            usedFallback: false,
+          };
+        } catch (error) {
+          if (request.signal.aborted) throw error;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[layer-splitter] Using planned shadow bounds for "${ownerName}": ${message}`,
+          );
+          return {
+            ownerName,
+            mask: shadowBoundsFallbackMask(shadow, source.width, source.height),
+            usedFallback: true,
+          };
+        }
+      },
+    );
+    const objectHoleMask = hardenMask(
       combineMasks(
         extractedObjects.map(({ mask }) => mask),
         source.width,
         source.height,
       ),
+    );
+    const contactShadowRadius = Math.max(
+      6,
+      Math.round(
+        Math.min(source.width, source.height) *
+          (quality === "fidelity" ? 0.05 : 0.03),
+      ),
+    );
+    const hardHoleMask = combineMasks(
+      [
+        dilateMask(
+          objectHoleMask,
+          source.width,
+          source.height,
+          contactShadowRadius,
+        ),
+        ...shadowResults.map(({ mask }) => mask),
+      ],
+      source.width,
+      source.height,
     );
     const backgroundModel = backgroundModelForQuality(quality);
     const generatedBackgroundPixels = new Uint8ClampedArray(source.pixels);
@@ -1020,12 +1640,75 @@ export async function POST(request: Request) {
       hardHoleMask,
       source.width,
       source.height,
+      quality === "fidelity" ? 12 : 8,
     );
     assertOpaqueBackground(backgroundPixels);
 
-    const backgroundLayer = { name: "Background", pixels: backgroundPixels };
-    const allLayers = [...objectLayers, backgroundLayer];
-    const composite = compositeLayers(source.width, source.height, allLayers);
+    const supportLayers = analysed.plan.supportSurfaces.map((surface) => {
+      const mask = supportSurfaceMask(surface, source.width, source.height);
+      const pixels = extractLayerFromSource(
+        backgroundPixels,
+        mask,
+        source.width,
+        source.height,
+      );
+      return {
+        name: surface.name,
+        order: surface.order,
+        pixels,
+        renderPixels: pixels,
+      };
+    });
+    const combinedSupportMask = supportLayers.length
+      ? hardenMask(
+          combineMasks(
+            analysed.plan.supportSurfaces.map((surface) =>
+              supportSurfaceMask(surface, source.width, source.height),
+            ),
+            source.width,
+            source.height,
+          ),
+        )
+      : new Uint8Array(source.width * source.height);
+    const baseBackgroundPixels = supportLayers.length
+      ? eraseMaskedPixels(
+          backgroundPixels,
+          combinedSupportMask,
+          source.width,
+          source.height,
+        )
+      : backgroundPixels;
+    const orderedForegroundLayers = [
+      ...objectCompletionResults,
+      ...supportLayers,
+    ].sort((left, right) => right.order - left.order);
+    const backgroundLayer = {
+      name: "Background — clean environment",
+      pixels: baseBackgroundPixels,
+      renderPixels: baseBackgroundPixels,
+    };
+    const renderLayers = [
+      ...orderedForegroundLayers.map(({ name, renderPixels }) => ({
+        name,
+        pixels: renderPixels,
+      })),
+      { name: backgroundLayer.name, pixels: backgroundLayer.renderPixels },
+    ];
+    const psdLayers: PsdLayerInput[] = [
+      ...orderedForegroundLayers.map((layer): PsdLayerInput => ({
+        name: layer.name,
+        pixels: layer.pixels,
+        ...("mask" in layer && layer.mask instanceof Uint8Array
+          ? { mask: layer.mask }
+          : {}),
+      })),
+      { name: backgroundLayer.name, pixels: backgroundLayer.pixels },
+    ];
+    const composite = compositeLayers(
+      source.width,
+      source.height,
+      renderLayers,
+    );
     assertOpaqueBackground(composite);
     const preview = await sharp(Buffer.from(composite), {
       raw: { width: source.width, height: source.height, channels: 4 },
@@ -1036,29 +1719,75 @@ export async function POST(request: Request) {
       source.width,
       source.height,
       composite,
-      allLayers,
+      psdLayers,
     );
     const warnings = [
-      "Object layers preserve original source RGB and alpha through validated masks.",
-      "Only pixels hidden by extracted objects are replaced in the background.",
-      `${decomposedLayerCount} object masks came from direct RGBA decomposition; ${objectLayers.length - decomposedLayerCount} used spatial tracing fallback.`,
+      "Ordinary object layers preserve original source RGB and alpha through validated masks.",
+      "Eligible people and animals may be regenerated as complete subjects with editable support-surface masks.",
+      "Background reconstruction is limited to object silhouettes, associated shadows, and a contact-shadow safety margin.",
+      `${decomposedLayerCount} object masks came from direct RGBA decomposition; ${objectCompletionResults.length - decomposedLayerCount} used spatial tracing fallback.`,
     ];
+    if (supportLayers.length)
+      warnings.push(
+        `Separated support surfaces from the clean environment: ${supportLayers
+          .map(({ name }) => name)
+          .join(", ")}.`,
+      );
     if (decompositionWarning)
       warnings.push(
         `Direct layer decomposition was unavailable: ${decompositionWarning}`,
       );
     if (droppedLayerNames.length)
       warnings.push(
-        `Dropped layers with no exclusive visible pixels: ${droppedLayerNames.join(
+        `Dropped layers that could not retain a valid visible mask: ${droppedLayerNames.join(
           ", ",
         )}.`,
       );
-    if (
-      quality === "fidelity" &&
-      extractedObjects.some(({ layer }) => layer.occludedBy.length)
-    )
+    warnings.push(...maskTraceWarnings);
+    if (plannedShadows.length)
       warnings.push(
-        "Hidden parts of occluded objects are AI reconstructions and may differ from the source.",
+        `${plannedShadows.length} planned shadow region${
+          plannedShadows.length === 1 ? " was" : "s were"
+        } removed from the reconstructed background.`,
+      );
+    const shadowFallbackNames = shadowResults
+      .filter(({ usedFallback }) => usedFallback)
+      .map(({ ownerName }) => ownerName);
+    if (shadowFallbackNames.length)
+      warnings.push(
+        `Used expanded planned bounds for shadows belonging to: ${shadowFallbackNames.join(
+          ", ",
+        )}.`,
+      );
+    const regeneratedSubjectNames = objectCompletionResults
+      .filter(({ regenerated }) => regenerated)
+      .map(({ name }) => name);
+    if (regeneratedSubjectNames.length)
+      warnings.push(
+        `Fully regenerated complete subjects with editable masks: ${regeneratedSubjectNames.join(
+          ", ",
+        )}.`,
+      );
+    const completedObjectNames = objectCompletionResults
+      .filter(({ completed }) => completed)
+      .map(({ name }) => name);
+    if (completedObjectNames.length)
+      warnings.push(
+        `AI-reconstructed hidden pixels for: ${completedObjectNames.join(
+          ", ",
+        )}. Visible source pixels remain unchanged.`,
+      );
+    for (const { warning } of objectCompletionResults)
+      if (warning) warnings.push(warning);
+    const inferredOcclusionCount = resolvedOcclusions.reduce(
+      (total, occlusion) => total + occlusion.inferredOccluderIds.length,
+      0,
+    );
+    if (quality === "fidelity" && inferredOcclusionCount)
+      warnings.push(
+        `${inferredOcclusionCount} occlusion relationship${
+          inferredOcclusionCount === 1 ? " was" : "s were"
+        } inferred from layer geometry.`,
       );
     if (analysed.plan.textRegions.length)
       warnings.push(
@@ -1069,17 +1798,23 @@ export async function POST(request: Request) {
       filename: layerFilename(),
       psdBase64: psd.toString("base64"),
       previewDataUrl: `data:image/png;base64,${preview.toString("base64")}`,
-      layerNames: allLayers.map(({ name }) => name),
+      layerNames: psdLayers.map(({ name }) => name),
       planModel: analysed.model,
       maskModel: decompositionModel(),
       maskFallbackModel: maskModel(),
       generationModel: backgroundModel,
       objectCompletionModel:
         quality === "fidelity" ? completionModel : undefined,
+      subjectRegenerationModel: regeneratedSubjectNames.length
+        ? completionModel
+        : undefined,
+      subjectIsolationModel: regeneratedSubjectNames.length
+        ? decompositionModel()
+        : undefined,
       quality,
       validation: {
         backgroundOpaque: true,
-        validObjectLayers: objectLayers.length,
+        validObjectLayers: objectCompletionResults.length,
         requestedObjectLayers: analysed.plan.layers.length,
         textDetected: analysed.plan.textRegions.length > 0,
         warnings,

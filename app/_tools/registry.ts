@@ -40,14 +40,14 @@ export const appRegistry = [
     category: "image",
     folder: "image/map-generator",
     available: true,
-    hidden: false,
+    hidden: true,
   },
   {
     id: "bio",
     category: "image",
     folder: "image/diagram-generator",
     available: true,
-    hidden: false,
+    hidden: true,
   },
   {
     id: "graph",
@@ -64,7 +64,7 @@ export const appRegistry = [
     hidden: false,
     // Controls whether the Image Generator shows the DEFAULT/ADVANCED mode
     // switcher; when false the app renders the default interface only.
-    advancedMode: true,
+    advancedMode: false,
   },
   {
     id: "cover",
@@ -151,11 +151,11 @@ export type Language = "en" | "cs";
 
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   extraction: "tested",
-  prompt: "to-test",
+  prompt: "tested",
   index: "to-test",
   map: "alpha",
   bio: "alpha",
-  image: "to-test",
+  image: "tested",
   cover: "tested",
   conceptIllustrator: "alpha",
   layerSplitter: "to-test",
