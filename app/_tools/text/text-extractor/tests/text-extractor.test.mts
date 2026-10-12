@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -34,6 +35,43 @@ test("OCR identifies nested upstream rate-limit errors", () => {
         "The OCR provider is temporarily rate-limited. Please retry shortly.",
     },
   );
+});
+
+test("correction preserves the source language unless translation is requested", async () => {
+  const prompt = await readFile(
+    new URL("../prompts/correction.md", import.meta.url),
+    "utf8",
+  );
+  const server = await readFile(
+    new URL("../code/correct-server.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(prompt, /Apply only the change explicitly requested/);
+  assert.match(prompt, /Never translate/);
+  assert.match(prompt, /keep it unchanged/);
+  assert.doesNotMatch(server, /Working language/);
+});
+
+test("Text Extractor prefers Mistral EU with regular Mistral fallback", async () => {
+  const routing = await readFile(
+    new URL("../code/openrouter-routing.ts", import.meta.url),
+    "utf8",
+  );
+  const [ocrServer, correctionServer] = await Promise.all([
+    readFile(new URL("../code/ocr-server.ts", import.meta.url), "utf8"),
+    readFile(new URL("../code/correct-server.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(routing, /only: \["mistral\/eu"\]/);
+  assert.match(routing, /only: \["mistral"\]/);
+  assert.match(
+    routing,
+    /ignore: \["mistral\/eu", "mistral\/us", "mistral\/zdr"\]/,
+  );
+  assert.match(routing, /regular Mistral endpoint/);
+  assert.match(ocrServer, /requestOpenRouterWithEuFallback/);
+  assert.match(correctionServer, /requestOpenRouterWithEuFallback/);
 });
 
 test("OCR exposes useful nested provider details for other failures", () => {

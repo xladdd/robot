@@ -6,6 +6,7 @@ export const textExtractorCopy = {
     extractedText: "Extracted text",
     source: "Source",
     emptySource: "Drop file here, paste, or click to select",
+    dropReplacement: "Drop to replace the current source",
     copyText: "Copy text",
     copied: "Copied",
     correctionPlaceholder:
@@ -28,6 +29,8 @@ export const textExtractorCopy = {
     fileTooLarge: "The file is larger than the 20 MB limit.",
     providerRateLimited:
       "The OCR provider is temporarily busy. Please retry shortly.",
+    retry: "Retry",
+    retryIn: "Retry in",
   },
   cs: {
     heading: "Extraktor textu",
@@ -36,6 +39,7 @@ export const textExtractorCopy = {
     extractedText: "Extrahovaný text",
     source: "Zdroj",
     emptySource: "Přetáhněte soubor sem, vložte ho nebo klikněte pro výběr",
+    dropReplacement: "Přetažením nahraďte aktuální zdroj",
     copyText: "Kopírovat text",
     copied: "Zkopírováno",
     correctionPlaceholder: "Popište, jak má být extrahovaný text opraven…",
@@ -57,5 +61,7 @@ export const textExtractorCopy = {
     fileTooLarge: "Soubor překračuje limit 20 MB.",
     providerRateLimited:
       "Poskytovatel OCR je dočasně vytížený. Zkuste to prosím za chvíli znovu.",
+    retry: "Zkusit znovu",
+    retryIn: "Znovu za",
   },
 } as const;

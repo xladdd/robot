@@ -2322,6 +2322,33 @@ button {
     line-height: 1.5;
     text-align: left;
 }
+.extraction-error-with-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.extraction-error-with-action > span {
+    min-width: 0;
+}
+.extraction-retry-button {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 7px 9px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+    font: inherit;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.extraction-retry-button:disabled {
+    border-color: var(--line);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: wait;
+}
 
 .extraction-module.has-source {
     align-items: stretch;
@@ -2350,6 +2377,19 @@ button {
 }
 .has-source .extraction-error {
     grid-column: 1 / -1;
+}
+.extraction-drop-overlay {
+    position: absolute;
+    z-index: 20;
+    inset: 12px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--orange);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(4px);
+}
+.extraction-drop-overlay .crosshair-instruction {
+    min-height: 0;
 }
 .extraction-body {
     position: relative;

@@ -500,7 +500,7 @@ Corrected replacement text
 
 **Output:** copied text or `.md`/`.txt` download.
 
-**Dependencies:** browser File APIs and OpenRouter. OCR uses `mistralai/mistral-small-2603` and retries that same model once after a temporary provider rate limit; PDF input also enables OpenRouter's `mistral-ocr` file-parser engine. Correction uses `mistralai/ministral-8b-2512`. The environment variables in `.env.example` can override the OCR and correction model names. The interface is app-owned; file validation, request control, and result formatting remain in `Workspace.tsx`.
+**Dependencies:** browser File APIs and OpenRouter. For Mistral models, OCR and correction requests use OpenRouter's standard API while explicitly selecting the `mistral/eu` provider endpoint first, then retrying through the regular `mistral` endpoint if EU fails; non-Mistral model overrides retain normal OpenRouter routing. OCR uses `mistralai/mistral-small-2603` and retries that same model once after a temporary provider rate limit; if the provider remains busy, the interface enables a manual retry for the current file after 10 seconds. PDF input also enables OpenRouter's `mistral-ocr` file-parser engine. Correction uses `mistralai/ministral-8b-2512` with a strict source-language-preservation instruction. The environment variables in `.env.example` can override the OCR and correction model names. The interface is app-owned; file validation, request control, and result formatting remain in `Workspace.tsx`.
 
 ### Index Creator
 

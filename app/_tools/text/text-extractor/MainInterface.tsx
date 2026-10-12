@@ -1,6 +1,12 @@
 "use client";
 
-import type { ChangeEvent, DragEvent, RefObject } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type RefObject,
+  useEffect,
+  useState,
+} from "react";
 import { LoadingText } from "../../../_components/LoadingText";
 import {
   CrosshairInstruction,
@@ -10,6 +16,47 @@ import type { Language } from "../../registry";
 import { textExtractorCopy } from "./copy";
 
 export type TextSourceKind = "image" | "pdf" | "text" | null;
+
+const RETRY_DELAY_SECONDS = 10;
+
+function DelayedRetryButton({
+  language,
+  isProcessing,
+  onRetry,
+}: {
+  language: Language;
+  isProcessing: boolean;
+  onRetry: () => void;
+}) {
+  const t = textExtractorCopy[language];
+  const [secondsRemaining, setSecondsRemaining] = useState(RETRY_DELAY_SECONDS);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setSecondsRemaining((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const isWaiting = secondsRemaining > 0;
+  return (
+    <button
+      type="button"
+      className="extraction-retry-button"
+      onClick={onRetry}
+      disabled={isWaiting || isProcessing}
+      aria-live="off"
+    >
+      {isWaiting ? `${t.retryIn} ${secondsRemaining} s` : `↻ ${t.retry}`}
+    </button>
+  );
+}
 
 export function TextExtractorMainInterface({
   language,
@@ -23,8 +70,10 @@ export function TextExtractorMainInterface({
   copied,
   isProcessing,
   isCorrecting,
+  canRetry,
   onFileInput,
   onDrop,
+  onRetry,
   onCopy,
   onDownload,
   onText,
@@ -42,8 +91,10 @@ export function TextExtractorMainInterface({
   copied: boolean;
   isProcessing: boolean;
   isCorrecting: boolean;
+  canRetry: boolean;
   onFileInput: (event: ChangeEvent<HTMLInputElement>) => void;
-  onDrop: (event: DragEvent<HTMLButtonElement>) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
+  onRetry: () => void;
   onCopy: () => void;
   onDownload: (text: string, filename: string, type: string) => void;
   onText: (text: string) => void;
@@ -51,8 +102,51 @@ export function TextExtractorMainInterface({
   onCorrect: () => void;
 }) {
   const t = textExtractorCopy[language];
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  function isFileDrag(event: DragEvent<HTMLElement>) {
+    return Array.from(event.dataTransfer.types).includes("Files");
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    setIsDraggingFile(true);
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    )
+      return;
+    setIsDraggingFile(false);
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    setIsDraggingFile(false);
+    onDrop(event);
+  }
+
   return (
-    <div className="extraction-module has-source">
+    <div
+      className="extraction-module has-source"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDraggingFile && (
+        <div className="extraction-drop-overlay">
+          <CrosshairInstruction>{t.dropReplacement}</CrosshairInstruction>
+        </div>
+      )}
       <input
         ref={inputRef}
         type="file"
@@ -76,8 +170,6 @@ export function TextExtractorMainInterface({
                   type="button"
                   className="text-workbench-crosshair-button"
                   onClick={() => inputRef.current?.click()}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={onDrop}
                 >
                   <CrosshairInstruction>{t.emptySource}</CrosshairInstruction>
                 </button>
@@ -102,15 +194,23 @@ export function TextExtractorMainInterface({
               <button
                 className="start-button action-button upload-button"
                 onClick={() => inputRef.current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={onDrop}
               >
                 <span>{t.another}</span>
                 <b>＋</b>
               </button>
               {error && (
-                <p className="extraction-error" role="alert">
-                  {error}
+                <p
+                  className={`extraction-error${canRetry ? " extraction-error-with-action" : ""}`}
+                  role="alert"
+                >
+                  <span>{error}</span>
+                  {canRetry && (
+                    <DelayedRetryButton
+                      language={language}
+                      isProcessing={isProcessing}
+                      onRetry={onRetry}
+                    />
+                  )}
                 </p>
               )}
             </div>
