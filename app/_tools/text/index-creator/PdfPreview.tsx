@@ -38,7 +38,7 @@ type PdfPage = {
 type PdfDocument = {
   numPages: number;
   getPage: (pageNumber: number) => Promise<PdfPage>;
-  destroy: () => Promise<void>;
+  destroy?: () => Promise<void> | void;
 };
 
 type TextRange = PdfTextItem & {
@@ -477,7 +477,7 @@ export function IndexPdfPreview({
           data: new Uint8Array(await file.arrayBuffer()),
         }).promise) as unknown as PdfDocument;
         if (cancelled) {
-          await loadedDocument.destroy();
+          await loadedDocument.destroy?.();
           loadedDocument = null;
           return;
         }
@@ -494,7 +494,7 @@ export function IndexPdfPreview({
 
     return () => {
       cancelled = true;
-      if (loadedDocument) void loadedDocument.destroy();
+      if (loadedDocument) void loadedDocument.destroy?.();
     };
   }, [file, onPageCount]);
 
