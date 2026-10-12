@@ -31,8 +31,10 @@ import {
 import { PromptExtractorMainInterface } from "./_tools/text/prompt-extractor/MainInterface";
 import { ScriptBuffetMainInterface } from "./_tools/design/script-buffet/MainInterface";
 import { indexCreatorCopy } from "./_tools/text/index-creator/copy";
-import { IndexCreatorMainInterface } from "./_tools/text/index-creator/MainInterface";
-import type { IndexCandidatePage } from "./_tools/text/index-creator/code/pdf-indexer";
+import {
+  IndexCreatorMainInterface,
+  type IndexMatch,
+} from "./_tools/text/index-creator/MainInterface";
 import { textExtractorCopy } from "./_tools/text/text-extractor/copy";
 import { TextExtractorMainInterface } from "./_tools/text/text-extractor/MainInterface";
 import {
@@ -95,6 +97,8 @@ type FigureOutput = GraphOutput | DiagramOutput | MapOutput;
 type FigureCheck = { level: "pass" | "warning"; message: string };
 type MapViewport = { zoom: number; pan: { x: number; y: number } };
 
+const INDEX_MATCH_HISTORY_LIMIT = 20;
+
 import { BugFeedbackDialog } from "./_components/BugFeedbackDialog";
 import type { FeedbackDiagnostics } from "./_feedback/types";
 import { brandGuidelinesUrl, copy, robotStatusPhrases } from "./content/ui";
@@ -141,18 +145,16 @@ export default function Workspace({
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [indexFile, setIndexFile] = useState<File | null>(null);
-  const [indexUrl, setIndexUrl] = useState<string | null>(null);
   const [indexPreviewPage, setIndexPreviewPage] = useState(1);
+  const [indexPreviewHighlightTerms, setIndexPreviewHighlightTerms] = useState<
+    string[]
+  >([]);
   const [indexWords, setIndexWords] = useState("");
   const [indexResult, setIndexResult] = useState("");
-  const [indexMatches, setIndexMatches] = useState<
-    Array<{
-      word: string;
-      pdfPages: number[];
-      otherPdfPages: number[];
-      candidatePages: IndexCandidatePage[];
-    }>
-  >([]);
+  const [indexMatches, setIndexMatches] = useState<IndexMatch[]>([]);
+  const [indexMatchHistory, setIndexMatchHistory] = useState<IndexMatch[][]>(
+    [],
+  );
   const [pdfAnchor, setPdfAnchor] = useState(1);
   const [printedAnchor, setPrintedAnchor] = useState(1);
   const [isIndexing, setIsIndexing] = useState(false);
@@ -470,13 +472,6 @@ export default function Workspace({
 
   useEffect(
     () => () => {
-      if (indexUrl) URL.revokeObjectURL(indexUrl);
-    },
-    [indexUrl],
-  );
-
-  useEffect(
-    () => () => {
       if (promptUrl) URL.revokeObjectURL(promptUrl);
     },
     [promptUrl],
@@ -768,12 +763,12 @@ export default function Workspace({
       setIndexError(indexCreatorT.invalidFile);
       return;
     }
-    if (indexUrl) URL.revokeObjectURL(indexUrl);
     setIndexFile(file);
-    setIndexUrl(URL.createObjectURL(file));
     setIndexPreviewPage(1);
+    setIndexPreviewHighlightTerms([]);
     setIndexResult("");
     setIndexMatches([]);
+    setIndexMatchHistory([]);
     setIndexProgress(0);
     setIndexError("");
   }
@@ -790,21 +785,38 @@ export default function Workspace({
     if (file) selectIndexFile(file);
   }
 
+  function previewIndexPage(
+    pdfPage: number,
+    highlightTerms: readonly string[] = [],
+  ) {
+    setIndexPreviewPage(pdfPage);
+    setIndexPreviewHighlightTerms([...highlightTerms]);
+  }
+
   function toggleIndexPage(word: string, pdfPage: number) {
-    setIndexMatches((current) =>
-      current.map((match) => {
-        if (match.word !== word) return match;
-        const accepted = match.pdfPages.includes(pdfPage);
-        const pdfPages = accepted
-          ? match.pdfPages.filter((page) => page !== pdfPage)
-          : [...match.pdfPages, pdfPage].sort((a, b) => a - b);
-        const otherPdfPages = match.candidatePages
-          .map((candidate) => candidate.pdfPage)
-          .filter((page) => page !== pdfPage && !pdfPages.includes(page))
-          .sort((a, b) => a - b);
-        return { ...match, pdfPages, otherPdfPages };
-      }),
+    const nextMatches = indexMatches.map((match) => {
+      if (match.word !== word) return match;
+      const accepted = match.pdfPages.includes(pdfPage);
+      const pdfPages = accepted
+        ? match.pdfPages.filter((page) => page !== pdfPage)
+        : [...match.pdfPages, pdfPage].sort((a, b) => a - b);
+      const otherPdfPages = match.candidatePages
+        .map((candidate) => candidate.pdfPage)
+        .filter((page) => page !== pdfPage && !pdfPages.includes(page))
+        .sort((a, b) => a - b);
+      return { ...match, pdfPages, otherPdfPages };
+    });
+    setIndexMatchHistory((history) =>
+      [...history, indexMatches].slice(-INDEX_MATCH_HISTORY_LIMIT),
     );
+    setIndexMatches(nextMatches);
+  }
+
+  function undoIndexPageToggle() {
+    const previousMatches = indexMatchHistory.at(-1);
+    if (!previousMatches) return;
+    setIndexMatches(previousMatches);
+    setIndexMatchHistory((history) => history.slice(0, -1));
   }
 
   async function createIndex() {
@@ -820,6 +832,8 @@ export default function Workspace({
     setIsIndexing(true);
     setIndexResult("");
     setIndexMatches([]);
+    setIndexMatchHistory([]);
+    setIndexPreviewHighlightTerms([]);
     setIndexError("");
     setIndexProgress(1);
     try {
@@ -2398,8 +2412,8 @@ export default function Workspace({
             language={language}
             inputRef={indexFileInputRef}
             file={indexFile}
-            url={indexUrl}
             previewPage={indexPreviewPage}
+            previewHighlightTerms={indexPreviewHighlightTerms}
             words={indexWords}
             result={indexResult}
             matches={indexMatches}
@@ -2409,14 +2423,16 @@ export default function Workspace({
             copied={indexCopied}
             isIndexing={isIndexing}
             progress={indexProgress}
+            canUndo={indexMatchHistory.length > 0}
             onFileInput={handleIndexFileInput}
             onDrop={handleIndexDrop}
             onWords={setIndexWords}
             onCreate={() => void createIndex()}
             onCopy={() => void copyIndex()}
             onDownload={downloadText}
-            onPreviewPage={setIndexPreviewPage}
+            onPreviewPage={previewIndexPage}
             onTogglePage={toggleIndexPage}
+            onUndo={undoIndexPageToggle}
             onPdfAnchor={setPdfAnchor}
             onPrintedAnchor={setPrintedAnchor}
           />

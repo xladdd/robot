@@ -15,6 +15,7 @@ import {
 import type { Language } from "../../registry";
 import type { CandidateMatchKind, CandidateReason } from "./code/pdf-indexer";
 import { indexCreatorCopy } from "./copy";
+import { IndexPdfPreview } from "./PdfPreview";
 
 export type IndexCandidatePageView = {
   pdfPage: number;
@@ -39,8 +40,8 @@ export function IndexCreatorMainInterface({
   language,
   inputRef,
   file,
-  url,
   previewPage,
+  previewHighlightTerms,
   words,
   result,
   matches,
@@ -50,6 +51,7 @@ export function IndexCreatorMainInterface({
   copied,
   isIndexing,
   progress,
+  canUndo,
   onFileInput,
   onDrop,
   onWords,
@@ -58,14 +60,15 @@ export function IndexCreatorMainInterface({
   onDownload,
   onPreviewPage,
   onTogglePage,
+  onUndo,
   onPdfAnchor,
   onPrintedAnchor,
 }: {
   language: Language;
   inputRef: RefObject<HTMLInputElement | null>;
   file: File | null;
-  url: string | null;
   previewPage: number;
+  previewHighlightTerms: readonly string[];
   words: string;
   result: string;
   matches: IndexMatch[];
@@ -75,14 +78,16 @@ export function IndexCreatorMainInterface({
   copied: boolean;
   isIndexing: boolean;
   progress: number;
+  canUndo: boolean;
   onFileInput: (event: ChangeEvent<HTMLInputElement>) => void;
   onDrop: (event: DragEvent<HTMLButtonElement>) => void;
   onWords: (words: string) => void;
   onCreate: () => void;
   onCopy: () => void;
   onDownload: (text: string, filename: string, type: string) => void;
-  onPreviewPage: (page: number) => void;
+  onPreviewPage: (page: number, highlightTerms?: readonly string[]) => void;
   onTogglePage: (word: string, page: number) => void;
+  onUndo: () => void;
   onPdfAnchor: (page: number) => void;
   onPrintedAnchor: (page: number) => void;
 }) {
@@ -93,27 +98,6 @@ export function IndexCreatorMainInterface({
   useEffect(() => {
     setPageInput(String(previewPage));
   }, [previewPage]);
-
-  useEffect(() => {
-    if (!file) {
-      setPageCount(null);
-      return;
-    }
-
-    let cancelled = false;
-    void import("./code/pdf-indexer")
-      .then(({ getPdfPageCount }) => getPdfPageCount(file))
-      .then((count) => {
-        if (!cancelled) setPageCount(count);
-      })
-      .catch(() => {
-        if (!cancelled) setPageCount(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [file]);
 
   function commitPreviewPage() {
     const requestedPage = Number(pageInput);
@@ -173,16 +157,22 @@ export function IndexCreatorMainInterface({
                   <CrosshairInstruction>{t.emptySource}</CrosshairInstruction>
                 </button>
               )}
-              {url && (
-                <iframe
-                  key={previewPage}
-                  src={`${url}#page=${previewPage}`}
-                  title={file?.name || t.source}
+              {file && (
+                <IndexPdfPreview
+                  file={file}
+                  pageNumber={previewPage}
+                  highlightTerms={previewHighlightTerms}
+                  label={`${file.name || t.source} · ${t.pdfPage} ${previewPage}`}
+                  errorLabel={t.previewError}
+                  highlightedMatchLabel={t.highlightedMatch}
+                  onPageCount={setPageCount}
                 />
               )}
             </div>
           </section>
-          <div className="index-side-column">
+          <div
+            className={`index-side-column${progress === 0 ? " index-awaiting-generation" : ""}`}
+          >
             <div className="index-active-head document-active-head document-app-head">
               <div>
                 <ProcessingBadge mode="ai" language={language} />
@@ -238,7 +228,7 @@ export function IndexCreatorMainInterface({
                   <span>{copied ? t.copied : t.copyText}</span>
                 </button>
                 <button
-                  className="download-button action-button action-button-success action-button-compact"
+                  className="download-button index-download-button action-button action-button-compact"
                   onClick={() =>
                     onDownload(result, "index.md", "text/markdown")
                   }
@@ -247,13 +237,26 @@ export function IndexCreatorMainInterface({
                   MD
                 </button>
                 <button
-                  className="download-button action-button action-button-success action-button-compact"
+                  className="download-button index-download-button action-button action-button-compact"
                   onClick={() => onDownload(result, "index.txt", "text/plain")}
                   disabled={!result}
                 >
                   TXT
                 </button>
               </div>
+              {matches.length > 0 && (
+                <button
+                  type="button"
+                  className="index-undo-button"
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  aria-label={t.undo}
+                  title={t.undo}
+                >
+                  <span aria-hidden="true">↺</span>
+                  <b>{t.undo}</b>
+                </button>
+              )}
               {isIndexing ? (
                 <div className="measured-progress" role="status">
                   {t.createIndex} · {progress}%
@@ -277,21 +280,27 @@ export function IndexCreatorMainInterface({
                           .join("; ");
                         return `${t.printedPage} ${pageLabel(pdfPage)} · ${t.pdfPage} ${pdfPage}${reasons ? ` · ${reasons}` : ""}`;
                       };
+                      const highlightTermsFor = (pdfPage: number) =>
+                        candidateByPage.get(pdfPage)?.matchedForms ?? [];
                       return (
                         <div className="index-result-line" key={word}>
                           <span className="index-result-term">{word}</span>
                           <span className="index-result-pages index-result-accepted">
                             {pdfPages.length ? (
-                              pdfPages.map((pdfPage, index) => (
+                              pdfPages.map((pdfPage) => (
                                 <span
                                   className="index-page-control"
                                   key={pdfPage}
                                 >
-                                  {index > 0 && ", "}
                                   <button
                                     type="button"
                                     className="index-page-link"
-                                    onClick={() => onPreviewPage(pdfPage)}
+                                    onClick={() =>
+                                      onPreviewPage(
+                                        pdfPage,
+                                        highlightTermsFor(pdfPage),
+                                      )
+                                    }
                                     title={titleFor(pdfPage)}
                                   >
                                     {pageLabel(pdfPage)}
@@ -300,10 +309,10 @@ export function IndexCreatorMainInterface({
                                     type="button"
                                     className="index-page-toggle"
                                     onClick={() => onTogglePage(word, pdfPage)}
-                                    aria-label={`${t.demotePage} ${pageLabel(pdfPage)}`}
+                                    aria-label={`${t.demotePage}: ${word}, ${pageLabel(pdfPage)}`}
                                     title={t.demotePage}
                                   >
-                                    −
+                                    ✕
                                   </button>
                                 </span>
                               ))
@@ -318,13 +327,18 @@ export function IndexCreatorMainInterface({
                               </span>
                               {otherPdfPages.map((pdfPage) => (
                                 <span
-                                  className="index-page-control"
+                                  className="index-page-control index-page-control-possible"
                                   key={pdfPage}
                                 >
                                   <button
                                     type="button"
                                     className="index-page-link index-page-possible"
-                                    onClick={() => onPreviewPage(pdfPage)}
+                                    onClick={() =>
+                                      onPreviewPage(
+                                        pdfPage,
+                                        highlightTermsFor(pdfPage),
+                                      )
+                                    }
                                     title={titleFor(pdfPage)}
                                   >
                                     {pageLabel(pdfPage)}
@@ -333,7 +347,7 @@ export function IndexCreatorMainInterface({
                                     type="button"
                                     className="index-page-toggle index-page-accept"
                                     onClick={() => onTogglePage(word, pdfPage)}
-                                    aria-label={`${t.acceptPage} ${pageLabel(pdfPage)}`}
+                                    aria-label={`${t.acceptPage}: ${word}, ${pageLabel(pdfPage)}`}
                                     title={t.acceptPage}
                                   >
                                     +

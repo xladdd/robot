@@ -256,6 +256,7 @@ The following completes the folder map by naming every source-file role. Repeate
 #### Index Creator: `app/_tools/text/index-creator/`
 
 - `MainInterface.tsx`: PDF and term input, review controls, and index output interface.
+- `PdfPreview.tsx`: local single-page PDF rendering and clicked-match highlighting.
 - `copy.ts`: bilingual in-app UI copy and validation messages.
 - `code/pdf-indexer.ts`: local PDF text reading, printed-page detection, candidate search, and output formatting helpers.
 - `code/local-ocr.ts`: local sparse-page rendering and bundled Czech OCR fallback.

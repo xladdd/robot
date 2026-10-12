@@ -11,6 +11,7 @@ export const indexCreatorCopy = {
     emptySource: "Drop file here, paste, or click to select",
     copyText: "Copy text",
     copied: "Copied",
+    undo: "Undo",
     pdfPage: "PDF page",
     printedPage: "Printed page",
     possible: "Possible",
@@ -53,6 +54,8 @@ export const indexCreatorCopy = {
     demotePage: "Move to possible pages",
     pageMapping: "Page-number anchor",
     localExtraction: "The PDF text stays in this browser",
+    previewError: "The PDF preview could not be displayed.",
+    highlightedMatch: "Highlighted match",
     processing: [
       "communicating",
       "calculating",
@@ -83,6 +86,7 @@ export const indexCreatorCopy = {
     emptySource: "Přetáhněte soubor sem, vložte ho nebo klikněte pro výběr",
     copyText: "Kopírovat text",
     copied: "Zkopírováno",
+    undo: "Zpět",
     pdfPage: "Strana PDF",
     printedPage: "Tištěná strana",
     possible: "Možné",
@@ -125,6 +129,8 @@ export const indexCreatorCopy = {
     demotePage: "Přesunout mezi možné strany",
     pageMapping: "Kotva číslování stran",
     localExtraction: "Text PDF zůstává v tomto prohlížeči",
+    previewError: "Náhled PDF se nepodařilo zobrazit.",
+    highlightedMatch: "Zvýrazněná shoda",
     processing: [
       "komunikace",
       "kalkulace",
