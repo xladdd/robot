@@ -168,6 +168,8 @@ export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
 
+export const appVersion = "v0.5";
+
 export const groups = createSidebarGroups(appRegistry);
 
 export const completedApps: ReadonlySet<string> = new Set(
