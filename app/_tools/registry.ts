@@ -40,14 +40,14 @@ export const appRegistry = [
     category: "image",
     folder: "image/map-generator",
     available: true,
-    hidden: false,
+    hidden: true,
   },
   {
     id: "bio",
     category: "image",
     folder: "image/diagram-generator",
     available: true,
-    hidden: false,
+    hidden: true,
   },
   {
     id: "graph",
@@ -62,6 +62,9 @@ export const appRegistry = [
     folder: "image/image-generator",
     available: true,
     hidden: false,
+    // Controls whether the Image Generator shows the DEFAULT/ADVANCED mode
+    // switcher; when false the app renders the default interface only.
+    advancedMode: false,
   },
   {
     id: "cover",
@@ -120,6 +123,13 @@ export const appRegistry = [
     hidden: false,
   },
   {
+    id: "styleTrainer",
+    category: "design",
+    folder: "design/style-trainer",
+    available: true,
+    hidden: true,
+  },
+  {
     id: "prompt",
     category: "text",
     folder: "text/prompt-extractor",
@@ -141,21 +151,24 @@ export type Language = "en" | "cs";
 
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
   extraction: "tested",
-  prompt: "to-test",
+  prompt: "tested",
   index: "to-test",
   map: "alpha",
   bio: "alpha",
-  image: "to-test",
+  image: "tested",
   cover: "tested",
   conceptIllustrator: "alpha",
   layerSplitter: "to-test",
   barcode: "tested",
+  styleTrainer: "alpha",
   grep: "tested",
   coverSplitter: "tested",
   solutions: "tested",
   typesetter: "alpha",
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
+
+export const appVersion = "v0.5";
 
 export const groups = createSidebarGroups(appRegistry);
 

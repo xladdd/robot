@@ -3,9 +3,9 @@ import { loadPrompt } from "../../../load-prompt";
 import {
   getOpenRouterContext,
   openRouterConfigurationError,
-  requestOpenRouter,
 } from "../../../openrouter/server";
 import { isOcrRateLimited, ocrModel, ocrProviderError } from "./ocr-response";
+import { requestOpenRouterWithEuFallback } from "./openrouter-routing";
 
 const transcriptionPrompt = loadPrompt(
   "text/text-extractor/prompts/transcription.md",
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         ? { plugins: [{ id: "file-parser", pdf: { engine: "mistral-ocr" } }] }
         : {}),
     };
-    let openRouterResult = await requestOpenRouter<OcrResult>(
+    let openRouterResult = await requestOpenRouterWithEuFallback<OcrResult>(
       openRouter,
       "chat/completions",
       "extract-text",
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       )
     ) {
       await wait(OCR_RATE_LIMIT_RETRY_DELAY_MS);
-      openRouterResult = await requestOpenRouter<OcrResult>(
+      openRouterResult = await requestOpenRouterWithEuFallback<OcrResult>(
         openRouter,
         "chat/completions",
         "extract-text-retry",

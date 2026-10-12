@@ -1,7 +1,9 @@
-Reconstruct the complete background of the supplied reference image.
+Fill the entire transparent cleanup region in the first supplied crop with the clean background that plausibly continues behind the removed foreground objects and their removed cast/contact shadows.
 
-{{backgroundDescription}}
+Background context: {{backgroundDescription}}
 
-Remove every foreground object and every visible text element, including labels, captions, logos, signs, lettering, watermarks, and gibberish. Fill every vacated area with plausible continuation of the original scene. Preserve the source viewpoint, perspective, composition, lighting direction, palette, texture, medium, and aspect ratio. The result must be a complete uninterrupted full-canvas scene from edge to edge.
+The first reference is the exact edit target with transparent cleanup regions. The second reference is the original version of the same crop and must be used only to understand surface boundaries, perspective, lighting, texture, and what must be removed. Reconstruct the environment shown around each transparent region; do not copy any foreground object, person, body part, shadow, reflection, text, or edge halo from the second reference.
 
-Do not leave holes, object silhouettes, transparent areas, checkerboards, blank patches, or inpainting seams. Do not add new objects. Do not add any text. Return only the reconstructed image.
+Preserve every visible source pixel around the transparent region conceptually unchanged. Continue nearby lines and distinct surfaces through the missing area. Keep walls, tabletops, floors, and other planes separated at the same boundaries and perspective as the references. Reconstruct clean unshadowed surfaces instead of blending adjacent surface colours together. Do not remove or rewrite visible content outside the hole, and do not add text or new objects.
+
+Return one complete opaque crop with every transparent hole filled and no seam, checkerboard, blank patch, foreground silhouette, or invented object.

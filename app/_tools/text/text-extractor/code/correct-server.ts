@@ -3,8 +3,8 @@ import { loadPrompt } from "../../../load-prompt";
 import {
   getOpenRouterContext,
   openRouterConfigurationError,
-  requestOpenRouter,
 } from "../../../openrouter/server";
+import { requestOpenRouterWithEuFallback } from "./openrouter-routing";
 
 const correctionPrompt = loadPrompt(
   "text/text-extractor/prompts/correction.md",
@@ -18,10 +18,9 @@ export async function POST(request: Request) {
         { error: openRouterConfigurationError("extraction") },
         { status: 503 },
       );
-    const { text, instruction, language } = (await request.json()) as {
+    const { text, instruction } = (await request.json()) as {
       text?: string;
       instruction?: string;
-      language?: string;
     };
     if (!text?.trim() || !instruction?.trim())
       return NextResponse.json(
@@ -29,19 +28,16 @@ export async function POST(request: Request) {
         { status: 400 },
       );
 
-    const { response, result } = await requestOpenRouter<{
+    const { response, result } = await requestOpenRouterWithEuFallback<{
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
     }>(openRouter, "chat/completions", "correct-text", {
       model:
         process.env.OPENROUTER_CORRECTION_MODEL ||
         "mistralai/ministral-8b-2512",
-      temperature: 0.1,
+      temperature: 0,
       messages: [
-        {
-          role: "system",
-          content: `${correctionPrompt} Working language: ${language === "cs" ? "Czech" : "English"}.`,
-        },
+        { role: "system", content: correctionPrompt },
         {
           role: "user",
           content: `INSTRUCTION:\n${instruction}\n\nTEXT:\n${text}`,

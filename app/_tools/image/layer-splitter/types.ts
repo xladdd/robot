@@ -7,6 +7,21 @@ export type NormalizedBounds = {
   height: number;
 };
 
+export type SubjectKind = "person" | "animal" | "plant" | "object";
+
+export type SupportSurface = {
+  id: string;
+  name: string;
+  description: string;
+  order: number;
+  bounds: NormalizedBounds;
+};
+
+export type SupportOcclusion = {
+  supportSurfaceId: string;
+  foregroundPartsDescription: string;
+};
+
 export type LayerPlanItem = {
   id: string;
   name: string;
@@ -15,6 +30,9 @@ export type LayerPlanItem = {
   visibleBounds: NormalizedBounds;
   reconstructionBounds: NormalizedBounds;
   occludedBy: string[];
+  /** Legacy callers may omit this; parsed plans always receive a concrete kind. */
+  subjectKind?: SubjectKind;
+  supportOcclusion?: SupportOcclusion;
 };
 
 export type TextRegion = {
@@ -22,9 +40,17 @@ export type TextRegion = {
   bounds: NormalizedBounds;
 };
 
+export type ShadowRegion = {
+  ownerId: string;
+  description: string;
+  bounds: NormalizedBounds;
+};
+
 export type LayerPlan = {
   backgroundDescription: string;
   textRegions: TextRegion[];
+  shadowRegions: ShadowRegion[];
+  supportSurfaces: SupportSurface[];
   layers: LayerPlanItem[];
 };
 
@@ -42,7 +68,12 @@ export type LayerSplitterResult = {
   previewDataUrl: string;
   layerNames: string[];
   planModel: string;
+  maskModel?: string;
+  maskFallbackModel?: string;
   generationModel: string;
+  objectCompletionModel?: string;
+  subjectRegenerationModel?: string;
+  subjectIsolationModel?: string;
   quality: LayerSplitterQuality;
   validation: LayerSplitterValidation;
 };

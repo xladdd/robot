@@ -36,6 +36,7 @@ import {
   type IndexMatch,
 } from "./_tools/text/index-creator/MainInterface";
 import { textExtractorCopy } from "./_tools/text/text-extractor/copy";
+import type { OcrErrorCode } from "./_tools/text/text-extractor/code/ocr-response";
 import { TextExtractorMainInterface } from "./_tools/text/text-extractor/MainInterface";
 import {
   parseAse,
@@ -84,6 +85,7 @@ import type {
 } from "./_tools/image/cover-generator/code/types";
 import { SolutionsImporterMainInterface } from "./_tools/design/solutions-importer/MainInterface";
 import { TypesetterMainInterface } from "./_tools/design/typesetter/MainInterface";
+import { StyleTrainerMainInterface } from "./_tools/design/style-trainer/MainInterface";
 import {
   completedApps,
   groups,
@@ -142,8 +144,12 @@ export default function Workspace({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [extractionError, setExtractionError] = useState("");
+  const [extractionErrorCode, setExtractionErrorCode] =
+    useState<OcrErrorCode | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extractionRequestId = useRef(0);
+  const correctionRequestId = useRef(0);
   const [indexFile, setIndexFile] = useState<File | null>(null);
   const [indexPreviewPage, setIndexPreviewPage] = useState(1);
   const [indexPreviewHighlightTerms, setIndexPreviewHighlightTerms] = useState<
@@ -637,12 +643,16 @@ export default function Workspace({
   }
 
   function loadPastedText(text: string) {
+    extractionRequestId.current += 1;
+    correctionRequestId.current += 1;
     resetSourceUrl();
     setSourceFile(null);
     setSourceKind("text");
     setOcrText(text);
     setExtractionError("");
+    setExtractionErrorCode(null);
     setIsProcessing(false);
+    setIsCorrecting(false);
   }
 
   async function processFile(file: File) {
@@ -652,19 +662,26 @@ export default function Workspace({
       file.type === "image/jpeg";
     if (!allowed) {
       setExtractionError(textExtractorT.invalidFile);
+      setExtractionErrorCode(null);
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
       setExtractionError(textExtractorT.fileTooLarge);
+      setExtractionErrorCode(null);
       return;
     }
+    const requestId = extractionRequestId.current + 1;
+    extractionRequestId.current = requestId;
+    correctionRequestId.current += 1;
     resetSourceUrl();
     setSourceFile(file);
     setSourceUrl(URL.createObjectURL(file));
     setSourceKind(file.type === "application/pdf" ? "pdf" : "image");
     setOcrText("");
     setExtractionError("");
+    setExtractionErrorCode(null);
     setIsProcessing(true);
+    setIsCorrecting(false);
     try {
       const response = await fetch("/api/ocr", {
         method: "POST",
@@ -678,22 +695,27 @@ export default function Workspace({
       const result = (await response.json()) as {
         text?: string;
         error?: string;
-        code?: "provider_rate_limited" | "provider_error";
+        code?: OcrErrorCode;
       };
+      if (requestId !== extractionRequestId.current) return;
       if (!response.ok || !result.text) {
-        const message =
+        setExtractionError(
           result.code === "provider_rate_limited"
             ? textExtractorT.providerRateLimited
-            : result.error || "Text extraction failed.";
-        throw new Error(message);
+            : result.error || "Text extraction failed.",
+        );
+        setExtractionErrorCode(result.code ?? null);
+        return;
       }
       setOcrText(result.text);
     } catch (error) {
+      if (requestId !== extractionRequestId.current) return;
       setExtractionError(
         error instanceof Error ? error.message : "Text extraction failed.",
       );
+      setExtractionErrorCode(null);
     } finally {
-      setIsProcessing(false);
+      if (requestId === extractionRequestId.current) setIsProcessing(false);
     }
   }
 
@@ -703,16 +725,21 @@ export default function Workspace({
     event.target.value = "";
   }
 
-  function handleDrop(event: DragEvent<HTMLButtonElement>) {
-    event.preventDefault();
+  function handleDrop(event: DragEvent<HTMLElement>) {
     const file = event.dataTransfer.files?.[0];
-    if (file) void processFile(file);
+    if (!file) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void processFile(file);
   }
 
   async function correctText() {
     if (!ocrText.trim() || !correctionPrompt.trim() || isCorrecting) return;
+    const requestId = correctionRequestId.current + 1;
+    correctionRequestId.current = requestId;
     setIsCorrecting(true);
     setExtractionError("");
+    setExtractionErrorCode(null);
     try {
       const response = await fetch("/api/correct", {
         method: "POST",
@@ -720,23 +747,24 @@ export default function Workspace({
         body: JSON.stringify({
           text: ocrText,
           instruction: correctionPrompt,
-          language,
         }),
       });
       const result = (await response.json()) as {
         text?: string;
         error?: string;
       };
+      if (requestId !== correctionRequestId.current) return;
       if (!response.ok || !result.text)
         throw new Error(result.error || "Text correction failed.");
       setOcrText(result.text);
       setCorrectionPrompt("");
     } catch (error) {
+      if (requestId !== correctionRequestId.current) return;
       setExtractionError(
         error instanceof Error ? error.message : "Text correction failed.",
       );
     } finally {
-      setIsCorrecting(false);
+      if (requestId === correctionRequestId.current) setIsCorrecting(false);
     }
   }
 
@@ -2294,8 +2322,13 @@ export default function Workspace({
           language={language}
           active={selected === "conceptIllustrator"}
         />
+        <StyleTrainerMainInterface
+          language={language}
+          active={selected === "styleTrainer"}
+        />
         {selected === "image" ||
-        selected === "conceptIllustrator" ? null : selected === "manual" ? (
+        selected === "conceptIllustrator" ||
+        selected === "styleTrainer" ? null : selected === "manual" ? (
           <DesignManualMainInterface
             language={language}
             content={
@@ -2399,8 +2432,14 @@ export default function Workspace({
             copied={copied}
             isProcessing={isProcessing}
             isCorrecting={isCorrecting}
+            canRetry={
+              extractionErrorCode === "provider_rate_limited" && !!sourceFile
+            }
             onFileInput={handleFileInput}
             onDrop={handleDrop}
+            onRetry={() => {
+              if (sourceFile) void processFile(sourceFile);
+            }}
             onCopy={() => void copyOcrText()}
             onDownload={downloadText}
             onText={setOcrText}

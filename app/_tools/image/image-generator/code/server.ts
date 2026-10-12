@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
 import {
+  fetchOpenRouter,
+  fetchOpenRouterAccountCredits,
+  fetchOpenRouterPublicImageModels,
   getOpenRouterContext,
   openRouterConfigurationError,
   requestOpenRouter,
 } from "../../../openrouter/server";
+import { imageStylePresets } from "./style-presets";
 
 const MAX_REFERENCE_SIZE = 7_000_000;
 const isImageDataUrl = (value: unknown): value is string =>
@@ -26,6 +30,14 @@ const generationPrompt = loadPrompt(
 );
 const upscalePrompt = loadPrompt("image/image-generator/prompts/upscale.md");
 
+// The storybook styles are shared with the Advanced mode preset dropdown; in
+// Default mode they act as full medium instructions.
+function storybookMediumInstruction(id: string) {
+  const preset = imageStylePresets.find((entry) => entry.id === id);
+  if (!preset) throw new Error(`Unknown storybook style preset: ${id}`);
+  return preset.prompt;
+}
+
 const mediumInstructions = {
   match:
     "Infer and faithfully match the dominant visual medium, texture, realism level, palette, lighting, and finish of the reference images. If no references are supplied, use a polished editorial illustration.",
@@ -34,7 +46,9 @@ const mediumInstructions = {
   illustration:
     "Create a polished editorial illustration with intentional mark-making, texture, colour, depth, and a publication-ready finish.",
   "3d": "Create a polished 3D editorial render with coherent materials, lighting, camera perspective, depth, and a publication-ready finish.",
-} as const;
+  "storybook-object": storybookMediumInstruction("storybook-object"),
+  "storybook-character": storybookMediumInstruction("storybook-character"),
+};
 
 function outputDataUrl(image: ImageResult) {
   if (image.b64_json) return `data:image/jpeg;base64,${image.b64_json}`;
@@ -48,6 +62,158 @@ function userFacingError(error: unknown) {
     return "OpenRouter could not be reached. No image was returned; retry this image.";
   }
   return error instanceof Error ? error.message : "Image generation failed.";
+}
+
+type RawCatalogModel = {
+  id?: unknown;
+  name?: unknown;
+  architecture?: { output_modalities?: unknown };
+  pricing?: { image?: unknown; image_output?: unknown };
+};
+
+type RawCredits = {
+  data?: { total_credits?: unknown; total_usage?: unknown };
+};
+
+type RawKeyInfo = {
+  data?: { limit?: unknown; limit_remaining?: unknown; usage?: unknown };
+};
+
+export async function GET(request: Request) {
+  try {
+    const openRouter = await getOpenRouterContext(request, "image");
+    if (!openRouter)
+      return NextResponse.json(
+        { error: openRouterConfigurationError("image") },
+        { status: 503 },
+      );
+
+    const managementKey = process.env.OPENROUTER_MANAGEMENT_API_KEY?.trim();
+    const [modelsRequest, creditsRequest, keyRequest, accountCreditsRequest] =
+      await Promise.all([
+        fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
+          signal: request.signal,
+        }),
+        fetchOpenRouter<RawCredits>(openRouter, "credits", {
+          signal: request.signal,
+        }).catch(() => null),
+        fetchOpenRouter<RawKeyInfo>(openRouter, "key", {
+          signal: request.signal,
+        }).catch(() => null),
+        managementKey
+          ? fetchOpenRouterAccountCredits(managementKey, "image", {
+              signal: request.signal,
+            }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+    if (!modelsRequest.response.ok)
+      throw new Error("The OpenRouter model catalog could not be loaded.");
+
+    const entries = Array.isArray(modelsRequest.result.data)
+      ? modelsRequest.result.data
+      : [];
+    const models = entries
+      .filter(
+        (entry): entry is RawCatalogModel & { id: string } =>
+          typeof entry?.id === "string" &&
+          entry.id.toLowerCase().includes("flux") &&
+          Array.isArray(entry.architecture?.output_modalities) &&
+          (entry.architecture.output_modalities as unknown[]).includes(
+            "image",
+          ),
+      )
+      .map((entry) => {
+        // pricing.image is the flat per-image rate; per-token image models
+        // bill 4096 image tokens per megapixel and this tool generates 1K
+        // (~1MP) images, so the token price approximates the per-image cost.
+        const flatPrice =
+          typeof entry.pricing?.image === "string" &&
+          Number.isFinite(Number(entry.pricing.image))
+            ? Number(entry.pricing.image)
+            : null;
+        const tokenPrice =
+          typeof entry.pricing?.image_output === "string" &&
+          Number.isFinite(Number(entry.pricing.image_output))
+            ? Number(entry.pricing.image_output)
+            : null;
+        const price =
+          flatPrice !== null
+            ? flatPrice
+            : tokenPrice !== null
+              ? tokenPrice * 4096
+              : null;
+        return {
+          id: entry.id,
+          name:
+            typeof entry.name === "string" && entry.name.trim()
+              ? entry.name
+              : entry.id,
+          pricePerImage: price,
+        };
+      })
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    const credits = creditsRequest?.result.data;
+    const totalCredits =
+      typeof credits?.total_credits === "number" ? credits.total_credits : null;
+    const totalUsage =
+      typeof credits?.total_usage === "number" ? credits.total_usage : null;
+    const appKeyAccountCredit =
+      totalCredits !== null && totalUsage !== null
+        ? Math.max(0, totalCredits - totalUsage)
+        : null;
+
+    // /credits requires a management key; inference keys fall back to the
+    // remaining credit the key itself reports via /key.
+    const keyInfo = keyRequest?.result.data;
+    const limitRemaining =
+      typeof keyInfo?.limit_remaining === "number"
+        ? keyInfo.limit_remaining
+        : null;
+    const keyLimit =
+      typeof keyInfo?.limit === "number" ? keyInfo.limit : null;
+    const keyUsage =
+      typeof keyInfo?.usage === "number" ? keyInfo.usage : null;
+    const keyCredit =
+      limitRemaining !== null
+        ? Math.max(0, limitRemaining)
+        : keyLimit !== null && keyUsage !== null
+          ? Math.max(0, keyLimit - keyUsage)
+          : null;
+    const credit = appKeyAccountCredit ?? keyCredit;
+    // The per-key cap is only meaningful when the displayed credit is the
+    // key's own remaining credit; an account-level credit has no cap context.
+    const creditLimit = appKeyAccountCredit !== null ? null : keyLimit;
+
+    // The full account balance is only visible to a management key; when one
+    // is configured, read it so the UI can show it next to the per-key credit.
+    const managementCredits = accountCreditsRequest?.result.data;
+    const managementTotalCredits =
+      typeof managementCredits?.total_credits === "number"
+        ? managementCredits.total_credits
+        : null;
+    const managementTotalUsage =
+      typeof managementCredits?.total_usage === "number"
+        ? managementCredits.total_usage
+        : null;
+    const accountCredit =
+      appKeyAccountCredit ??
+      (managementTotalCredits !== null && managementTotalUsage !== null
+        ? Math.max(0, managementTotalCredits - managementTotalUsage)
+        : null);
+
+    return NextResponse.json(
+      { models, credit, creditLimit, accountCredit },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError")
+      return new Response(null, { status: 499 });
+    return NextResponse.json(
+      { error: userFacingError(error) },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -67,6 +233,8 @@ export async function POST(request: Request) {
       quality?: unknown;
       image?: unknown;
       sourceResolution?: unknown;
+      model?: unknown;
+      seed?: unknown;
     };
     const prompt =
       typeof body.prompt === "string" ? body.prompt.trim().slice(0, 8_000) : "";
@@ -113,31 +281,61 @@ export async function POST(request: Request) {
           { error: "One or more reference images did not pass validation." },
           { status: 400 },
         );
-      const medium =
-        body.medium === "photo" ||
-        body.medium === "illustration" ||
-        body.medium === "3d"
-          ? body.medium
-          : "match";
-      const highFidelity = body.quality !== "fast";
-      model = highFidelity
-        ? process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
-          "black-forest-labs/flux.2-pro"
-        : process.env.OPENROUTER_COVER_SKETCH_MODEL ||
-          "black-forest-labs/flux.2-klein-4b";
-      completePrompt = fillPrompt(generationPrompt, {
-        referenceInstruction: references.length
-          ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`
-          : "No reference images are supplied. Build the image entirely from the written request.",
-        mediumInstruction: mediumInstructions[medium],
-        prompt,
-      });
-      inputReferences = references;
-      resolution = highFidelity ? "1K" : "512";
-      operation = "generate-image";
+      if (body.mode === "advanced") {
+        const requestedModel =
+          typeof body.model === "string" ? body.model.trim() : "";
+        model = /^[\w][\w.-]*\/[\w][\w.:-]*$/.test(requestedModel)
+          ? requestedModel
+          : process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
+            "black-forest-labs/flux.2-pro";
+        try {
+          JSON.parse(prompt);
+        } catch {
+          return NextResponse.json(
+            { error: "The structured prompt is not valid JSON." },
+            { status: 400 },
+          );
+        }
+        completePrompt = prompt;
+        inputReferences = references;
+        resolution = "1K";
+        operation = "generate-image";
+      } else {
+        const medium =
+          body.medium === "photo" ||
+          body.medium === "illustration" ||
+          body.medium === "3d" ||
+          body.medium === "storybook-object" ||
+          body.medium === "storybook-character"
+            ? body.medium
+            : "match";
+        const highFidelity = body.quality !== "fast";
+        model = highFidelity
+          ? process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
+            "black-forest-labs/flux.2-pro"
+          : process.env.OPENROUTER_COVER_SKETCH_MODEL ||
+            "black-forest-labs/flux.2-klein-4b";
+        completePrompt = fillPrompt(generationPrompt, {
+          referenceInstruction: references.length
+            ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`
+            : "No reference images are supplied. Build the image entirely from the written request.",
+          mediumInstruction: mediumInstructions[medium],
+          prompt,
+        });
+        inputReferences = references;
+        resolution = highFidelity ? "1K" : "512";
+        operation = "generate-image";
+      }
     }
 
-    const seed = Math.floor(Math.random() * 2_000_000_000);
+    const requestedSeed =
+      typeof body.seed === "number" &&
+      Number.isInteger(body.seed) &&
+      body.seed >= 0 &&
+      body.seed <= 2_000_000_000
+        ? body.seed
+        : null;
+    const seed = requestedSeed ?? Math.floor(Math.random() * 2_000_000_000);
     const { response, result } = await requestOpenRouter<{
       id?: string;
       data?: ImageResult[];

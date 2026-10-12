@@ -28,96 +28,72 @@ export const layerSplitterUi: Record<
     note: string;
     dropFile: string;
     fileSelected: string;
-    console: string;
-    consoleRunning: string;
-    consoleReady: string;
-    consoleFailed: string;
-    consoleAccepted: string;
-    consoleWorking: string;
-    consoleComplete: string;
-    consoleValidated: string;
-    consoleStopped: string;
+    keepOnscreen: string;
   }
 > = {
   en: {
     code: "IMAGE / LAYER SPLITTER",
     heading: "Layer Splitter",
     subtitle:
-      "Reconstruct a supplied image as complete, editable Photoshop layers.",
+      "Split a supplied image into editable Photoshop layers, preserving original pixels.",
     sourceImage: "SOURCE IMAGE",
-    empty: "Add one image to begin reconstructing editable layers.",
+    empty: "Add one image to begin splitting it into editable layers.",
     upload: "ADD\nIMAGE",
-    uploadHelp: "PNG, JPEG, or WebP · hidden areas are reconstructed by AI",
+    uploadHelp:
+      "PNG, JPEG, or WebP · object pixels are preserved from the source",
     change: "Choose another image",
     remove: "Remove image",
     quality: "QUALITY",
     qualityFast: "Fast",
     qualityFidelity: "Fidelity",
-    qualityFastHelp: "Lower-cost FLUX.2 Klein generation",
-    qualityFidelityHelp: "Higher-quality FLUX.2 Pro generation",
+    qualityFastHelp:
+      "Original pixels; background holes filled by Seedream 5 Flash",
+    qualityFidelityHelp:
+      "Original pixels + background and hidden-part completion",
     split: "Split into layers",
-    splitting: "Reconstructing layers…",
-    download: "Download reconstructed PSD",
-    result: "Reconstructed PSD ready",
+    splitting: "Splitting layers…",
+    download: "Download layered PSD",
+    result: "Layered PSD ready",
     layerCount: "layers",
-    reconstructed: "complete layers",
+    reconstructed: "extracted layers",
     warning:
-      "Hidden areas and removed text are plausibly reconstructed by AI; they are not recovered source pixels.",
+      "Object layers contain original source pixels. Background areas hidden behind objects are reconstructed by AI.",
     error:
-      "The image could not be reconstructed. Please try a clear image with distinct objects.",
-    note: "Fast uses FLUX.2 Klein; Fidelity uses FLUX.2 Pro. The background is complete and text is removed where possible.",
+      "The image could not be split. Please try a clear image with distinct objects.",
+    note: "Fast uses Seedream 5 Flash for background holes. Fidelity uses Seedream 5 Pro and transparently completes occluded object parts with GPT Image 2.5 Sunburst.",
     dropFile: "Drop file here, or click to select",
     fileSelected: "IMAGE SELECTED",
-    console: "PROCESS CONSOLE",
-    consoleRunning: "RUNNING",
-    consoleReady: "READY",
-    consoleFailed: "STOPPED",
-    consoleAccepted: "Source accepted: {name}",
-    consoleWorking:
-      "The reconstruction request is running. This may take several minutes.",
-    consoleComplete: "PSD assembled with {count} layers.",
-    consoleValidated:
-      "Validated {valid} of {requested} reconstructed object layers.",
-    consoleStopped: "Reconstruction stopped before a PSD could be assembled.",
+    keepOnscreen: "Keep application onscreen while generation is active.",
   },
   cs: {
     code: "OBRAZ / ROZDĚLOVAČ VRSTEV",
     heading: "Rozdělovač vrstev",
-    subtitle: "Vytvoří z dodaného obrázku úplné upravitelné vrstvy Photoshopu.",
+    subtitle:
+      "Rozdělí dodaný obrázek na upravitelné vrstvy Photoshopu se zachováním původních pixelů.",
     sourceImage: "ZDROJOVÝ OBRÁZEK",
-    empty: "Přidejte jeden obrázek a vytvořte z něj upravitelné vrstvy.",
+    empty: "Přidejte jeden obrázek a začněte ho dělit na upravitelné vrstvy.",
     upload: "PŘIDAT\nOBRÁZEK",
-    uploadHelp: "PNG, JPEG nebo WebP · skryté části vytvoří AI",
+    uploadHelp: "PNG, JPEG nebo WebP · pixely objektů jsou zachovány ze zdroje",
     change: "Vybrat jiný obrázek",
     remove: "Odebrat obrázek",
     quality: "KVALITA",
     qualityFast: "Rychlá",
     qualityFidelity: "Věrná",
-    qualityFastHelp: "Levnější generování FLUX.2 Klein",
-    qualityFidelityHelp: "Kvalitnější generování FLUX.2 Pro",
+    qualityFastHelp: "Původní pixely; díry v pozadí doplní Seedream 5 Flash",
+    qualityFidelityHelp: "Původní pixely + doplnění pozadí a skrytých částí",
     split: "Rozdělit na vrstvy",
-    splitting: "Vytváření vrstev…",
-    download: "Stáhnout rekonstruovaný PSD",
-    result: "Rekonstruovaný PSD je připraven",
+    splitting: "Dělení vrstev…",
+    download: "Stáhnout vrstvený PSD",
+    result: "Vrstvený PSD je připraven",
     layerCount: "vrstev",
-    reconstructed: "úplné vrstvy",
+    reconstructed: "extrahovaných vrstev",
     warning:
-      "Skryté části a odstraněný text vytvoří AI; nejde o obnovené pixely ze zdroje.",
+      "Vrstvy objektů obsahují původní pixely ze zdroje. Oblasti pozadí skryté za objekty vytvoří AI.",
     error:
-      "Obrázek se nepodařilo rekonstruovat. Zkuste jasný obrázek s odlišnými objekty.",
-    note: "Rychlá volba používá FLUX.2 Klein, věrná FLUX.2 Pro. Pozadí je úplné a text je podle možností odstraněn.",
+      "Obrázek se nepodařilo rozdělit. Zkuste jasný obrázek s odlišnými objekty.",
+    note: "Rychlá volba doplní díry v pozadí modelem Seedream 5 Flash. Věrná použije Seedream 5 Pro a skryté části objektů průhledně doplní přes GPT Image 2.5 Sunburst.",
     dropFile: "Přetáhněte soubor sem nebo klikněte pro výběr",
     fileSelected: "VYBRANÝ OBRÁZEK",
-    console: "KONZOLE ZPRACOVÁNÍ",
-    consoleRunning: "PROBÍHÁ",
-    consoleReady: "HOTOVO",
-    consoleFailed: "ZASTAVENO",
-    consoleAccepted: "Zdroj přijat: {name}",
-    consoleWorking:
-      "Požadavek na rekonstrukci se zpracovává. Může to trvat několik minut.",
-    consoleComplete: "PSD bylo sestaveno s {count} vrstvami.",
-    consoleValidated:
-      "Ověřeno {valid} z {requested} rekonstruovaných vrstev objektů.",
-    consoleStopped: "Rekonstrukce se zastavila před sestavením PSD.",
+    keepOnscreen: "Během generování ponechte aplikaci zobrazenou na obrazovce.",
   },
 };
