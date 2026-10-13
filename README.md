@@ -139,21 +139,42 @@ The Bugs and Feedback dialog uses the server-only Asana variables listed in `.en
 
 Each model-backed app uses its own server-only OpenRouter key. Robot sends OpenRouter a stable pseudonymous identifier derived from the authenticated username and writes one `[openrouter-usage]` JSON record to the server log for every OpenRouter response. The record contains the app, operation, pseudonymous user, generation ID, model, status, token counts, and cost; it never contains prompts, files, or model output.
 
-Create the app keys automatically:
+### OpenRouter DEV/DEPLOY keys
 
-1. Create one management key at [OpenRouter → Settings → Management Keys](https://openrouter.ai/settings/management-keys).
-2. Create a local-only `.env.openrouter-management.local` file containing `OPENROUTER_MANAGEMENT_API_KEY=...`.
-3. Run the provisioning command from the repository root:
+The 12 model-backed apps in `app/_tools/openrouter/config.ts` each have two separate inference keys: `DEV/<product-folder-slug>` for local development and `DEPLOY/<product-folder-slug>` for deployment (for example, `DEV/text-extractor` and `DEPLOY/text-extractor`). Both sets use the **same existing runtime environment variable names**; only the secret values and remote key names differ.
+
+| Local file                         | Purpose                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `.env.local`                       | DEV inference values; loaded by Next.js for local use.                                                                          |
+| `.env.openrouter-deploy.local`     | DEPLOY inference values; ignored by Git, permission `0600`, and **not auto-loaded by Next.js**.                                 |
+| `.env.openrouter-management.local` | Local-only `OPENROUTER_MANAGEMENT_API_KEY` and optional provisioning defaults; never deployed or loaded by the Next.js runtime. |
+
+Create a management key at [OpenRouter → Settings → Management Keys](https://openrouter.ai/settings/management-keys) and store it only in `.env.openrouter-management.local`. Run the following from the repository root:
 
 ```bash
-npm run openrouter:provision
+# Inspect existing DEV key renames (read-only; dry-run is also the default).
+npm run openrouter:rename-dev -- --dry-run
+# Apply name changes without replacing secrets, limits, or usage history.
+npm run openrouter:rename-dev -- --apply
+
+# Inspect, then create any missing DEV keys.
+npm run openrouter:provision -- --target dev --dry-run
+npm run openrouter:provision -- --target dev
+# Inspect, then create a separate DEPLOY set.
+npm run openrouter:provision -- --target deploy --dry-run
+npm run openrouter:provision -- --target deploy
+
+# Read-only check of both sets: completeness, separation, remote names/activity.
+npm run openrouter:verify
 ```
 
-The provisioning command creates any missing `Taktik Robot / <app>` keys and writes their eleven inference-key variables to `.env.local`. Optional `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) values may be placed beside the management key before provisioning. Existing configured keys are retained. OpenRouter reveals an inference key only when it is created, so the script saves each new key immediately.
+Provisioning requires `--target dev` or `--target deploy`; it retains existing configured keys and saves each new plaintext key immediately to the selected file with permission `0600`. Missing DEV keys use the configured `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) defaults from the management file. New DEPLOY keys inherit the corresponding existing DEV key's `limit`, `limit_reset`, and `include_byok_in_limit`; complete DEV provisioning first.
 
-Only add the generated per-app inference variables to production deployment secrets. Do not deploy `OPENROUTER_MANAGEMENT_API_KEY`; it is deliberately kept in the nonstandard local file so the Next.js runtime does not load it.
+OpenRouter returns a key's plaintext secret only once, at creation. If a matching remote key exists but its secret is missing locally, provisioning fails rather than silently replacing that orphan key. Resolve the mismatch explicitly; never print secrets or commit these local files.
 
-`OPENROUTER_API_KEY` is now only a migration fallback. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from `.env.local` and production only after all eleven per-app variables are present in that environment. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used.
+For Vercel **Production**, securely copy the 12 DEPLOY inference values from `.env.openrouter-deploy.local` into the same per-app environment variable names, then trigger a **fresh redeploy**. Preview is a deliberate, separate environment choice and is not changed automatically. Never deploy the management key or management file. Remote names are metadata, not routing: renaming an existing key preserves its secret and usage, so existing Vercel deployments may continue using DEV-labelled keys until their environment values are switched and they are redeployed.
+
+`OPENROUTER_API_KEY` remains a migration fallback; this migration does not remove it. A request uses it when that request's dedicated per-app variable is missing. It is safe to delete the shared key from an environment only after all 12 per-app variables are present there. Until then, deleting it will make any app with a missing dedicated key return HTTP 503. The server logs a warning whenever the fallback is used. This key migration does not change the UI or app behavior.
 
 Stable instructions sent to OpenRouter live as readable Markdown in each app's `prompts/` folder. TypeScript adds only current user data and other values that change per request.
 

@@ -69,7 +69,9 @@ Cons:
 - `eslint.config.mjs`: lint rules.
 - `proxy.ts`: checks the session before a page or API request continues.
 - `.env.example`: names and explanations of required private settings.
-- `.env.local`: local secrets; it is not committed.
+- `.env.local`: local secrets and DEV OpenRouter inference values; ignored by Git and loaded by Next.js for local use.
+- `.env.openrouter-deploy.local`: separate DEPLOY inference values, using the same runtime variable names; ignored by Git, permission `0600`, and not auto-loaded by Next.js.
+- `.env.openrouter-management.local`: local-only OpenRouter management credential and optional provisioning defaults; ignored by Git, not loaded by Next.js, and never deployed.
 - `.gitignore`: files Git must ignore.
 - `.DS_Store`: macOS Finder metadata. It has no application role and should stay out of commits.
 - `.git/`: local Git history and repository settings. It is not application code.
@@ -111,7 +113,7 @@ The individual route files are deliberately small:
 - `app/_tools/load-prompt.ts`: reads an app's prompt Markdown and fills named values in prompt templates.
 - `app/_tools/openrouter/config.ts`: maps each model-backed app to its dedicated server-only inference-key environment variable.
 - `app/_tools/openrouter/server.ts`: selects the app key, derives a pseudonymous end-user identifier from the signed session, adds OpenRouter attribution, and emits structured usage records without logging request or response content. It temporarily accepts the legacy shared key as a migration fallback.
-- `app/_tools/openrouter/scripts/provision-keys.mts`: idempotently creates missing app keys through OpenRouter's Management API and saves each plaintext key immediately to the ignored `.env.local` file.
+- `app/_tools/openrouter/scripts/provision-keys.mts`: creates missing inference keys through OpenRouter's Management API for an explicit `dev` or `deploy` target and saves each new plaintext key immediately to the corresponding ignored local file. OpenRouter maintenance commands also rename existing DEV keys and verify both sets; they do not change runtime routing.
 - `app/_tools/info.en.md`, `app/_tools/info.cs.md`: home-screen drawer copy.
 
 Text apps:
@@ -470,17 +472,50 @@ The output is written to `design-manual/public/design-manual.en.pdf` and `design
 
 ## OpenRouter provisioning and usage attribution
 
-Robot has one inference key per model-backed app. `app/_tools/openrouter/config.ts` is the canonical mapping between the ten app IDs and their `OPENROUTER_<APP>_API_KEY` environment variables. `app/_tools/openrouter/server.ts` selects the appropriate key, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response.
+Robot has separate DEV and DEPLOY inference-key sets for its 12 model-backed apps. `app/_tools/openrouter/config.ts` is the canonical app-to-environment-variable mapping. Remote names use `DEV/<product-folder-slug>` and `DEPLOY/<product-folder-slug>`, not internal app IDs or display names:
 
-Provision the ten app keys by creating one OpenRouter Management API key, placing it only in the ignored `.env.openrouter-management.local` file as `OPENROUTER_MANAGEMENT_API_KEY`, and running:
+| Product folder slug   | Runtime variable (same for DEV and DEPLOY) |
+| --------------------- | ------------------------------------------ |
+| `text-extractor`      | `OPENROUTER_TEXT_EXTRACTOR_API_KEY`        |
+| `index-creator`       | `OPENROUTER_INDEX_CREATOR_API_KEY`         |
+| `graph-generator`     | `OPENROUTER_GRAPH_GENERATOR_API_KEY`       |
+| `diagram-generator`   | `OPENROUTER_DIAGRAM_GENERATOR_API_KEY`     |
+| `cover-generator`     | `OPENROUTER_COVER_GENERATOR_API_KEY`       |
+| `concept-illustrator` | `OPENROUTER_CONCEPT_ILLUSTRATOR_API_KEY`   |
+| `layer-splitter`      | `OPENROUTER_LAYER_SPLITTER_API_KEY`        |
+| `image-generator`     | `OPENROUTER_IMAGE_GENERATOR_API_KEY`       |
+| `style-trainer`       | `OPENROUTER_STYLE_TRAINER_API_KEY`         |
+| `grep-builder`        | `OPENROUTER_GREP_BUILDER_API_KEY`          |
+| `prompt-extractor`    | `OPENROUTER_PROMPT_EXTRACTOR_API_KEY`      |
+| `typesetter`          | `OPENROUTER_TYPESETTER_API_KEY`            |
+
+`app/_tools/openrouter/server.ts` selects the appropriate key by runtime variable, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response. DEV/DEPLOY names are management metadata, not routing rules; the migration changes neither UI nor app behavior.
+
+### Maintenance commands and storage boundary
+
+Place `OPENROUTER_MANAGEMENT_API_KEY` only in the ignored `.env.openrouter-management.local` file. It is never deployed or loaded by Next.js. From the repository root:
 
 ```bash
-npm run openrouter:provision
+npm run openrouter:rename-dev -- --dry-run
+npm run openrouter:rename-dev -- --apply
+npm run openrouter:provision -- --target dev --dry-run
+npm run openrouter:provision -- --target dev
+npm run openrouter:provision -- --target deploy --dry-run
+npm run openrouter:provision -- --target deploy
+npm run openrouter:verify
 ```
 
-The command calls OpenRouter's Management API, creates only missing `Taktik Robot / <app>` keys, and writes each newly returned plaintext inference key immediately to `.env.local`. The management key must not be deployed with the application. Production needs the ten generated inference variables copied into its secret environment.
+- `openrouter:rename-dev` defaults to a read-only dry-run; only `--apply` renames existing per-app DEV keys. Renaming preserves secrets, limits, and usage history.
+- `openrouter:provision` requires `--target dev|deploy`; `--dry-run` is read-only. DEV values go to `.env.local`; DEPLOY values go to `.env.openrouter-deploy.local`. Both are ignored and written with permission `0600`; Next.js does **not** auto-load the DEPLOY file. Existing configured keys are retained.
+- Missing DEV keys use the existing configured `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) defaults from the management file. New DEPLOY keys inherit the corresponding existing DEV key's `limit`, `limit_reset`, and `include_byok_in_limit`; complete the DEV set first.
+- OpenRouter returns plaintext only at key creation. Each new secret is saved immediately, never printed. A matching remote key whose secret is missing locally is an orphan: provisioning fails rather than silently replacing it.
+- `openrouter:verify` is read-only and checks completeness of both 12-key sets, DEV/DEPLOY separation, and remote names and active status.
 
-`OPENROUTER_API_KEY` is retained only as a migration fallback. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all ten variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
+### Deployment cutover and legacy fallback
+
+Vercel Production must receive the DEPLOY values under the **same existing per-app runtime variable names**, followed by a **fresh redeploy**. Preview remains a deliberate separate choice; these commands do not automatically change its configuration. Never deploy the management credential or management file. Renaming alone does not switch a deployment: existing Vercel instances may still use DEV-labelled secrets until their environment values are replaced and they are redeployed.
+
+`OPENROUTER_API_KEY` is retained as a migration fallback; this migration does not remove it. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all 12 variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
 
 ## Main execution flow
 
