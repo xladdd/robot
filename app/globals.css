@@ -691,9 +691,16 @@ button {
     display: none !important;
 }
 .tool-loading {
-    position: relative;
+    position: absolute;
     z-index: 1;
-    margin: 40px;
+    inset: 0;
+}
+.tool-loading .crosshair-instruction {
+    min-height: 0;
+    gap: 12px;
+}
+.tool-loading .crosshair-instruction p {
+    font-size: 11px;
 }
 .workspace {
     position: relative;

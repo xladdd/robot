@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
+import { CrosshairInstruction } from "./ToolChrome";
 import { copy } from "../content/ui";
 import { toolComponents } from "../_tools/generated/registry.client";
 import { toolDefinitions } from "../_tools/generated/registry.data";
@@ -35,9 +36,11 @@ function ToolSlot({ id, active, language, onDiagnostics }: SlotProps) {
     >
       <Suspense
         fallback={
-          <p className="tool-loading" role="status">
-            {language === "cs" ? "Načítání nástroje…" : "Loading tool…"}
-          </p>
+          <div className="tool-loading" role="status">
+            <CrosshairInstruction>
+              {language === "cs" ? "Načítání…" : "Loading…"}
+            </CrosshairInstruction>
+          </div>
         }
       >
         <Component
