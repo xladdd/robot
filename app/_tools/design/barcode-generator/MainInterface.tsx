@@ -31,7 +31,6 @@ export function BarcodeMainInterface({
       <section className="cover-stage visual-single-stage barcode-stage">
         <ToolHeader
           className="cover-stage-head barcode-stage-head"
-          code="DESIGN / EAN-13"
           title={copy.heading}
           mode="local"
           language={language}

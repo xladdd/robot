@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ToolProps } from "../../types";
 import { GrepMainInterface } from "./MainInterface";
 
-export default function Tool({ language, section, onDiagnostics }: ToolProps) {
+export default function Tool({ language, onDiagnostics }: ToolProps) {
   const [grepFindPrompt, setGrepFindPrompt] = useState("");
   const [grepReplacePrompt, setGrepReplacePrompt] = useState("");
   const [grepResult, setGrepResult] = useState<{
@@ -90,7 +90,6 @@ export default function Tool({ language, section, onDiagnostics }: ToolProps) {
   return (
     <GrepMainInterface
       language={language}
-      section={section}
       findPrompt={grepFindPrompt}
       replacePrompt={grepReplacePrompt}
       result={grepResult}

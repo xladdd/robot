@@ -1,20 +1,24 @@
 import type { ToolManifest } from "../../types";
 
 export default {
-  "label": {
-    "en": "Cover Generator",
-    "cs": "Generátor obálek"
+  label: {
+    en: "Cover Generator",
+    cs: "Generátor obálek",
   },
-  "openRouter": {
-    "envName": "OPENROUTER_COVER_GENERATOR_API_KEY"
+  openRouter: {
+    envName: "OPENROUTER_COVER_GENERATOR_API_KEY",
   },
-  "routes": [
+  routes: [
     {
-      "path": "/api/covers",
-      "handler": "code/server",
-      "methods": [
-        "POST"
-      ]
-    }
-  ]
+      path: "/api/covers",
+      handler: "code/server",
+      methods: ["POST"],
+    },
+  ],
+  assets: [
+    {
+      source: "public",
+      publicPath: "/cover-generator",
+    },
+  ],
 } satisfies ToolManifest;

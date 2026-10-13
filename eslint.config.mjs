@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     // Browser-test sandboxes and render artifacts are generated, not source.
     "tmp/**",
     "public/**",
+    // Vendored Tesseract browser runtime; lint the owning integration, not its minified distribution files.
+    "app/_tools/text/index-creator/public/**",
     // Adobe ExtendScript downloads use directives such as `#target` that
     // ESLint's JavaScript parser does not understand.
     "app/_tools/**/public/**/*.jsx",

@@ -1,7 +1,6 @@
 export const coverSplitterCopy = {
   en: {
     heading: "Cover Splitter",
-    moduleCode: "COVER SPLITTING",
     intro:
       "Split cover spreads into separate back- and front-cover PDFs without uploading the source files.",
     upload: "Drag PDFs here or click to select files",
@@ -79,7 +78,6 @@ export const coverSplitterCopy = {
   },
   cs: {
     heading: "Dělení obálek",
-    moduleCode: "ROZDĚLENÍ OBÁLKY",
     intro:
       "Rozdělí rozložené obálky na samostatná PDF zadní a přední obálky bez odesílání zdrojových souborů.",
     upload: "Přetáhněte sem PDF nebo klikněte pro výběr",

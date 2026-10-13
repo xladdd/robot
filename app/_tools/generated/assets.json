@@ -1,5 +1,9 @@
 [
   {
+    "source": "app/_tools/image/cover-generator/public",
+    "publicPath": "/cover-generator"
+  },
+  {
     "source": "app/_tools/design/cover-splitter/public",
     "publicPath": "/cover-splitter"
   },
@@ -14,6 +18,10 @@
   {
     "source": "app/_tools/design-manual/images",
     "publicPath": "/design-manual/media"
+  },
+  {
+    "source": "app/_tools/text/index-creator/public",
+    "publicPath": "/index-creator-ocr"
   },
   {
     "source": "app/_tools/design/script-buffet/public",

@@ -27,7 +27,6 @@ export type GraphOutput = {
 
 export function GraphMainInterface({
   language,
-  section,
   label,
   prompt,
   data,
@@ -48,7 +47,6 @@ export function GraphMainInterface({
   onDownload,
 }: {
   language: Language;
-  section: string | null;
   label: string | null;
   prompt: string;
   data: string;
@@ -129,7 +127,6 @@ export function GraphMainInterface({
       <section className="cover-stage visual-single-stage graph-stage">
         <ToolHeader
           className="cover-stage-head graph-stage-head"
-          code={`${section} / CHART`}
           title={label || "Graph Generator"}
           mode="ai"
           language={language}

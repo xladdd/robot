@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ToolHeader } from "../../../_components/ToolChrome";
 import { typesetterUi } from "./copy";
 import { semanticRoles, isSemanticRoleId } from "./roles";
@@ -527,13 +534,14 @@ export function TypesetterMainInterface({
   useEffect(() => {
     if (!active || !onDiagnostics) return;
     onDiagnostics({
-      appStatus: (inspecting || prescanning || analysing)
-        ? "running"
-        : (error)
-        ? "error"
-        : (analysed.length > 0)
-        ? "completed"
-        : "idle",
+      appStatus:
+        inspecting || prescanning || analysing
+          ? "running"
+          : error
+            ? "error"
+            : analysed.length > 0
+              ? "completed"
+              : "idle",
       progress,
       inputSummary: {
         hasInput: Object.values(files).some(Boolean),
@@ -559,7 +567,6 @@ export function TypesetterMainInterface({
     <div className="solutions-module solutions-detail-module typesetter-module">
       <ToolHeader
         className="library-tool-header solutions-header typesetter-header"
-        code={t.code}
         title={t.heading}
         mode="ai"
         language={language}

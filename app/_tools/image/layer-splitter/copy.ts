@@ -3,7 +3,6 @@ import type { Language } from "../../registry";
 export const layerSplitterUi: Record<
   Language,
   {
-    code: string;
     heading: string;
     subtitle: string;
     sourceImage: string;
@@ -32,7 +31,6 @@ export const layerSplitterUi: Record<
   }
 > = {
   en: {
-    code: "IMAGE / LAYER SPLITTER",
     heading: "Layer Splitter",
     subtitle:
       "Extract and reconstruct a supplied image as editable Photoshop layers.",
@@ -66,7 +64,6 @@ export const layerSplitterUi: Record<
       "Keep this browser tab open. You can switch tools while generation continues.",
   },
   cs: {
-    code: "OBRAZ / ROZDĚLOVAČ VRSTEV",
     heading: "Rozdělovač vrstev",
     subtitle:
       "Extrahuje a rekonstruuje dodaný obrázek do upravitelných vrstev Photoshopu.",

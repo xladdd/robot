@@ -9,7 +9,6 @@ import { graphUi } from "./copy";
 export default function Tool({
   language,
   active,
-  section,
   label,
   onDiagnostics,
 }: ToolProps) {
@@ -117,7 +116,6 @@ export default function Tool({
   return (
     <GraphMainInterface
       language={language}
-      section={section}
       label={label}
       prompt={prompt}
       data={data}

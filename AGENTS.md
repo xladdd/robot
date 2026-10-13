@@ -6,7 +6,7 @@
 2. Check `git --no-optional-locks status --short` before editing. Preserve all user/parallel-agent changes; never discard them.
 3. Read `package.json`, `scripts/run-tests.mjs`, `scripts/test-ui.mjs`, the relevant root contract tests and the affected tool's test setup before changing behavior.
 
-The API-safe baseline `1ee73a6` is already committed. Do not infer that the folder-registry restructure is committed or deployed. Do not commit, provision secrets, call management APIs or deploy unless explicitly authorized by the task.
+The API-safe baseline `1ee73a6` and v0.5 folder-registry restructure `bc8fe9e` are committed. Do not infer that the restructure is deployed. Do not commit, provision secrets, call management APIs or deploy unless explicitly authorized by the task.
 
 ## Ownership and generation
 

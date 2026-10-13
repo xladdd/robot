@@ -1,6 +1,5 @@
 export const imageGeneratorUi = {
   en: {
-    code: "IMAGE / GENERATION",
     heading: "Image Generator",
     image: "IMAGE",
     empty:
@@ -137,7 +136,6 @@ export const imageGeneratorUi = {
       "Fields are assembled into a structured FLUX JSON prompt; empty fields are omitted.",
   },
   cs: {
-    code: "OBRAZ / GENEROVÁNÍ",
     heading: "Generátor obrázků",
     image: "OBRÁZEK",
     empty:

@@ -1,6 +1,5 @@
 export const styleTrainerUi = {
   en: {
-    code: "DESIGN / STYLE PROMPT",
     heading: "Style Trainer",
     empty:
       "Add style reference images and a test prompt, then analyze the style to start the first round of three test images.",
@@ -76,7 +75,6 @@ export const styleTrainerUi = {
     referenceError: "A reference image could not be prepared.",
   },
   cs: {
-    code: "DESIGN / PROMPT STYLU",
     heading: "Trénování stylů",
     empty:
       "Přidejte referenční obrázky stylu a testovací prompt, pak styl analyzujte a spustí se první kolo tří testovacích obrázků.",

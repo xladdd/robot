@@ -10,7 +10,6 @@ type GrepResult = {
 
 type GrepMainInterfaceProps = {
   language: Language;
-  section: string | null;
   findPrompt: string;
   replacePrompt: string;
   result: GrepResult | null;
@@ -29,11 +28,7 @@ export function GrepMainInterface(props: GrepMainInterfaceProps) {
   const t = grepBuilderCopy[props.language];
   return (
     <div className="grep-module">
-      <ToolMeta
-        code={`${props.section} / GREP`}
-        mode="ai"
-        language={props.language}
-      />
+      <ToolMeta mode="ai" language={props.language} />
       <h1>{t.heading}</h1>
       <div className="grep-fields">
         <label className={`grep-field ${result ? "has-result" : ""}`}>

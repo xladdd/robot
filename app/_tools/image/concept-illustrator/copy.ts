@@ -1,5 +1,4 @@
 const en = {
-  code: "IMAGE / CONCEPT ILLUSTRATOR",
   heading: "Concept Illustrator",
   memory: "MEMORY",
   localOnly: "Browser-local projects",
@@ -126,7 +125,6 @@ const en = {
 type CopyShape = { [Key in keyof typeof en]: string };
 
 const cs = {
-  code: "OBRAZ / KONCEPT ILUSTRACE",
   heading: "Koncept ilustrace",
   memory: "PAMĚŤ",
   localOnly: "Projekty pouze v prohlížeči",

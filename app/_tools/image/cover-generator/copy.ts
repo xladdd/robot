@@ -92,7 +92,6 @@ const subjects = {
 
 export const coverUi = {
   en: {
-    code: "IMAGE / COVER CONCEPTS",
     heading: "Cover Generator",
     active: "active sketches",
     selected: "direction selected",
@@ -175,7 +174,6 @@ export const coverUi = {
     ...promptHelp.en,
   },
   cs: {
-    code: "OBRAZ / NÁVRHY OBÁLEK",
     heading: "Generátor obálek",
     active: "aktivních návrhů",
     selected: "směr vybrán",

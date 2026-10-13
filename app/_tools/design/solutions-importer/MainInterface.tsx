@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { extractPositionedPdfText } from "./code/pdf";
 import { solutionsImporterUi } from "./copy";
 import { ToolHeader } from "../../../_components/ToolChrome";
@@ -304,13 +311,13 @@ export function SolutionsImporterMainInterface({
   useEffect(() => {
     if (!active || !onDiagnostics) return;
     onDiagnostics({
-      appStatus: (processing)
+      appStatus: processing
         ? "running"
-        : (error)
-        ? "error"
-        : (Boolean(manifest))
-        ? "completed"
-        : "idle",
+        : error
+          ? "error"
+          : Boolean(manifest)
+            ? "completed"
+            : "idle",
       progress,
       inputSummary: {
         hasInput: Object.values(files).some(Boolean),
@@ -320,21 +327,12 @@ export function SolutionsImporterMainInterface({
         hasResult: Boolean(manifest),
       },
     });
-  }, [
-    active,
-    onDiagnostics,
-    processing,
-    manifest,
-    files,
-    progress,
-    error,
-  ]);
+  }, [active, onDiagnostics, processing, manifest, files, progress, error]);
 
   return (
     <div className="solutions-module solutions-detail-module">
       <ToolHeader
         className="library-tool-header solutions-header"
-        code={language === "cs" ? "DESIGN / ŘEŠENÍ" : "DESIGN / SOLUTIONS"}
         title={t.heading}
         mode="local"
         language={language}

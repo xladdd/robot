@@ -135,18 +135,12 @@ export function ScriptBuffetMainInterface({
         hasResult: visible.length > 0,
       },
     });
-  }, [
-    active,
-    onDiagnostics,
-    visible.length,
-    filter,
-  ]);
+  }, [active, onDiagnostics, visible.length, filter]);
 
   return (
     <div className="buffet-module">
       <ToolHeader
         className="library-tool-header buffet-header"
-        code={cs ? "DESIGN / SKRIPTY" : "DESIGN / SCRIPTS"}
         title="Script Buffet"
         mode="local"
         language={language}

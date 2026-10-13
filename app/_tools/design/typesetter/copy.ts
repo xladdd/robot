@@ -1,6 +1,5 @@
 export const typesetterUi = {
   en: {
-    code: "DESIGN / TYPESETTER",
     heading: "Typesetter",
     intro:
       "Turn an unstructured Word manuscript into reviewed semantic JSON for an existing InDesign template.",
@@ -128,7 +127,6 @@ export const typesetterUi = {
       `Analysing batch ${current}/${total}`,
   },
   cs: {
-    code: "DESIGN / SAZEČ",
     heading: "Sazeč",
     intro:
       "Převede nestrukturovaný rukopis ve Wordu na zkontrolovaný sémantický JSON pro existující šablonu InDesignu.",

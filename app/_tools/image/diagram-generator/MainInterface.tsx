@@ -70,7 +70,6 @@ async function postPipeline(action: string, body: Record<string, unknown>) {
 
 export function DiagramMainInterface({
   language,
-  section,
   label,
   request,
   references,
@@ -94,7 +93,6 @@ export function DiagramMainInterface({
   onDiagnostics,
 }: {
   language: Language;
-  section: string | null;
   label: string | null;
   request: string;
   references: DiagramReference[];
@@ -339,7 +337,6 @@ export function DiagramMainInterface({
       <section className="cover-stage visual-single-stage diagram-stage">
         <ToolHeader
           className="cover-stage-head diagram-stage-head"
-          code={`${section} / DIAGRAM`}
           title={label || "Diagram Generator"}
           mode="ai"
           language={language}

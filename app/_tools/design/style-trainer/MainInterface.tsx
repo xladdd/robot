@@ -500,7 +500,7 @@ export function StyleTrainerMainInterface({
       >
         <header className="cover-stage-head">
           <div className="tool-header-copy">
-            <ToolMeta code={t.code} mode="ai" language={language} />
+            <ToolMeta mode="ai" language={language} />
             <div className="cover-title-row">
               <h1>
                 {t.heading}

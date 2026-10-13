@@ -87,7 +87,7 @@ export function LayerSplitterMainInterface({
   return (
     <div className="compact-utility-module layer-splitter-module">
       <div className="compact-utility-content">
-        <ToolMeta code={t.code} mode="ai" language={language} />
+        <ToolMeta mode="ai" language={language} />
         <h1>{t.heading}</h1>
 
         <input

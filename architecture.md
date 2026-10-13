@@ -191,7 +191,7 @@ The dedicated variable wins over legacy `OPENROUTER_API_KEY`; missing dedicated 
 - Preserve stable download names/URLs, deterministic Map output, existing local-only PDF boundaries, validation and user review steps.
 - ExtendScript is not modern browser JavaScript. Node contract tests cannot validate InDesign placement, tables, layers, styles, swatches, coordinates or undo. Changes to those require manual fixture validation in real InDesign, always on copies.
 
-Public URLs derive from declared manifest assets; tracked symlinks point to owned files. `scripts/materialize-public-links.mjs` makes disposable copies in Vercel's build workspace to avoid self-copy issues. Preserve `/cover-splitter/*`, `/solutions/*`, `/typesetter/*`, `/script-buffet/*`, `/design-manual/media/*`, `/design-manual/downloads/*` and `/data/cliopatria-timeline.json`. Shared icons and PDF.js assets remain directly in `public/`.
+Public URLs derive from declared manifest assets; tracked symlinks point to owned files. `scripts/materialize-public-links.mjs` makes disposable copies in Vercel's build workspace to avoid self-copy issues. Preserve `/cover-splitter/*`, `/solutions/*`, `/typesetter/*`, `/script-buffet/*`, `/index-creator-ocr/*`, `/design-manual/media/*`, `/design-manual/downloads/*` and `/data/cliopatria-timeline.json`. Shared icons and PDF.js assets remain directly in `public/`.
 
 Map datasets and their licence/source notes live in `app/_tools/image/map-generator/code/data/`; data preparation/evaluation scripts live beside the tool. Do not duplicate Cliopatria or remove attribution/licences when moving data. Other tool downloads, source notes and maintenance scripts remain in their owning folders.
 

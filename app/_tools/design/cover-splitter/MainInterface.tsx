@@ -18,7 +18,6 @@ export type CoverSizeChoice = "A5" | "A4" | "B5" | "half";
 
 type CoverSplitterMainInterfaceProps = {
   language: Language;
-  section: string | null;
   active?: boolean;
   onDiagnostics?: ToolProps["onDiagnostics"];
 };
@@ -178,7 +177,6 @@ function releaseObjectUrl(url: string, registry: Set<string>): void {
 
 export function CoverSplitterMainInterface({
   language,
-  section,
   active = true,
   onDiagnostics,
 }: CoverSplitterMainInterfaceProps) {
@@ -677,13 +675,14 @@ export function CoverSplitterMainInterface({
   useEffect(() => {
     if (!active || !onDiagnostics) return;
     onDiagnostics({
-      appStatus: (isPreparing || isProcessing || exportingFormat !== null)
-        ? "running"
-        : (error)
-        ? "error"
-        : (Boolean(result))
-        ? "completed"
-        : "idle",
+      appStatus:
+        isPreparing || isProcessing || exportingFormat !== null
+          ? "running"
+          : error
+            ? "error"
+            : Boolean(result)
+              ? "completed"
+              : "idle",
       progress,
       inputSummary: {
         hasInput: files.length > 0,
@@ -875,11 +874,7 @@ export function CoverSplitterMainInterface({
         <section className="cover-splitter-preview-column">
           <header className="cover-stage-head cover-splitter-active-head">
             <div className="tool-header-copy">
-              <ToolMeta
-                code={`${section ? `${section} / ` : ""}${t.moduleCode}`}
-                mode="local"
-                language={language}
-              />
+              <ToolMeta mode="local" language={language} />
               <div className="cover-title-row">
                 <h1>{t.heading}</h1>
               </div>

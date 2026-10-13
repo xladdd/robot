@@ -803,13 +803,13 @@ export function ConceptIllustratorMainInterface({
   useEffect(() => {
     if (!active || !onDiagnostics) return;
     onDiagnostics({
-      appStatus: (Boolean(busy))
+      appStatus: Boolean(busy)
         ? "running"
-        : (error || memoryError)
-        ? "error"
-        : (project.revisions.length > 0)
-        ? "completed"
-        : "idle",
+        : error || memoryError
+          ? "error"
+          : project.revisions.length > 0
+            ? "completed"
+            : "idle",
       progress: null,
       inputSummary: {
         hasInput: Boolean(project.article.trim()),
@@ -905,7 +905,7 @@ export function ConceptIllustratorMainInterface({
         <section className="concept-illustrator-workflow">
           <header className="concept-illustrator-titlebar">
             <div className="tool-header-copy">
-              <ToolMeta code={t.code} mode="ai" language={language} />
+              <ToolMeta mode="ai" language={language} />
               <h1>{t.heading}</h1>
             </div>
           </header>

@@ -29,7 +29,6 @@ export function ToolMeta({
   language,
   className = "",
 }: {
-  code: string;
   mode: ProcessingMode;
   language: Language;
   className?: string;
@@ -42,14 +41,12 @@ export function ToolMeta({
 }
 
 export function ToolHeader({
-  code,
   title,
   mode,
   language,
   actions,
   className = "",
 }: {
-  code: string;
   title: string;
   mode: ProcessingMode;
   language: Language;
@@ -59,7 +56,7 @@ export function ToolHeader({
   return (
     <header className={`tool-header ${className}`.trim()}>
       <div className="tool-header-copy">
-        <ToolMeta code={code} mode={mode} language={language} />
+        <ToolMeta mode={mode} language={language} />
         <h1>{title}</h1>
       </div>
       {actions && <div className="tool-header-actions">{actions}</div>}
