@@ -1,11 +1,11 @@
+import "server-only";
 import { readFile } from "node:fs/promises";
+import { buildModelMarkdown } from "./models.ts";
+import { resolveModelDefinitions } from "./models-server.ts";
 import { join } from "node:path";
-import {
-  appRegistry,
-  appVersion,
-  type InfoDrawers,
-  type Language,
-} from "./registry";
+import { appVersion, type InfoDrawers, type Language } from "./registry";
+import { toolDefinitions } from "./generated/registry.data";
+import { modelDefinitionsByFolder } from "./generated/registry.models";
 
 async function readInfoFile(relativeFolder: string, language: Language) {
   return readFile(
@@ -16,6 +16,15 @@ async function readInfoFile(relativeFolder: string, language: Language) {
 
 export async function loadInfoDrawers(): Promise<InfoDrawers> {
   const result: InfoDrawers = { en: {}, cs: {} };
+  const models = new Map(
+    toolDefinitions.map(
+      (tool) =>
+        [
+          tool.folder,
+          resolveModelDefinitions(modelDefinitionsByFolder[tool.folder]),
+        ] as const,
+    ),
+  );
 
   await Promise.all(
     (["en", "cs"] as const).flatMap((language) => [
@@ -24,9 +33,15 @@ export async function loadInfoDrawers(): Promise<InfoDrawers> {
         result[language].general =
           `${markdown.trimEnd()}\n\n### ${versionHeading}\n\n${appVersion}\n`;
       }),
-      ...appRegistry.map((app) =>
+      ...toolDefinitions.map((app) =>
         readInfoFile(app.folder, language).then((markdown) => {
-          result[language][app.id] = markdown;
+          const modelMarkdown = buildModelMarkdown(
+            models.get(app.folder) ?? [],
+            language,
+          );
+          result[language][app.id] = modelMarkdown
+            ? `${markdown.trimEnd()}\n\n${modelMarkdown}`
+            : markdown;
         }),
       ),
     ]),

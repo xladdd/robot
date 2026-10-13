@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
       error?: { message?: string };
     }>(openRouter, "chat/completions", "generate-word-forms", {
       model:
-        process.env.OPENROUTER_INDEX_MODEL || "mistralai/mistral-medium-3-5",
+        resolveModel(modelStages['forms']),
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [

@@ -11,3 +11,5 @@ Projects, article text, compiled prompts, decisions, notes, image revisions, and
 Planning, prompt compilation, image generation, image editing, and critique use the Concept Illustrations API and are processed through OpenRouter. The article, written style guidance, aspect ratio, and relevant recent approval/rejection notes are sent when needed for planning or compilation. House-style reference illustrations are sent with generation requests; the first two are sent with image-edit requests. The active generated image is also sent for edits and critiques.
 
 Each image generation, edit, and explicit critique can incur model usage and cost. Critique never starts automatically, and applying critique corrections only fills the edit instruction—you must confirm the new revision separately. Reference files are accepted as PNG, JPEG, or WebP up to 30 MB, compressed locally to JPEG with a maximum side of 1600 px, and then stored locally in the House style profile.
+
+Model usage follows the shared pseudonymous usage logging described in the general information drawer.

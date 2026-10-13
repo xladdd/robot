@@ -1,7 +1,9 @@
-### Co je tohle nástroj?
+### Co to je?
 
-Přidejte až šest referenčních obrázků se stejným vizuálním stylem a testovací prompt pro nějaký subjekt. Vizionářský plánovač Mistral si reference prohlédne a napíše jeden znovupoužitelný **prompt stylu pro FLUX.2 Pro** plus název a ID stylu. Prompt stylu se pak testuje: vytvoří se tři čtvercové obrázky vašeho testovacího promptu modelem `black-forest-labs/flux.2-pro 🇩🇪`, každý s jiným náhodným seedem. Vyberte nejlepší ze tří, čímž připnete jeho seed, doladěte prompt stylu v chatu — s vybraným obrázkem jako vodítkem nebo bez něj — a opakujte kola, dokud styl nesedí. **Dokončit styl** pak zobrazí finální prompt a připnutý seed a **Odeslat žádost o styl** vytvoří úkol v Asaně s žádostí o přidání stylu do výchozího i pokročilého režimu Generátoru obrázků, včetně připraveného presetu ke vložení.
+Pomocí až šesti stylových referencí a promptu testovacího subjektu vytvořte znovupoužitelný prompt stylu. V každém kole vygenerujte tři testovací obrázky, hlasováním připněte jeden seed, dolaďte prompt a opakujte. Dokončit styl zobrazí zkontrolovaný prompt a seed; odeslání žádosti vytvoří úkol v Asaně s připraveným presetem, nikoli automatické nasazení.
 
 ### Jak to funguje?
 
-Referenční obrázky se zpracují v prohlížeči a posílají se jen do plánovače Mistral (`mistralai/mistral-medium-3-5` s fallbackem `mistralai/ministral-14b-2512`) přes OpenRouter. Plánovač vrací strukturované JSON, který server před použitím ověří. Testovací generace záměrně reference **nepoužívají**: hotový styl se do Generátoru obrázků dostane jen jako prompt plus připnutý seed, takže každé kolo musí styl reprodukovat bez nich — stejně jako pohádkové presety připínají seed 8701. Prompt stylu zůstává během testování upravitelný; ruční úpravy se při revizi zachovají. Žádost do Asany obsahuje jen název stylu, ID, prompt, připnutý seed, testovací prompt, počet kol a vaši volitelnou poznámku — nikdy referenční ani vygenerované obrázky.
+Reference se přes OpenRouter posílají plánovači; revize mohou zahrnout i vybraný vygenerovaný obrázek. Testovací generování reference záměrně nepoužívá, takže ověřuje jen prompt a seed. Ruční úpravy promptu zůstávají upravitelné. Pevný seed nezaručuje shodný budoucí výstup.
+
+Podání do Asany obsahuje název a ID stylu, prompt, seed, testovací prompt, počet kol, volitelnou poznámku, uživatelské jméno Robotu a čas podání. Referenční ani vygenerované obrázky se do Asany neodesílají.

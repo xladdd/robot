@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -133,8 +135,8 @@ export async function POST(request: Request) {
 
     const prescan = mode === "prescan";
     const model = prescan
-      ? process.env.OPENROUTER_TYPESETTER_PRESCAN_MODEL || "mistralai/ministral-14b-2512"
-      : process.env.OPENROUTER_TYPESETTER_MODEL || "mistralai/mistral-large-2512";
+      ? resolveModel(modelStages['prescan'])
+      : resolveModel(modelStages['classification']);
     const payload = {
       language: body.language === "cs" ? "cs" : "en",
       allowedRoles: prescan ? semanticRoleIds : allowedRoles,

@@ -1,0 +1,25 @@
+"use client";
+
+// Copied only into tmp/workspace-ui/server-*/app/lifecycle-fixture/page.tsx.
+// This source is deliberately not a production app route or TypeScript build input.
+import { useState } from "react";
+import ToolHost from "../_components/ToolHost";
+import type { AppId } from "../_tools/registry";
+
+const fixtureIds = ["graph", "bio", "map", "styleTrainer", "typesetter", "conceptIllustrator"] as const satisfies readonly AppId[];
+const ignoreDiagnostics = () => {};
+
+export default function LifecycleFixture() {
+  const [selected, setSelected] = useState<AppId | null>(null);
+  return <main className="app-shell sidebar-collapsed" data-theme="light">
+    <header className="topbar" style={{ zIndex: 100, display: "flex", justifyContent: "center", gap: 4, padding: 4 }}>
+      <nav aria-label="Test-only hidden tool selection" style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {fixtureIds.map(id => <button key={id} data-fixture-select={id} aria-pressed={selected === id} onClick={() => setSelected(id)} style={{ fontSize: 10, padding: 4 }}>{id}</button>)}
+        <button data-fixture-select="none" onClick={() => setSelected(null)} style={{ fontSize: 10, padding: 4 }}>none</button>
+      </nav>
+    </header>
+    <section className="workspace" aria-label="Test-only actual ToolHost" style={{ gridColumn: 2, gridRow: 2 }}>
+      <ToolHost selected={selected} language="en" onDiagnostics={ignoreDiagnostics} />
+    </section>
+  </main>;
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "source": "app/_tools/design/cover-splitter/public",
+    "publicPath": "/cover-splitter"
+  },
+  {
+    "source": "app/_tools/image/map-generator/code/data/cliopatria-timeline.json",
+    "publicPath": "/data/cliopatria-timeline.json"
+  },
+  {
+    "source": "app/_tools/design-manual/public",
+    "publicPath": "/design-manual/downloads"
+  },
+  {
+    "source": "app/_tools/design-manual/images",
+    "publicPath": "/design-manual/media"
+  },
+  {
+    "source": "app/_tools/design/script-buffet/public",
+    "publicPath": "/script-buffet"
+  },
+  {
+    "source": "app/_tools/design/solutions-importer/public",
+    "publicPath": "/solutions"
+  },
+  {
+    "source": "app/_tools/design/solutions-importer/public",
+    "publicPath": "/solutions-beta"
+  },
+  {
+    "source": "app/_tools/design/typesetter/public",
+    "publicPath": "/typesetter"
+  }
+]

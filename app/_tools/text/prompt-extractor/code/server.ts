@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -167,8 +169,7 @@ async function requestInventory(
     operation,
     {
       model:
-        process.env.OPENROUTER_PROMPT_EXTRACTOR_MODEL ||
-        "qwen/qwen3.5-122b-a10b",
+        resolveModel(modelStages['inventory-verification']),
       messages: modelMessages(prompt, page, correction || undefined),
       temperature: 0,
       response_format: responseFormat,

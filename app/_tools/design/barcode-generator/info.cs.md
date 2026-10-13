@@ -5,3 +5,5 @@ Zadejte ISBN-10 nebo ISBN-13, ověřte je a vytvořte odpovídající publikačn
 ### Jak to funguje?
 
 Robot zkontroluje ISBN a kontrolní číslici, podle potřeby převede ISBN-10 na ISBN-13, sestaví pruhy EAN-13, převede číslice do křivek a vytvoří PDF přímo v prohlížeči. Nic se neodesílá a nepoužívá se žádná externí služba pro čárové kódy.
+
+Před výrobou zkontrolujte zakódované ISBN a tiskovou velikost; místní zpracování stále načítá soubory aplikace.

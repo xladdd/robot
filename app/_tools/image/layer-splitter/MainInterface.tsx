@@ -183,6 +183,25 @@ export function LayerSplitterMainInterface({
           <p className="layer-splitter-active-note">{t.keepOnscreen}</p>
         )}
 
+        {Boolean(result?.validation.warnings.length) && (
+          <section
+            aria-label={
+              language === "cs" ? "Upozornění kontroly" : "Validation warnings"
+            }
+          >
+            <h2>
+              {language === "cs"
+                ? "Upozornění kontroly"
+                : "Validation warnings"}
+            </h2>
+            <ul>
+              {result!.validation.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {result && (
           <button
             type="button"

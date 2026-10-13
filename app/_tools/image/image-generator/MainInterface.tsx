@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 import { appRegistry, type Language } from "../../registry";
+import type { ToolProps } from "../../types";
 import { imageGeneratorUi } from "./copy";
 import {
   buildAdvancedImagePrompt,
@@ -66,12 +67,7 @@ type QueueJob = {
   id: string;
   prompt: string;
   status:
-    | "queued"
-    | "generating"
-    | "upscaling"
-    | "complete"
-    | "failed"
-    | "stopped";
+    "queued" | "generating" | "upscaling" | "complete" | "failed" | "stopped";
   image?: GeneratedImage;
   error?: string;
   mode?: GeneratorMode;
@@ -187,10 +183,12 @@ function safeFileStem(
 
 export function ImageGeneratorMainInterface({
   language,
-  active,
+  onDiagnostics,
+  active = true,
 }: {
   language: Language;
-  active: boolean;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+  active?: boolean;
 }) {
   const t = imageGeneratorUi[language];
   const [prompt, setPrompt] = useState("");
@@ -261,9 +259,7 @@ export function ImageGeneratorMainInterface({
         if (!response.ok || !Array.isArray(result.models))
           throw new Error(result.error || t.catalogError);
         setModels(result.models);
-        setCredit(
-          typeof result.credit === "number" ? result.credit : null,
-        );
+        setCredit(typeof result.credit === "number" ? result.credit : null);
         setCreditLimit(
           typeof result.creditLimit === "number" ? result.creditLimit : null,
         );
@@ -399,9 +395,7 @@ export function ImageGeneratorMainInterface({
   function removeSubject(index: number) {
     setAdvancedFields((current) => ({
       ...current,
-      subjects: current.subjects.filter(
-        (_, itemIndex) => itemIndex !== index,
-      ),
+      subjects: current.subjects.filter((_, itemIndex) => itemIndex !== index),
     }));
   }
 
@@ -629,7 +623,9 @@ export function ImageGeneratorMainInterface({
       const image = job.image;
       if (!image) continue;
       const stem = safeFileStem(job.prompt, index, image.resolution);
-      const originalBytes = await dataUrlBytes(image.originalData ?? image.data);
+      const originalBytes = await dataUrlBytes(
+        image.originalData ?? image.data,
+      );
       if (!originalBytes) continue;
       entries.push({
         name: hasCutouts ? `originals/${stem}.jpg` : `${stem}.jpg`,
@@ -666,13 +662,58 @@ export function ImageGeneratorMainInterface({
       ? t.generateOne
       : t.generateMany.replace("{count}", String(queuedPrompts.length));
 
-  if (!active) return null;
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: isGenerating
+        ? "running"
+        : error || catalogError
+          ? "error"
+          : jobs.some((job) => job.status === "complete")
+            ? "completed"
+            : "idle",
+      progress: null,
+      inputSummary: {
+        hasInput:
+          Boolean(prompt.trim()) ||
+          references.length > 0 ||
+          (mode === "advanced" &&
+            Boolean(
+              advancedFields.scene.trim() ||
+              advancedFields.prompt.trim() ||
+              advancedFields.subjects.some(
+                (subject) =>
+                  subject.description.trim() ||
+                  subject.position.trim() ||
+                  subject.action.trim(),
+              ),
+            )),
+        fileType: null,
+        fileSize: null,
+        referenceCount: references.length,
+        hasResult: jobs.some((job) => job.status === "complete"),
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    isGenerating,
+    jobs,
+    prompt,
+    references.length,
+    mode,
+    advancedFields,
+    error,
+    catalogError,
+  ]);
 
   return (
     <div
       className="cover-module image-generator-module"
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={handleDrop}
+      onDragOver={(event) => {
+        if (active) event.preventDefault();
+      }}
+      onDrop={active ? handleDrop : undefined}
     >
       <section
         className={`cover-stage ${!jobs.length && !isGenerating ? "initial" : ""}`}
@@ -871,8 +912,11 @@ export function ImageGeneratorMainInterface({
                       className="cover-add-reference"
                       key={`empty-${index}`}
                       onClick={() => referenceInputRef.current?.click()}
-                      onDragOver={(event) => event.preventDefault()}
+                      onDragOver={(event) => {
+                        if (active) event.preventDefault();
+                      }}
                       onDrop={(event) => {
+                        if (!active) return;
                         event.preventDefault();
                         event.stopPropagation();
                         void addReferenceFiles(
@@ -1187,9 +1231,7 @@ export function ImageGeneratorMainInterface({
                   id="image-generator-details"
                   className="image-generator-details"
                 >
-                  <label htmlFor="image-generator-lighting">
-                    {t.lighting}
-                  </label>
+                  <label htmlFor="image-generator-lighting">{t.lighting}</label>
                   <input
                     id="image-generator-lighting"
                     type="text"
@@ -1403,7 +1445,8 @@ export function ImageGeneratorMainInterface({
         </div>
       </aside>
 
-      {zoomedJob &&
+      {active &&
+        zoomedJob &&
         createPortal(
           <div
             className="manual-lightbox cover-lightbox"

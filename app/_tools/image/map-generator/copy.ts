@@ -66,6 +66,8 @@ export const mapUi = {
     resetView: "Reset view",
     mapInstructions:
       "Drag to pan. Activate Fill countries before clicking territories. Changes are preserved in the downloaded SVG.",
+    paletteFileError: "Choose an Adobe Swatch Exchange (.ase) file up to 2 MB.",
+    paletteReadError: "Could not read the ASE palette.",
     adobePalette: "ADOBE PALETTE",
     replacePalette: "Replace .ase",
     applyPalette: "Apply",
@@ -113,6 +115,9 @@ export const mapUi = {
     resetView: "Obnovit pohled",
     mapInstructions:
       "Tažením mapu posunete. Před kliknutím na území zapněte Vybarvit státy. Změny se zachovají ve staženém SVG.",
+    paletteFileError:
+      "Vyberte soubor Adobe Swatch Exchange (.ase) o velikosti nejvýše 2 MB.",
+    paletteReadError: "Paletu ASE se nepodařilo načíst.",
     adobePalette: "PALETA ADOBE",
     replacePalette: "Nahradit .ase",
     applyPalette: "Použít",

@@ -15,3 +15,5 @@ Typesetter turns an inconsistently styled Word manuscript into reviewed semantic
 The DOCX and IDML files remain in the browser. Extracted manuscript blocks are sent to the configured OpenRouter model during pre-scan and classification; the IDML file is not sent. V1 supports one main story, paragraph-level styles, simple lists, captions, and image requests. It does not design pages, compose complex tables, or repair overset text.
 
 Image requests are created as ordinary, unanchored frames on the `IMAGE REQUESTS` layer. Position or replace them manually. Always run the importer on a copy and check the complete result.
+
+Extraction preserves plain text and source order, not Word formatting. The importer replaces the labelled main story and skips unsupported blocks; table handling is limited, so review omissions and layout on a copy. Browser Python runtimes may be downloaded for local extraction.

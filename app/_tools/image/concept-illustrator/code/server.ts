@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import "server-only";
 
 import { randomInt } from "node:crypto";
@@ -36,10 +38,6 @@ import type {
   IllustrationUsage,
 } from "./types.ts";
 
-const DEFAULT_PLAN_MODEL = "mistralai/mistral-medium-3-5";
-const DEFAULT_PLAN_FALLBACK_MODEL = "mistralai/ministral-14b-2512";
-const DEFAULT_IMAGE_MODEL = "black-forest-labs/flux.2-pro";
-const DEFAULT_CRITIQUE_MODEL = "google/gemini-3.8-flash";
 const MAX_SEED = 2_000_000_000;
 
 const planPrompt = loadPrompt(
@@ -178,24 +176,21 @@ const critiqueSchema = {
 
 function plannerModels() {
   const primary =
-    process.env.OPENROUTER_CONCEPT_ILLUSTRATOR_PLAN_MODEL || DEFAULT_PLAN_MODEL;
+    resolveModel(modelStages.planner);
   const fallback =
-    process.env.OPENROUTER_CONCEPT_ILLUSTRATOR_PLAN_FALLBACK_MODEL ||
-    DEFAULT_PLAN_FALLBACK_MODEL;
+    resolveModel(modelStages.planner.failureFallbackModels[0]);
   return { primary, fallback };
 }
 
 function imageModel() {
   return (
-    process.env.OPENROUTER_CONCEPT_ILLUSTRATOR_IMAGE_MODEL ||
-    DEFAULT_IMAGE_MODEL
+    resolveModel(modelStages.image)
   );
 }
 
 function critiqueModel() {
   return (
-    process.env.OPENROUTER_CONCEPT_ILLUSTRATOR_CRITIQUE_MODEL ||
-    DEFAULT_CRITIQUE_MODEL
+    resolveModel(modelStages.critique)
   );
 }
 

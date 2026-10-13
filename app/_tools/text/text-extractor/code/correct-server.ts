@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -33,8 +35,7 @@ export async function POST(request: Request) {
       error?: { message?: string };
     }>(openRouter, "chat/completions", "correct-text", {
       model:
-        process.env.OPENROUTER_CORRECTION_MODEL ||
-        "mistralai/ministral-8b-2512",
+        resolveModel(modelStages['correction']),
       temperature: 0,
       messages: [
         { role: "system", content: correctionPrompt },

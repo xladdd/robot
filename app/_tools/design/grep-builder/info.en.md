@@ -1,7 +1,7 @@
 ### What is this?
 
-Describe what Adobe InDesign should find and what should replace it in plain language. You will get separate GREP strings for the Find What and Change To fields, ready to copy into InDesign.
+Describe what Adobe InDesign should find and what should replace it. Copy the separate GREP strings into Find What and Change To.
 
 ### How does it work?
 
-Robot resolves a small set of common, unambiguous operations with deterministic rules. Other instructions are sent through OpenRouter to `mistralai/ministral-8b-2512 🇪🇺`, which returns the two InDesign GREP strings; Robot then validates known unsafe patterns before displaying them. Only your written instructions are sent, never an InDesign document or its text.
+Your instructions reach Robot's server. A small set of common, unambiguous operations uses deterministic rules without an AI call; other instructions are forwarded to OpenRouter. Robot checks and repairs a limited set of known problematic patterns, not every possible GREP error. No InDesign document is uploaded. Always test on a copy before applying changes broadly.

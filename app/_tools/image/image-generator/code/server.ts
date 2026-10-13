@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
 import {
@@ -265,9 +267,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       model =
-        process.env.OPENROUTER_IMAGE_UPSCALE_MODEL ||
-        process.env.OPENROUTER_COVER_PRODUCTION_MODEL ||
-        "black-forest-labs/flux.2-pro";
+        resolveModel(modelStages['upscale']);
       completePrompt = fillPrompt(upscalePrompt, { prompt });
       inputReferences = [body.image];
       operation = "upscale-image";
@@ -286,8 +286,7 @@ export async function POST(request: Request) {
           typeof body.model === "string" ? body.model.trim() : "";
         model = /^[\w][\w.-]*\/[\w][\w.:-]*$/.test(requestedModel)
           ? requestedModel
-          : process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
-            "black-forest-labs/flux.2-pro";
+          : resolveModel(modelStages['fidelity']);
         try {
           JSON.parse(prompt);
         } catch {
@@ -311,10 +310,8 @@ export async function POST(request: Request) {
             : "match";
         const highFidelity = body.quality !== "fast";
         model = highFidelity
-          ? process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
-            "black-forest-labs/flux.2-pro"
-          : process.env.OPENROUTER_COVER_SKETCH_MODEL ||
-            "black-forest-labs/flux.2-klein-4b";
+          ? resolveModel(modelStages['fidelity'])
+          : resolveModel(modelStages['fast']);
         completePrompt = fillPrompt(generationPrompt, {
           referenceInstruction: references.length
             ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`

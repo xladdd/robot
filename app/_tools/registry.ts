@@ -1,3 +1,6 @@
+import { toolDefinitions } from "./generated/registry.data.ts";
+import type { ToolManifest } from "./types";
+
 type SidebarCategory = "text" | "image" | "design";
 
 type SidebarApp = {
@@ -20,7 +23,7 @@ export function createSidebarGroups<T extends SidebarApp>(
 }
 
 // `hidden` controls sidebar visibility; `available` keeps its existing enabled/coming-soon behavior.
-export const appRegistry = [
+export const appRegistryEntries = [
   {
     id: "extraction",
     category: "text",
@@ -62,9 +65,6 @@ export const appRegistry = [
     folder: "image/image-generator",
     available: true,
     hidden: false,
-    // Controls whether the Image Generator shows the DEFAULT/ADVANCED mode
-    // switcher; when false the app renders the default interface only.
-    advancedMode: false,
   },
   {
     id: "cover",
@@ -145,17 +145,28 @@ export const appRegistry = [
   },
 ] as const;
 
+// Legacy interface compatibility; feature ownership lives in the manifest.
+export const appRegistry: readonly ((typeof appRegistryEntries)[number] & {
+  readonly advancedMode: boolean;
+})[] = appRegistryEntries.map((entry) => ({
+  ...entry,
+  advancedMode:
+    (
+      toolDefinitions.find((tool) => tool.id === entry.id) as
+        ToolManifest | undefined
+    )?.featureFlags?.advancedMode ?? false,
+}));
+
 export type AppId = (typeof appRegistry)[number]["id"];
 export type SidebarStatus = "tested" | "to-test" | "alpha";
 export type Language = "en" | "cs";
 
-export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
-  map: "alpha",
-  bio: "alpha",
-  conceptIllustrator: "alpha",
-  styleTrainer: "alpha",
-  typesetter: "alpha",
-};
+export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> =
+  Object.fromEntries(
+    toolDefinitions.flatMap((tool) =>
+      "status" in tool ? [[tool.id, tool.status]] : [],
+    ),
+  );
 export type InfoDrawers = Record<Language, Record<string, string>>;
 
 export const appVersion = "v0.5";

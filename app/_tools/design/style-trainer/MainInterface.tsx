@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
+import type { ToolProps } from "../../types";
 import { styleTrainerUi } from "./copy";
 import type { StylePlan } from "./code/plan";
 
@@ -110,10 +111,12 @@ function safeFilename(styleId: string, seed: number) {
 
 export function StyleTrainerMainInterface({
   language,
-  active,
+  onDiagnostics,
+  active = true,
 }: {
   language: Language;
-  active: boolean;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+  active?: boolean;
 }) {
   const t = styleTrainerUi[language];
   const [references, setReferences] = useState<StyleReference[]>([]);
@@ -169,7 +172,9 @@ export function StyleTrainerMainInterface({
           data: await prepareReferenceImage(file),
         })),
       );
-      setReferences((current) => [...current, ...additions].slice(0, MAX_REFERENCES));
+      setReferences((current) =>
+        [...current, ...additions].slice(0, MAX_REFERENCES),
+      );
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t.referenceError);
@@ -294,7 +299,11 @@ export function StyleTrainerMainInterface({
       setPlan(result.plan);
       setChat((current) => [
         ...current,
-        { id: `planner-${Date.now()}`, author: "planner", text: result.plan!.analysis },
+        {
+          id: `planner-${Date.now()}`,
+          author: "planner",
+          text: result.plan!.analysis,
+        },
       ]);
       await startRound(result.plan.prompt);
     } catch (reason) {
@@ -312,7 +321,8 @@ export function StyleTrainerMainInterface({
     }
     setError("");
     setIsRevising(true);
-    const preferredImage = usePreferred && votedJob ? votedJob.image!.data : null;
+    const preferredImage =
+      usePreferred && votedJob ? votedJob.image!.data : null;
     try {
       const response = await fetch("/api/style-trainer", {
         method: "POST",
@@ -441,13 +451,49 @@ export function StyleTrainerMainInterface({
         ? t.analyze
         : t.retest;
 
-  if (!active) return null;
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus:
+        isAnalyzing ||
+        isRevising ||
+        isGenerating ||
+        submission.status === "sending"
+          ? "running"
+          : error || submission.status === "error"
+            ? "error"
+            : Boolean(plan)
+              ? "completed"
+              : "idle",
+      progress: null,
+      inputSummary: {
+        hasInput: Boolean(testPrompt.trim()) || references.length > 0,
+        fileType: null,
+        fileSize: null,
+        referenceCount: references.length,
+        hasResult: Boolean(plan),
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    isAnalyzing,
+    isRevising,
+    isGenerating,
+    submission.status,
+    plan,
+    testPrompt,
+    references.length,
+    error,
+  ]);
 
   return (
     <div
       className="cover-module style-trainer-module"
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={handleDrop}
+      onDragOver={(event) => {
+        if (active) event.preventDefault();
+      }}
+      onDrop={active ? handleDrop : undefined}
     >
       <section
         className={`cover-stage ${!roundJobs.length && !isGenerating ? "initial" : ""}`}
@@ -502,7 +548,9 @@ export function StyleTrainerMainInterface({
                   <button
                     className={`action-button action-button-compact style-trainer-select ${job.id === votedId ? "style-trainer-select-active" : ""}`}
                     onClick={() =>
-                      setVotedId((current) => (current === job.id ? null : job.id))
+                      setVotedId((current) =>
+                        current === job.id ? null : job.id,
+                      )
                     }
                     aria-pressed={job.id === votedId}
                   >
@@ -549,7 +597,9 @@ export function StyleTrainerMainInterface({
         <section className="cover-control cover-reference-control">
           <label>
             {t.references}{" "}
-            <b>{t.referencesCount.replace("{count}", String(references.length))}</b>
+            <b>
+              {t.referencesCount.replace("{count}", String(references.length))}
+            </b>
           </label>
           <div className="cover-references style-trainer-references">
             {Array.from({ length: MAX_REFERENCES }, (_, index) => {
@@ -560,9 +610,7 @@ export function StyleTrainerMainInterface({
                   <button
                     onClick={() =>
                       setReferences((current) =>
-                        current.filter(
-                          (_, itemIndex) => itemIndex !== index,
-                        ),
+                        current.filter((_, itemIndex) => itemIndex !== index),
                       )
                     }
                     disabled={isAnalyzing || isGenerating}
@@ -570,17 +618,18 @@ export function StyleTrainerMainInterface({
                   >
                     ×
                   </button>
-                  <figcaption>
-                    {String(index + 1).padStart(2, "0")}
-                  </figcaption>
+                  <figcaption>{String(index + 1).padStart(2, "0")}</figcaption>
                 </figure>
               ) : (
                 <button
                   className="cover-add-reference"
                   key={`empty-${index}`}
                   onClick={() => referenceInputRef.current?.click()}
-                  onDragOver={(event) => event.preventDefault()}
+                  onDragOver={(event) => {
+                    if (active) event.preventDefault();
+                  }}
                   onDrop={(event) => {
+                    if (!active) return;
                     event.preventDefault();
                     event.stopPropagation();
                     void addReferenceFiles(
@@ -636,7 +685,9 @@ export function StyleTrainerMainInterface({
                 value={plan.prompt}
                 onChange={(event) =>
                   setPlan((current) =>
-                    current ? { ...current, prompt: event.target.value } : current,
+                    current
+                      ? { ...current, prompt: event.target.value }
+                      : current,
                   )
                 }
                 rows={8}
@@ -746,7 +797,9 @@ export function StyleTrainerMainInterface({
               onChange={(event) => setSubmitNotes(event.target.value)}
               placeholder={t.submitNotesPlaceholder}
               rows={2}
-              disabled={submission.status === "sending" || submission.status === "sent"}
+              disabled={
+                submission.status === "sending" || submission.status === "sent"
+              }
             />
             {submission.status === "sent" ? (
               <p className="style-trainer-submit-result" role="status">
@@ -754,7 +807,11 @@ export function StyleTrainerMainInterface({
                 {submission.taskUrl ? (
                   <>
                     {" "}
-                    <a href={submission.taskUrl} target="_blank" rel="noreferrer">
+                    <a
+                      href={submission.taskUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {t.openTask} ↗
                     </a>
                   </>
@@ -814,7 +871,8 @@ export function StyleTrainerMainInterface({
         </div>
       </aside>
 
-      {zoomedJob?.image &&
+      {active &&
+        zoomedJob?.image &&
         createPortal(
           <div
             className="manual-lightbox cover-lightbox"

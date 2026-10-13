@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -66,11 +68,11 @@ export async function POST(request: Request) {
         ];
 
     const body = {
-      model: ocrModel(process.env.OPENROUTER_OCR_MODEL),
+      model: ocrModel(resolveModel(modelStages.ocr)),
       messages: [{ role: "user", content }],
       temperature: 0,
       ...(isPdf
-        ? { plugins: [{ id: "file-parser", pdf: { engine: "mistral-ocr" } }] }
+        ? { plugins: [{ id: "file-parser", pdf: { engine: modelStages["pdf-parser"].defaultModel } }] }
         : {}),
     };
     let openRouterResult = await requestOpenRouterWithEuFallback<OcrResult>(

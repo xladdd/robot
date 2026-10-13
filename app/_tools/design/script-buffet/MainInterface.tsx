@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Language } from "../../registry";
+import type { ToolProps } from "../../types";
 import { ToolHeader } from "../../../_components/ToolChrome";
 
 type AdobeApp = "indesign" | "illustrator" | "photoshop";
@@ -76,8 +77,12 @@ const installPaths: Record<AdobeApp, Record<Platform, string>> = {
 
 export function ScriptBuffetMainInterface({
   language,
+  active = true,
+  onDiagnostics,
 }: {
   language: Language;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+  active?: boolean;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -116,6 +121,26 @@ export function ScriptBuffetMainInterface({
     (script) => filter === "all" || script.apps.includes(filter),
   );
   const filters: Filter[] = ["all", "indesign", "illustrator", "photoshop"];
+
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: "idle",
+      progress: null,
+      inputSummary: {
+        hasInput: filter !== "all",
+        fileType: null,
+        fileSize: null,
+        referenceCount: 0,
+        hasResult: visible.length > 0,
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    visible.length,
+    filter,
+  ]);
 
   return (
     <div className="buffet-module">

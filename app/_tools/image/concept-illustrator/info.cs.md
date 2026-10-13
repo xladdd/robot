@@ -11,3 +11,5 @@ Projekty, text článku, sestavené prompty, rozhodnutí, poznámky, revize obr�
 Plánování, sestavení promptu, generování obrázku, úpravy obrázku a kritika používají API Concept Illustrations a zpracovávají se přes OpenRouter. Text článku, písemné pokyny ke stylu, poměr stran a relevantní nedávné poznámky ke schválení či zamítnutí se podle potřeby odesílají při plánování nebo sestavení promptu. Referenční ilustrace stylu domu se odesílají při generování; první dvě také při požadavcích na úpravu obrázku. Aktivní vygenerovaný obrázek se odesílá také při úpravách a kritice.
 
 Každé generování obrázku, úprava i výslovně spuštěná kritika mohou spotřebovat placené modelové prostředky. Kritika se nikdy nespouští automaticky a použití jejích oprav pouze vyplní pokyn k úpravě—novou revizi musíte potvrdit samostatně. Reference lze přidat jako PNG, JPEG nebo WebP do 30 MB; přímo v prohlížeči se komprimují do JPEG s maximální stranou 1600 px a poté se uloží místně do profilu Styl domu.
+
+Používání modelů podléhá společným pseudonymním záznamům uvedeným v obecné informační zásuvce.

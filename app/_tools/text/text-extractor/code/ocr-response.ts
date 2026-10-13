@@ -1,4 +1,6 @@
-export const DEFAULT_OCR_MODEL = "mistralai/mistral-small-2603";
+import { modelStages } from "../model-definitions.ts";
+
+export const DEFAULT_OCR_MODEL = modelStages.ocr.defaultModel;
 
 export type OcrErrorCode = "provider_rate_limited" | "provider_error";
 

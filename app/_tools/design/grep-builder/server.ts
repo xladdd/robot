@@ -1,3 +1,5 @@
+import { modelStages } from "./model-definitions.ts";
+import { resolveModel } from "../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../load-prompt";
 import { resolveDeterministicGrepIntent } from "./intent";
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
     }>(openRouter, "chat/completions", "generate-grep", {
-      model: process.env.OPENROUTER_GREP_MODEL || "mistralai/ministral-8b-2512",
+      model: resolveModel(modelStages['conversion']),
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [

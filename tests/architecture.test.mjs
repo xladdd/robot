@@ -210,20 +210,27 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
     ),
   ]);
 
-  for (const componentName of [
-    "DesignManualMainInterface",
-    "TextExtractorMainInterface",
-    "IndexCreatorMainInterface",
-    "PromptExtractorMainInterface",
-    "CoverGeneratorMainInterface",
-    "ImageGeneratorMainInterface",
-    "ConceptIllustratorMainInterface",
-    "GraphMainInterface",
-    "DiagramMainInterface",
-    "MapMainInterface",
-    "TypesetterMainInterface",
-  ]) {
-    assert.match(workspace, new RegExp(`<${componentName}`));
+  assert.match(workspace, /<DesignManualTool\b/);
+  const ownedInterfaces = {
+    "design-manual": "DesignManualMainInterface",
+    "text/text-extractor": "TextExtractorMainInterface",
+    "text/index-creator": "IndexCreatorMainInterface",
+    "text/prompt-extractor": "PromptExtractorMainInterface",
+    "image/cover-generator": "CoverGeneratorMainInterface",
+    "image/image-generator": "ImageGeneratorMainInterface",
+    "image/concept-illustrator": "ConceptIllustratorMainInterface",
+    "image/graph-generator": "GraphMainInterface",
+    "image/diagram-generator": "DiagramMainInterface",
+    "image/map-generator": "MapMainInterface",
+    "design/typesetter": "TypesetterMainInterface",
+  };
+  for (const [folder, componentName] of Object.entries(ownedInterfaces)) {
+    const tool = await readFile(
+      new URL(`app/_tools/${folder}/Tool.tsx`, root),
+      "utf8",
+    );
+    assert.match(tool, new RegExp(`<${componentName}`), folder);
+    assert.doesNotMatch(workspace, new RegExp(`<${componentName}`), folder);
   }
   for (const className of [
     "manual-docs",
@@ -241,11 +248,27 @@ test("keeps app interface markup out of the shared workspace shell", async () =>
   assert.match(promptExtractor, /prompt-module/);
   assert.match(coverGenerator, /className="cover-module"/);
   assert.match(imageGenerator, /image-generator-module/);
-  assert.match(imageGenerator, /if \(!active\) return null/);
+  assert.doesNotMatch(
+    imageGenerator,
+    /if\s*\(!active\)\s*(?:\{\s*)?return null/,
+  );
   assert.doesNotMatch(imageGenerator, /hidden=\{!active\}/);
   assert.match(conceptIllustrator, /concept-illustrator-module/);
-  assert.match(conceptIllustrator, /if \(!active\) return null/);
+  assert.doesNotMatch(
+    conceptIllustrator,
+    /if\s*\(!active\)\s*(?:\{\s*)?return null/,
+  );
   assert.doesNotMatch(conceptIllustrator, /hidden=\{!active\}/);
+  const host = await readFile(
+    new URL("app/_components/ToolHost.tsx", root),
+    "utf8",
+  );
+  assert.match(workspace, /<ToolHost\b/);
+  assert.match(host, /from ["']\.\.\/_tools\/generated\/registry\.client["']/);
+  assert.match(host, /hidden=\{!active\}/);
+  assert.match(host, /inert=\{!active\}/);
+  assert.match(host, /mounted\.map\(\(id\)\s*=>[\s\S]*?<ToolSlot\s+key=\{id\}/);
+  assert.match(host, /active=\{id === selected\}/);
   assert.match(
     graphGenerator,
     /cover-module visual-single-module graph-module/,
@@ -335,9 +358,10 @@ test("parses Design Manual Markdown into the existing chapter view", async () =>
 });
 
 test("uses each app's Markdown files as the info-drawer source", async () => {
-  const [page, workspace, loader, englishInfo] = await Promise.all([
+  const [page, workspace, drawer, loader, englishInfo] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),
     readFile(new URL("app/Workspace.tsx", root), "utf8"),
+    readFile(new URL("app/_components/InfoDrawer.tsx", root), "utf8"),
     readFile(new URL("app/_tools/info.ts", root), "utf8"),
     readFile(
       new URL("app/_tools/text/text-extractor/info.en.md", root),
@@ -346,7 +370,16 @@ test("uses each app's Markdown files as the info-drawer source", async () => {
   ]);
 
   assert.match(page, /loadInfoDrawers/);
-  assert.match(workspace, /<ReactMarkdown>\{help\}<\/ReactMarkdown>/);
+  assert.match(workspace, /<InfoDrawer\b/);
+  assert.match(
+    workspace,
+    /markdown=\{\s*\(selected \? infoDrawers\[language\]\[selected\] : undefined\)\s*\?\?\s*infoDrawers\[language\]\.general\s*\}/,
+  );
+  assert.match(drawer, /import ReactMarkdown from ["']react-markdown["']/);
+  assert.match(drawer, /<ReactMarkdown>\{markdown\}<\/ReactMarkdown>/);
+  assert.match(loader, /toolDefinitions\.map\(\(app\) =>/);
+  assert.match(loader, /readInfoFile\(app\.folder, language\)/);
+  assert.match(loader, /result\[language\]\[app\.id\]/);
   assert.match(loader, /info\.\$\{language\}\.md/);
   assert.match(englishInfo, /What is this\?/);
 });
@@ -441,22 +474,26 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
 });
 
 test("ships Script Buffet and repeatable Design Manual PDF exports", async () => {
-  const [workspace, buffet, packageJson, exporter, changelog] =
-    await Promise.all([
-      readFile(new URL("app/Workspace.tsx", root), "utf8"),
-      readFile(
-        new URL("app/_tools/design/script-buffet/MainInterface.tsx", root),
-        "utf8",
-      ),
-      readFile(new URL("package.json", root), "utf8"),
-      readFile(
-        new URL("app/_tools/design-manual/scripts/export-pdf.mjs", root),
-        "utf8",
-      ),
-      readFile(new URL("app/_tools/design-manual/changelog.md", root), "utf8"),
-    ]);
+  const [tool, buffet, packageJson, exporter, changelog] = await Promise.all([
+    readFile(new URL("app/_tools/design/script-buffet/Tool.tsx", root), "utf8"),
+    readFile(
+      new URL("app/_tools/design/script-buffet/MainInterface.tsx", root),
+      "utf8",
+    ),
+    readFile(new URL("package.json", root), "utf8"),
+    readFile(
+      new URL("app/_tools/design-manual/scripts/export-pdf.mjs", root),
+      "utf8",
+    ),
+    readFile(new URL("app/_tools/design-manual/changelog.md", root), "utf8"),
+  ]);
 
-  assert.match(workspace, /<ScriptBuffetMainInterface language=\{language\}/);
+  assert.match(
+    tool,
+    /import \{ ScriptBuffetMainInterface \} from ["']\.\/MainInterface["']/,
+  );
+  assert.match(tool, /function Tool\(props: ToolProps\)/);
+  assert.match(tool, /<ScriptBuffetMainInterface\s+\{\.\.\.props\}\s*\/>/);
   assert.match(buffet, /className="buffet-grid"/);
   assert.match(buffet, /indesign|illustrator|photoshop/);
   assert.match(buffet, /Make Silhouette Fill/);

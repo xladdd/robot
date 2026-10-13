@@ -1,3 +1,4 @@
+import { modelStages } from "../model-definitions.ts";
 import "server-only";
 
 import { loadPrompt } from "../../../load-prompt";
@@ -21,9 +22,9 @@ import {
 } from "./types";
 import { coverStylePrompts as explicitStylePrompts } from "./style-catalog";
 
-export const COVER_PLANNER_MODEL = "mistralai/mistral-medium-3-5" as const;
+export const COVER_PLANNER_MODEL = modelStages.planner.defaultModel;
 export const COVER_PLANNER_FALLBACK_MODEL =
-  "mistralai/ministral-14b-2512" as const;
+  modelStages.planner.failureFallbackModels[0].defaultModel;
 
 const plannerPrompt = loadPrompt(
   "image/cover-generator/prompts/plan-concepts.md",

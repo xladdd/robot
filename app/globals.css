@@ -315,6 +315,10 @@ button {
     text-transform: none;
     white-space: nowrap;
 }
+/* Unloaded icon-font text must not cover neighbouring utility buttons. */
+.bug-report {
+    overflow: hidden;
+}
 .bug-report .material-icons {
     font-size: 27.54px;
     transform: translateY(2px);
@@ -679,7 +683,18 @@ button {
         transform: translateY(-50%);
     }
 }
-/* Main workspace */
+/* Main workspace and retained tool lifetimes */
+.tool-slot {
+    display: contents;
+}
+.tool-slot[hidden] {
+    display: none !important;
+}
+.tool-loading {
+    position: relative;
+    z-index: 1;
+    margin: 40px;
+}
 .workspace {
     position: relative;
     min-width: 0;

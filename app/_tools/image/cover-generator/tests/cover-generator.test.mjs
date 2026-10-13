@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { modelDefinitions } from "../model-definitions.ts";
 
 const root = new URL("../../../../../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
@@ -20,7 +21,7 @@ const plannerPrompt = await read(
 const interfaceSource = await read(
   "app/_tools/image/cover-generator/MainInterface.tsx",
 );
-const workspace = await read("app/Workspace.tsx");
+const controller = await read("app/_tools/image/cover-generator/Tool.tsx");
 const copy = await read("app/_tools/image/cover-generator/copy.ts");
 const artboard = await read(
   "app/_tools/image/cover-generator/code/cover-artboard.ts",
@@ -79,13 +80,26 @@ test("defines one structured concept prompt template with positive spatial invar
 });
 
 test("uses Mistral Medium with Ministral fallback to write exactly 1, 2, or 4 concepts", () => {
+  const planning = modelDefinitions.find(
+    (stage) => stage.stageId === "planner",
+  );
+  assert.ok(planning);
+  assert.equal(planning.defaultModel, "mistralai/mistral-medium-3-5");
+  assert.deepEqual(planning.environmentPrecedence, []);
+  assert.deepEqual(planning.failureFallbackModels, [
+    { defaultModel: "mistralai/ministral-14b-2512", environmentPrecedence: [] },
+  ]);
   assert.match(
     planner,
-    /COVER_PLANNER_MODEL = "mistralai\/mistral-medium-3-5"/,
+    /import \{ modelStages \} from "\.\.\/model-definitions\.ts"/,
   );
   assert.match(
     planner,
-    /COVER_PLANNER_FALLBACK_MODEL\s*=\s*"mistralai\/ministral-14b-2512"/,
+    /COVER_PLANNER_MODEL\s*=\s*modelStages\.planner\.defaultModel/,
+  );
+  assert.match(
+    planner,
+    /COVER_PLANNER_FALLBACK_MODEL\s*=\s*modelStages\.planner\.failureFallbackModels\[0\]\.defaultModel/,
   );
   assert.match(
     planner,
@@ -197,8 +211,8 @@ test("supports explicit visual treatment and one, two, or four concepts", () => 
   assert.match(server, /if \(value === undefined\) return 2/);
   assert.match(server, /function parseStyle/);
   assert.match(server, /coverTreatments\.includes/);
-  assert.match(workspace, /useState<CoverStyleSelection>\("automatic"\)/);
-  assert.match(workspace, /style: coverStyle/);
+  assert.match(controller, /useState<CoverStyleSelection>\("automatic"\)/);
+  assert.match(controller, /style: coverStyle/);
   assert.match(interfaceSource, /id="cover-style"/);
   assert.ok(
     interfaceSource.indexOf('id="cover-audience"') <
@@ -299,7 +313,7 @@ test("offers FLUX.2 Pro by default and Gemini, but rejects Klein", () => {
   assert.match(server, /randomInt\(0, MAX_SEED\)/);
   assert.match(interfaceSource, /value="black-forest-labs\/flux\.2-pro"/);
   assert.match(interfaceSource, /value="google\/gemini-3\.1-flash-lite-image"/);
-  assert.match(workspace, /"black-forest-labs\/flux\.2-pro"/);
+  assert.match(controller, /"black-forest-labs\/flux\.2-pro"/);
   for (const source of [server, interfaceSource, copy])
     assert.doesNotMatch(source, /flux\.2-klein|modelFlux(?:Note)?:/);
 });
@@ -312,7 +326,7 @@ test("uses the selected overlay for cards and PDFs but keeps ZIP artwork raw", a
 
   assert.ok(blackOverlay.length > 0);
   assert.ok(whiteOverlay.length > 0);
-  assert.match(workspace, /useState<CoverOverlayTone>\("black"\)/);
+  assert.match(controller, /useState<CoverOverlayTone>\("black"\)/);
   assert.match(interfaceSource, /overlayTone: CoverOverlayTone/);
   assert.match(
     interfaceSource,
@@ -329,11 +343,11 @@ test("uses the selected overlay for cards and PDFs but keeps ZIP artwork raw", a
   assert.match(interfaceSource, /aria-hidden="true"/);
   assert.match(interfaceSource, /aria-pressed=\{overlayTone === "black"\}/);
   assert.match(interfaceSource, /aria-pressed=\{overlayTone === "white"\}/);
-  assert.match(workspace, /overlayTone=\{coverOverlayTone\}/);
-  assert.match(workspace, /overlayChoices=\{coverOverlayChoices\}/);
-  assert.match(workspace, /onOverlayTone=\{selectCoverOverlayTone\}/);
+  assert.match(controller, /overlayTone=\{coverOverlayTone\}/);
+  assert.match(controller, /overlayChoices=\{coverOverlayChoices\}/);
+  assert.match(controller, /onOverlayTone=\{selectCoverOverlayTone\}/);
   assert.match(
-    workspace,
+    controller,
     /function selectCoverOverlayTone[\s\S]*setCoverOverlayChoices\(\{\}\)/,
   );
   assert.match(
@@ -354,9 +368,9 @@ test("uses the selected overlay for cards and PDFs but keeps ZIP artwork raw", a
     artboard,
     /if \(overlay\)[\s\S]*context\.drawImage\(overlay, 0, 0, canvas\.width, canvas\.height\)/,
   );
-  assert.match(workspace, /data: await toBytes\(item\.data\)/);
+  assert.match(controller, /data: await toBytes\(item\.data\)/);
   assert.match(
-    workspace,
+    controller,
     /overlay: coverOverlayChoices\[item\.id\] \?\? coverOverlayTone/,
   );
 });
@@ -367,7 +381,7 @@ test("places references after inputs and persists each lightbox overlay on its c
       interfaceSource.indexOf("cover-reference-control"),
   );
   assert.match(
-    workspace,
+    controller,
     /Record<string, CoverLightboxOverlay>[\s\S]*\>\(\{\}\)/,
   );
   assert.match(interfaceSource, /overlay: CoverLightboxOverlay/);
@@ -381,10 +395,10 @@ test("places references after inputs and persists each lightbox overlay on its c
   assert.match(interfaceSource, />\s*B\s*<\/button>/);
   assert.match(interfaceSource, />\s*None\s*<\/button>/);
   assert.match(
-    workspace,
+    controller,
     /overlay=\{coverOverlayChoices\[zoomedCover\.id\] \?\? coverOverlayTone\}/,
   );
-  assert.match(workspace, /\[zoomedCover\.id\]: overlay/);
+  assert.match(controller, /\[zoomedCover\.id\]: overlay/);
   assert.match(
     styles,
     /\.cover-lightbox-text-overlay[\s\S]*position: absolute[\s\S]*pointer-events: none/,
@@ -400,9 +414,9 @@ test("places references after inputs and persists each lightbox overlay on its c
 });
 
 test("exports the actual generated prompts with image metadata", () => {
-  assert.match(workspace, /item\.concept\.prompt/);
-  assert.match(workspace, /planner: coverPlanner/);
-  assert.match(workspace, /plannerCost/);
-  assert.match(workspace, /audience: coverAudience/);
-  assert.doesNotMatch(workspace, /item\.concept\.coreIdea|referenceGuidance/);
+  assert.match(controller, /item\.concept\.prompt/);
+  assert.match(controller, /planner: coverPlanner/);
+  assert.match(controller, /plannerCost/);
+  assert.match(controller, /audience: coverAudience/);
+  assert.doesNotMatch(controller, /item\.concept\.coreIdea|referenceGuidance/);
 });

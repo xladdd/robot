@@ -1,13 +1,13 @@
 ### Co to je?
 
-Zadejte až 15 promptů nebo je importujte ze souboru DOCX, Markdown či TXT a případně přidejte až tři referenční obrázky. Získáte samostatné čtvercové obrázky, které lze vygenerovat znovu, stáhnout nebo generativně zvětšit na další velikost. Nabídka **Styl** v ovládacích prvcích přidává také dva pohádkové styly, které se použijí jako stylový prompt obrázku a nastaví seed na 8701. Zaškrtávací políčko **Průhledné pozadí** nad tlačítkem generování odstraní pozadí přímo v prohlížeči; **Stáhnout zip** zabalí původní obrázky i verze s odstraněným pozadím do samostatných složek.
+Zařaďte až 15 promptů napsaných nebo místně importovaných z DOCX, Markdownu či TXT, případně až se třemi referenčními obrázky. Vytvořte čtvercové obrázky, opakujte jednotlivé výsledky nebo je generativně zvětšete o jeden krok na 1K či 2K. Presety mohou doplnit prompt stylu a připnout seed.
 
 ### Jak to funguje?
 
-Importované soubory s prompty se přečtou v prohlížeči a rozdělí podle prázdných řádků. Každý prompt a jeho volitelné reference se odešlou přes OpenRouter buď modelu `black-forest-labs/flux.2-klein-4b 🇩🇪` pro rychlý obrázek 512 px, nebo modelu `black-forest-labs/flux.2-pro 🇩🇪` pro obrázek 1K. Při zvětšení se vybraný obrázek odešle modelu `black-forest-labs/flux.2-pro 🇩🇪`, který jej znovu vytvoří ve velikosti 1K nebo 2K; původní importovaný dokument se neodesílá.
+Přes Robot do OpenRouteru se posílá jen text promptů a dodané referenční obrázky; importovaný dokument zůstává místně. Rychlý a věrný režim používají různé modely. Zvětšení odešle vybraný obrázek ke generativnímu vytvoření, nikoli k pixelově shodnému zvětšení. Pevný seed může zlepšit opakovatelnost, nezaručuje však stejný výstup mezi poskytovateli, modely či verzemi.
+
+Průhledné pozadí je nezaručené místní odstranění světlého pozadí propojeného s okrajem obrázku, nikoli obecná segmentace pomocí AI. Zkontrolujte okraje a světlé objekty. ZIP obsahuje průhledné verze jen u úspěšných výřezů, vedle originálů.
 
 ### Pokročilý režim
 
-Přepínačem režimu nahoře v ovládacím panelu přepnete na **Pokročilý** režim, který sestavuje strukturovaný FLUX JSON prompt: opakovatelné subjekty s popisem, pozicí a akcí, dále scénu, styl, volný prompt, osvětlení, náladu, pozadí, kompozici, barevnou paletu a nastavení kamery. Pod polem stylu je rozbalovací nabídka **Styl** s hotovými stylovými prompty (zpracování z Generátoru obálek plus dvě pohádkové přednastavené styly, které také nastaví seed na 8701); výběr jednoho z nich vyplní pole stylu a jeho použití je volitelné. Rozbalovací nabídka modelu obsahuje aktuálně dostupné obrazové modely FLUX na OpenRouter, vedle ní je cena za obrázek, kredit zbývající na klíči aplikace zobrazený s měsíčním limitem a — pokud je nastavena proměnná `OPENROUTER_MANAGEMENT_API_KEY` — plný zůstatek účtu v buňce **Účet**. Pole od osvětlení po kameru jsou skryta v rozbalovací sekci **Pokročilé detaily** a zobrazí se až po rozbalení. Nad tlačítkem generování je volitelný **seed** (0–2 000 000 000); prázdné pole znamená náhodný seed a pevný seed reprodukuje stejný obrázek ze stejných vstupů. Prázdná pole se z JSON vynechají a sestavený prompt se odešle vybranému modelu; obrázek se zobrazí ve stejné galerii jako výsledky výchozího režimu.
-
-Celý pokročilý režim lze vypnout příznakem `advancedMode` u položky Generátoru obrázků v `app/_tools/registry.ts`; když je `false`, přepínač režimu ani pokročilý panel se vůbec nezobrazí.
+Pokročilý režim je aktuálně vypnutý. Po zapnutí sestavuje strukturovaný JSON prompt a nabízí živý katalog modelů FLUX. Prázdná pole se vynechají. Zobrazené ceny jsou odhady; údaje o zbývajícím kreditu a měsíčním limitu nezaručují výslednou cenu ani dostupnost požadavku.

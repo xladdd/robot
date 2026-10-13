@@ -1,499 +1,172 @@
 # Architecture
 
-This document explains how Taktik Robot is arranged and how work moves through it. It describes the code as it works now. It also records the remaining places where responsibilities are still mixed.
+Taktik Robot is one authenticated Next.js application with browser-local publishing tools and private server endpoints. This guide describes the folder-registry integration in the worktree; it is not a deployment report. The API-safe baseline was committed as `1ee73a6`. The registry restructure does not itself provision secrets or deploy anything.
 
-## The short version
-
-Taktik Robot is one Next.js website containing several publishing tools. Next.js gives the project a browser interface and private server endpoints in the same project. That matters because the browser must not receive the OpenRouter key. It also avoids running and deploying a separate server.
-
-The main ownership rule is:
+## Ownership and layout
 
 ```text
-app/_tools/
-  text/
-    one-folder-per-sidebar-app/
-  image/
-    one-folder-per-sidebar-app/
-  design/
-    one-folder-per-sidebar-app/
-  design-manual/
-    manual.en.md
-    manual.cs.md
-    images/
+app/
+  page.tsx                      server content loading
+  Workspace.tsx                 completed shared shell (a few hundred formatted lines)
+  _components/                  Header, Sidebar, Clock, InfoDrawer, ToolHost, feedback
+  _feedback/                    validated diagnostics and server-only Asana client
+  _tools/
+    types.ts                    ToolProps and ToolManifest contracts
+    registry.ts                 ordered release entries and compatibility helpers
+    models.ts                   model definition types and Markdown formatting
+    models-server.ts            environment resolution, server-only
+    info.ts                     live bilingual drawer loader, server-only
+    generated/                  committed generator outputs; never hand-edit
+    <text|image|design>/<tool>/
+      manifest.ts               pure-data metadata
+      Tool.tsx                  owner of state, actions, effects and diagnostics
+      MainInterface.tsx         tool presentation, where useful
+      copy.ts                   bilingual tool UI copy
+      model-definitions.ts      canonical model stages, for model-backed tools
+      code/                     browser helpers and private server implementation
+      prompts/                  stable model instructions in Markdown
+      public/                   owned downloads and workers
+      tests/                    canonical tool regressions
+      scripts/                  maintenance and evaluation
+      info.en.md, info.cs.md     live drawer prose
+    design-manual/              separate reference tool, Markdown, images, PDF exporter
+    openrouter/                 shared private inference and key-management support
+  api/**/route.ts                native generated adapters; auth/feedback/compat exceptions
+  content/                      shared shell copy and Czech namedays
+  lib/auth.ts                   signed sessions and credential checks
+  globals.css                   handwritten global styles
+scripts/                        generation, public-link materialization, test discovery
+public/                         shared browser assets and tool-owned asset symlinks
+tests/                          cross-tool contracts
 ```
 
-An app folder may contain:
-
-- `MainInterface.tsx`: the app's browser interface.
-- `code/`: browser helpers, server implementation, parsers, and data used only by that app.
-- `public/`: files that users or browser workers download.
-- `scripts/`: data preparation or evaluation commands.
-- `tests/`: tests owned by that app.
-- `prompts/`: readable Markdown containing stable instructions sent to OpenRouter.
-- `info.en.md` and `info.cs.md`: the live info-drawer copy.
-- `copy.ts`: typed English/Czech in-app UI copy, when the tool has a browser interface.
-
-`app/` is the Next.js entry layer. It owns pages and URL endpoints, but app-specific endpoint files only forward to code under `app/_tools/`.
-
-### Why `app/_tools` instead of a root `apps` folder?
-
-The project briefly used both `app/` and `apps/`. They looked too similar and made it unclear where a developer should start. All tool ownership now lives inside `app/_tools/`.
-
-Pros:
-
-- One application tree is easier to find and browse.
-- Imports from `Workspace.tsx` are shorter.
-- The interface, server implementation, downloads, data, tests, and drawer copy remain grouped by tool.
-- The leading underscore tells Next.js that `_tools` is private code and must not become a URL.
-
-Cons:
-
-- A developer must know the Next.js underscore rule.
-- Tool code is more tied to Next.js than it would be in a neutral root folder such as `modules/`.
-- Existing `/api/...` addresses still need files under `app/api/`. The one-line route files preserve those addresses while the real handlers remain owned by each tool.
-- Putting the full handler back into each `route.ts` would remove the adapter, but it would split an app's code between `app/api` and its tool folder. For this codebase, the small adapter is the clearer tradeoff.
-
-## Folder map
-
-### Root
-
-- `README.md`: user-facing description, setup, and links to every English info drawer.
-- `architecture.md`: this developer guide.
-- `AGENTS.md`: working rules for coding agents. README is written for people; AGENTS contains precise change and verification rules.
-- `package.json`: supported Node version, commands, and direct dependencies.
-- `package-lock.json`: exact installed dependency versions. Do not edit it by hand.
-- `next.config.ts`: Next.js settings. `allowedDevOrigins` permits the configured development-machine origin, currently `10.0.0.83`, and `outputFileTracingIncludes` makes app-owned prompt Markdown available to API routes in deployed server bundles. Review the development origin when the app moves to another network or owner.
-- `scripts/materialize-public-links.mjs`: Vercel-only build preparation. It replaces the tracked `public/` symlinks with disposable copies in Vercel's build workspace, preventing Vercel from attempting to copy an app-owned `public` directory onto itself while retaining app ownership and stable browser URLs in Git.
-- `next-env.d.ts`: generated Next.js TypeScript declarations. Do not edit it by hand.
-- `tsconfig.json`: TypeScript checks and the `@/` path shortcut.
-- `eslint.config.mjs`: lint rules.
-- `proxy.ts`: checks the session before a page or API request continues.
-- `.env.example`: names and explanations of required private settings.
-- `.env.local`: local secrets and DEV OpenRouter inference values; ignored by Git and loaded by Next.js for local use.
-- `.env.openrouter-deploy.local`: separate DEPLOY inference values, using the same runtime variable names; ignored by Git, permission `0600`, and not auto-loaded by Next.js.
-- `.env.openrouter-management.local`: local-only OpenRouter management credential and optional provisioning defaults; ignored by Git, not loaded by Next.js, and never deployed.
-- `.gitignore`: files Git must ignore.
-- `.DS_Store`: macOS Finder metadata. It has no application role and should stay out of commits.
-- `.git/`: local Git history and repository settings. It is not application code.
-- `node_modules/`: installed package code created by `npm install`. Never edit it.
-- `.next/`: generated Next.js build and development output. Never edit or commit it.
-- `tmp/`: local temporary inspection and render output. It is not application source.
-
-### `app/`: Next.js entry points and shared shell
-
-- `app/page.tsx`: server page. It reads all info Markdown and passes it to the browser workspace.
-- `app/Workspace.tsx`: shared browser shell, navigation, long-lived app state, and action functions. It renders each image app through its explicit app-owned interface; moving controllers is the remaining split.
-- `app/_components/LoadingText.tsx`: shared rotating progress-text component used by several interfaces.
-- `app/_components/BugFeedbackDialog.tsx`: accessible bilingual feedback modal. It sends only an explicit, privacy-safe diagnostic snapshot and the user's description.
-- `app/_feedback/`: server-side feedback validation, Asana OAuth refresh, task formatting, and typed diagnostic data. The authenticated Robot username is read from the signed session on the server.
-- `app/_feedback/asana.ts`: shared server-only Asana client (config, OAuth token cache, task payload assembly, and task creation with 401 retry) used by both the feedback endpoint and Style Trainer style requests.
-- `app/layout.tsx`: page metadata, icons, manifest, and global CSS import.
-- `app/globals.css`: handwritten CSS, divided by labelled sections. Tailwind is not used.
-- `app/login/page.tsx`: login form.
-- `app/content/ui.ts`: bilingual shared shell copy: navigation, categories, availability messaging, and status text. It does not contain individual app copy or info-drawer prose.
-- `app/content/czechNamedays.ts`: local date-to-name lookup used by the footer clock.
-- `app/lib/auth.ts`: session signing, expiry, and credential checks.
-- `app/api/**/route.ts`: thin Next.js URL adapters. Authentication routes remain here; app routes re-export handlers from the owning app folder. Route settings such as `dynamic` remain declared literally in the route file because Turbopack cannot read re-exported settings.
-- `app/api/feedback/route.ts`: authenticated feedback endpoint adapter; its implementation lives in `app/_feedback/server.ts`.
-
-The individual route files are deliberately small:
-
-- `app/api/auth/login/route.ts`: checks configured credentials and creates the signed session cookie.
-- `app/api/auth/logout/route.ts`: removes that cookie.
-- `app/api/ocr/route.ts`, `correct/route.ts`, and `index/forms/route.ts`: Text Extractor and Index Creator endpoint addresses.
-- `app/api/figures/route.ts`: compatibility dispatcher for existing graph, diagram, and map generation callers. It selects the owning handler from the request mode.
-- `app/api/graphs/route.ts` and `diagrams/route.ts`: app-native model-backed generation adapters. `app/api/maps/generate/route.ts` preserves the legacy Map URL and returns `410 Gone` because Map Maker is local-only.
-- `app/api/maps/timeline/route.ts`: deterministic Map timeline endpoint. It declares `dynamic = "force-dynamic"` itself because Next.js must see that literal declaration in the route file.
-- `app/api/covers/route.ts`, `concept-illustrations/route.ts`, `layers/route.ts`, `images/route.ts`, `grep/route.ts`, `prompts/route.ts`, `style-trainer/route.ts`, and `typesetter/route.ts`: Cover Generator, Concept Illustrator, Layer Splitter, Image Generator, GREP Builder, Prompt Extractor, Style Trainer, and Typesetter endpoint addresses.
-
-### `app/_tools/`: tool ownership
-
-- `app/_tools/registry.ts`: the one ordered list behind the sidebar. It records each app key, category, folder, availability, and release visibility. `hidden` removes a tool from navigation, while `available` independently keeps its enabled/coming-soon behavior.
-- `app/_tools/info.ts`: server-side Markdown loader for the info drawer.
-- `app/_tools/load-prompt.ts`: reads an app's prompt Markdown and fills named values in prompt templates.
-- `app/_tools/openrouter/config.ts`: maps each model-backed app to its dedicated server-only inference-key environment variable.
-- `app/_tools/openrouter/server.ts`: selects the app key, derives a pseudonymous end-user identifier from the signed session, adds OpenRouter attribution, and emits structured usage records without logging request or response content. It temporarily accepts the legacy shared key as a migration fallback.
-- `app/_tools/openrouter/scripts/provision-keys.mts`: creates missing inference keys through OpenRouter's Management API for an explicit `dev` or `deploy` target and saves each new plaintext key immediately to the corresponding ignored local file. OpenRouter maintenance commands also rename existing DEV keys and verify both sets; they do not change runtime routing.
-- `app/_tools/info.en.md`, `app/_tools/info.cs.md`: home-screen drawer copy.
-
-Text apps:
-
-- `app/_tools/text/text-extractor/MainInterface.tsx`: Text Extractor upload, preview, result, correction, and download interface.
-- `app/_tools/text/text-extractor/copy.ts`: bilingual Text Extractor UI copy.
-- `app/_tools/text/text-extractor/code/ocr-server.ts`: sends images or PDFs to the fixed OCR model.
-- `app/_tools/text/text-extractor/code/correct-server.ts`: sends extracted text plus a correction instruction to the fixed text model.
-- `app/_tools/text/text-extractor/prompts/`: OCR and correction instructions sent to OpenRouter.
-- `app/_tools/text/index-creator/MainInterface.tsx`: Index Creator PDF, term, result, and page-mapping interface.
-- `app/_tools/text/index-creator/copy.ts`: bilingual Index Creator UI copy.
-- `app/_tools/text/index-creator/code/pdf-indexer.ts`: reads PDF text locally, validates phrase-safe forms, ranks candidate pages, and formats match evidence.
-- `app/_tools/text/index-creator/code/local-ocr.ts`: renders sparse PDF pages locally and runs the bundled Czech Tesseract OCR worker without uploading page data.
-- `app/_tools/text/index-creator/code/forms-server.ts`: asks the language model for grammatical forms and rejects unsafe reductions.
-- `app/_tools/text/index-creator/tests/`: deterministic matching, ranking, normalization, and form-safety regressions.
-- `app/_tools/text/index-creator/scripts/evaluate-index.mts`: reusable local evaluator for a supplied benchmark and the normal forms endpoint.
-- `app/_tools/text/index-creator/prompts/forms.md`: stable grammatical-form instructions.
-- `app/_tools/text/prompt-extractor/copy.ts`: bilingual Prompt Extractor UI copy.
-- `app/_tools/text/prompt-extractor/code/pdf-images.ts`: renders PDF pages to browser images with PDF.js.
-- `app/_tools/text/prompt-extractor/code/server.ts`: asks the vision model to describe illustration needs on those page images.
-- `app/_tools/text/prompt-extractor/MainInterface.tsx`: manuscript preview, progress, and prompt-result interface.
-- `app/_tools/text/prompt-extractor/prompts/system.md`: the page-image inspection rules sent to OpenRouter.
-- `public/index-creator-ocr/`: browser-local Tesseract worker, Czech language data, and core assets used by the OCR fallback.
-
-Image apps:
-
-- `app/_tools/image/graph-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Graph UI, copy, local CSV/XLSX-to-Markdown import, ASE parser, chart validator/renderer, and model-backed generation handler.
-- `app/_tools/image/diagram-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Diagram UI, copy, ASE parser, biological-diagram validator/renderer, and model-backed generation handler.
-- `app/_tools/image/map-generator/MainInterface.tsx`, `copy.ts`, and `code/`: Map UI, copy, ASE parser, deterministic map renderer, model-backed generation handler, timeline handler, and local map data.
-- Each image app has its own `tests/` folder; graph, diagram, and map renderer regressions run independently.
-- `app/_tools/image/map-generator/code/map-catalog.ts`: adds physical and historical map data to a map description.
-- `app/_tools/image/map-generator/code/historical-boundaries.ts`: chooses boundary records by date.
-- `app/_tools/image/map-generator/code/cliopatria.ts`: reads the large Cliopatria timeline once and caches it.
-- `app/_tools/image/map-generator/code/timeline-server.ts`: returns the deterministic map for a selected year.
-- `app/_tools/image/map-generator/code/data/`: the only repository copies of processed map datasets and their licence note.
-- `app/_tools/image/map-generator/scripts/`: repeatable dataset import and map evaluation commands.
-- `app/_tools/image/cover-generator/code/server.ts`: protected low-cost OpenRouter planning and image generation for distinct text-free cover-art concepts.
-- `app/_tools/image/cover-generator/code/concept-plan.ts`: Mistral Medium vision planning with a Ministral 14B provider fallback, structured concept validation, reference guidance, and local emergency directions.
-- `app/_tools/image/cover-generator/code/types.ts`: shared audience, subject, planner, reference-guidance, and concept metadata types.
-- `app/_tools/image/cover-generator/prompts/`: editable planner and text-free artwork prompts.
-- `app/_tools/image/cover-generator/MainInterface.tsx`: optional references, audience/subject/keyword controls, model controls, concepts, results, exports, and lightbox.
-- `app/_tools/image/cover-generator/copy.ts`: bilingual Cover Generator UI copy.
-- `app/_tools/image/layer-splitter/MainInterface.tsx`: one-image upload, quality control, reconstruction action, generated result, warnings, and PSD download.
-- `app/_tools/image/layer-splitter/code/`: OpenRouter scene analysis and FLUX image generation, local chroma-key extraction, back-to-front compositing, validation, and layered PSD export.
-- `app/_tools/image/layer-splitter/prompts/`: stable scene-analysis, background-reconstruction, and object-reconstruction instructions.
-- `app/_tools/image/layer-splitter/tests/`: layer-plan, keying, compositing, and PSD format regressions.
-- `app/_tools/image/cover-generator/code/cover-artboard.ts`: creates a PDF contact sheet from generated covers in the browser.
-- `app/_tools/image/cover-generator/scripts/`: cover workflow checks and evaluation helpers.
-- `app/_tools/image/image-generator/MainInterface.tsx`: square image queue, local prompt-document import, optional references, results, downloads, cancellation, and lightbox.
-- `app/_tools/image/image-generator/code/prompts.ts`: blank-line queue parsing, the 15-image cap, and browser-local DOCX/Markdown/text reading.
-- `app/_tools/image/image-generator/code/server.ts`: private square-image generation through the app-specific OpenRouter key, with FLUX.2 Klein for fast output, FLUX.2 Pro for fidelity output, and optional FLUX.2 Pro generative upscaling.
-- `app/_tools/image/image-generator/prompts/generate.md`: stable image-generation instruction.
-- `app/_tools/image/image-generator/tests/prompts.test.mts`: queue splitting and limit regressions.
-- `app/_tools/image/concept-illustrator/MainInterface.tsx`: article-to-concept workflow, editable selected direction, single-image generation, natural-language revisions, explicit critique, editorial feedback, and three-column local project memory.
-- `app/_tools/image/concept-illustrator/code/server.ts`: strict three-concept planning, individual replacement, LLM visual compilation, FLUX.2 generation/editing, and vision critique through the app-specific OpenRouter key.
-- `app/_tools/image/concept-illustrator/code/history.ts`: browser-local IndexedDB projects and persistent house-style profile; images and references are not synchronized to a server database.
-- `app/_tools/image/concept-illustrator/prompts/`: stable concept planning, replacement, visual compilation, refinement, and critique instructions.
-- `app/_tools/image/concept-illustrator/tests/concept-illustrator.test.mts`: exact-three concept, replacement, prompt, aspect-ratio, and image-input validation regressions.
-
-Design apps:
-
-- `app/_tools/design/grep-builder/server.ts`: validates requests, applies high-confidence deterministic intents, and otherwise converts plain instructions through the GREP model while preserving valid empty replacements and safe limitation warnings.
-- `app/_tools/design/grep-builder/intent.ts`: bounded bilingual resolver for recurring unambiguous text operations and formatting-only limitations; unmatched requests fall through to the model.
-- `app/_tools/design/grep-builder/validation.ts`: narrowly corrects two recognized unsafe model outputs without altering ordinary GREP candidates.
-- `app/_tools/design/grep-builder/copy.ts`: bilingual GREP Builder UI copy.
-- `app/_tools/design/grep-builder/MainInterface.tsx: GREP fields, result controls, and copy buttons.
-- `app/_tools/design/grep-builder/prompts/system.md`: the GREP conversion rules sent to OpenRouter.
-- `app/_tools/design/grep-builder/tests/validation.test.mts`: deterministic validator regressions.
-- `app/_tools/design/grep-builder/tests/intent.test.mts`: bilingual deterministic-intent and fail-closed regressions.
-- `app/_tools/design/grep-builder/tests/prompt.test.mts`: regression coverage for the exact four-pass conditional date-padding guidance.
-- `app/_tools/design/cover-splitter/MainInterface.tsx`: local multi-PDF upload, first-page preview grid, per-file trim-size controls, optional inside-cover splitting, format-specific PDF/PNG/JPG ZIP exports, a local console, progress, and a ZIP that accumulates requested formats.
-- `app/_tools/design/cover-splitter/code/pdf-preview.ts`: renders the outside-cover preview and requested completed PDF panels locally with PDF.js.
-- `app/_tools/design/cover-splitter/public/pyodide-worker.js` and `split_cover.py`: run vector-preserving first-page PDF splitting in browser Python, return individual panels, and package PDFs plus any requested raster exports into a ZIP.
-- `app/_tools/design/cover-splitter/tests/`: protects panel dimensions, per-file presets, first-page-only processing, output names, and vector output.
-- `app/_tools/design/barcode-generator/code/ean13.ts`: validates ISBN, builds EAN-13 bars, outlines the digits, and writes a vector PDF.
-- `app/_tools/design/barcode-generator/copy.ts`: bilingual Barcode Generator UI copy.
-- `app/_tools/design/barcode-generator/MainInterface.tsx: barcode input, preview, specifications, and download control.
-- `app/_tools/design/solutions-importer/MainInterface.tsx`: the complete three-file analysis and review interface.
-- `app/_tools/design/solutions-importer/copy.ts`: bilingual Solutions Importer UI copy.
-- `app/_tools/design/solutions-importer/code/pdf.ts`: extracts positioned PDF text before local Python comparison.
-- `app/_tools/design/solutions-importer/public/extract_solution_operations.py`: creates the shared `indesign-solutions-v2` operation manifest.
-- `app/_tools/design/solutions-importer/public/import_solutions.jsx`: canonical InDesign importer. After validating an `indesign-solutions-v2` JSON file, its ScriptUI choice runs either Advanced layout-aware placement or Simple direct PDF-coordinate placement.
-- `app/_tools/design/solutions-importer/tests/`: protects the one-format, three-runtime-file, and single-importer contract.
-- `app/_tools/design/script-buffet/MainInterface.tsx`: filterable Adobe script catalog, installation guide, and local download counters.
-- `app/_tools/design/script-buffet/public/preview-placeholder.svg`: temporary preview artwork for cards until individual GIF previews exist.
-- `app/_tools/design/script-buffet/public/Make Silhouette Fill.jsx`, `Opacity Set.jsx`, and `Split Text Frames into Characters.jsx`: the three downloadable InDesign utilities listed in Script Buffet.
-- `app/_tools/design/typesetter/MainInterface.tsx`, `copy.ts`, `roles.ts`, and `types.ts`: staged bilingual DOCX/IDML inventory, role mapping, semantic review, and JSON-export interface and contracts.
-- `app/_tools/design/typesetter/code/`: schema-constrained OpenRouter handler and deterministic mapping/manifest validation.
-- `app/_tools/design/typesetter/public/`: browser-local Python extractor, Pyodide worker, and downloadable unanchored-frame InDesign importer.
-- `app/_tools/design/typesetter/prompts/`: stable pre-scan and classification instructions.
-- `app/_tools/design/typesetter/tests/`: mapping, source-preservation, summary, and importer-contract regressions.
-- `app/_tools/design/style-trainer/`: reference-to-style-prompt trainer with seeded FLUX.2 Pro test rounds, voting, chat refinement, and Asana style requests; see its file guide below.
-
-Design Manual:
-
-- `app/_tools/design-manual/MainInterface.tsx`: chapter navigation, existing manual layout, images, captions, and lightbox.
-- `app/_tools/design-manual/manual.en.md` and `manual.cs.md`: the only chapter sources loaded by the app.
-- `app/_tools/design-manual/parse.ts`: turns headings, lists, image groups, and captions into the existing renderer's chapter shape.
-- `app/_tools/design-manual/images/`: manual images. The stable browser address remains `/design-manual/media/...`.
-- `app/_tools/design-manual/changelog.md`: appendix added to generated PDFs.
-- `app/_tools/design-manual/public/`: generated English and Czech PDF downloads.
-- `app/_tools/design-manual/scripts/export-pdf.mjs`: reads the same Markdown and images, styles them with PDFKit, and writes both PDF editions.
-
-### Feedback and Asana privacy boundary
-
-The feedback dialog sends a deliberately allowlisted snapshot: the selected tool, language, theme, shell state, route pathname, viewport, browser user agent, online state, high-level operation status, safe file metadata, reference count, result availability, timestamp, and the user's description. Uploaded files, extracted text, prompts, generated output, cookies, credentials, and arbitrary React state are never serialized.
-
-The feedback endpoint independently validates the signed `ta_session` cookie and derives the Robot username server-side. `app/_feedback/asana.ts` is the shared server-only Asana client: it exchanges the server-only `ASANA_REFRESH_TOKEN` for a short-lived access token, caches it in memory, and creates tasks using `ASANA_PROJECT_GID`, `ASANA_SECTION_GID`, and `ASANA_ASSIGNEE_GID`. The Asana section is supplied as a configured GID because the scoped OAuth account cannot use the sections-list endpoint without legacy full permissions.
-
-The Style Trainer reuses the same shared Asana client and section for its style requests. Those tasks contain only the reviewed style name, ID, prompt, pinned seed, test prompt, round count, and an optional note; reference and generated images are never attached.
-
-## `public/`: stable browser URLs
-
-The icon and PDF.js worker files live directly in `public/`. Cover Splitter, Solutions, Typesetter, Script Buffet, Design Manual, and Cliopatria entries are links to app-owned source files. This keeps browser URLs stable without keeping duplicate files.
-
-- `/cover-splitter/*`: the app-owned Pyodide worker and Python splitter used for local cover processing.
-- `/solutions/*`: the shared worker, extractor, and canonical `/solutions/import_solutions.jsx` importer.
-- `/solutions-beta/*`: temporary compatibility link to the same Solutions files; new code does not use it.
-- `/typesetter/*`: the local DOCX/IDML extractor worker and downloadable InDesign importer.
-- `/script-buffet/*`: Script Buffet preview media.
-- `/design-manual/media/*`: manual images.
-- `/design-manual/downloads/*`: generated manual PDFs.
-- `/data/cliopatria-timeline.json`: compatibility path; server code reads the app-owned file directly.
-
-Direct files in `public/` are shared browser assets rather than app content:
-
-- `favicon.ico`, `favicon.svg`, `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, and `site.webmanifest`: browser and device icons.
-- `pdf.worker.legacy.mjs`: the PDF.js worker used by the current PDF browser helpers.
-
-### Complete app file guide
-
-The following completes the folder map by naming every source-file role. Repeated bilingual info files have one role: `info.en.md` and `info.cs.md` are the English and Czech live info-drawer source for that app. Repeated `copy.ts` files hold typed English/Czech UI copy owned by that app. Repeated `MainInterface.tsx` files are that app's browser UI.
-
-#### Text Extractor: `app/_tools/text/text-extractor/`
-
-- `MainInterface.tsx`: accepts input, displays the editable text, sends OCR/correction requests, and downloads text.
-- `copy.ts`: bilingual in-app UI copy and validation messages.
-- `code/ocr-server.ts`: private OCR endpoint implementation.
-- `code/ocr-response.ts`: OCR model selection, rate-limit detection, and provider-error classification.
-- `code/correct-server.ts`: private text-correction endpoint implementation.
-- `prompts/transcription.md`: stable OCR instruction.
-- `prompts/correction.md`: stable correction instruction.
-- `info.en.md`, `info.cs.md`: live drawer content.
-- `tests/text-extractor.test.mts`: protects strict OCR model selection and provider-error handling.
-
-#### Index Creator: `app/_tools/text/index-creator/`
-
-- `MainInterface.tsx`: PDF and term input, review controls, and index output interface.
-- `PdfPreview.tsx`: local single-page PDF rendering and clicked-match highlighting.
-- `copy.ts`: bilingual in-app UI copy and validation messages.
-- `code/pdf-indexer.ts`: local PDF text reading, printed-page detection, candidate search, and output formatting helpers.
-- `code/local-ocr.ts`: local sparse-page rendering and bundled Czech OCR fallback.
-- `code/forms-server.ts`: server request for word forms.
-- `code/form-validation.ts`: server-neutral validation for complete, identity-preserving model forms.
-- `tests/index-creator.test.mts`: protects phrase identity, normalization, local scoring, and candidate evidence.
-- `scripts/evaluate-index.mts`: evaluates supplied index benchmarks through the current local extraction and ranking pipeline.
-- `prompts/forms.md`: stable grammatical-form instructions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Prompt Extractor: `app/_tools/text/prompt-extractor/`
-
-- `MainInterface.tsx`: manuscript controls, preview, progress, and output UI.
-- `copy.ts`: bilingual in-app UI copy and validation messages.
-- `code/pdf-images.ts`: local PDF page-to-image rendering.
-- `code/server.ts`: private vision-model request and response validation.
-- `prompts/system.md`: stable page-inspection instruction.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Graph Generator: `app/_tools/image/graph-generator/`
-
-- `MainInterface.tsx`: separate chart prompt and data fields, local spreadsheet import, palette, preview, and SVG download interface.
-- `copy.ts`: bilingual Graph UI and progress copy.
-- `code/ase.ts`: ASE palette reader.
-- `code/data-import.ts`: converts CSV or the first XLSX sheet into an editable Markdown table in the browser.
-- `code/graph.ts`: version 2 chart validation and deterministic SVG rendering for bar, line, combined, scatter, and donut charts.
-- `code/scales.ts`: deterministic numeric domains, human-friendly ticks, and bilingual number formatting.
-- `code/server.ts`: private graph-generation request implementation and version 2 structured-output schema.
-- `prompts/system.md`: stable chart-structure instruction for all supported chart kinds.
-- `tests/graph.test.mts`: chart renderer, scale, and validator regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Diagram Generator: `app/_tools/image/diagram-generator/`
-
-- `MainInterface.tsx`: staged biological brief, reviewed-category match, image candidate selection, semantic vectorization, review/repair, preview, checks, and downloads.
-- `copy.ts`: bilingual Diagram UI and workflow copy.
-- `code/ase.ts`: ASE palette reader.
-- `code/diagram.ts`: legacy version 1/version 2 compatibility renderer retained behind the compatibility figures endpoint.
-- `code/contracts.ts`: biological brief, candidate, semantic object manifest, review, and pipeline contracts.
-- `code/reference-catalog.ts` and `references/catalog.json`: small reviewed-composition catalogue matcher; the catalogue is metadata and does not silently claim rights to artwork.
-- `code/svg-sanitize.ts`, `code/svg-labels.ts`, and `code/editability-checks.ts`: strict model-SVG allowlist, canonical server-added labels/arrows, and complete-underlay/editability checks.
-- `code/underlay-check.ts`: locally rasterizes hidden-object variants and rejects movable objects whose full visible footprint is not covered by declared underlying geometry.
-- `code/pipeline-report.ts`: provenance, usage, uncertainty, review, and verification report generation.
-- `code/server.ts`: OpenRouter-only plan, image-candidate, vectorize, rendered visual review, and bounded repair actions.
-- `code/legacy-server.ts`: retained version 2 structured-spec handler used when the compatibility figures endpoint sends a request without a pipeline action.
-- `prompts/`: stable biological brief, raster, reconstruction, repair, and review instructions.
-- `scripts/evaluation-cases.json` and `scripts/run-diagram-eval.mjs`: capped, sequential English/Czech and supplied-prompt evaluation tooling; outputs remain in the caller-provided local results directory.
-- `tests/diagram.test.mts` and `tests/pipeline.test.mts`: legacy renderer and new sanitizer/completeness regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Map Maker: `app/_tools/image/map-generator/`
-
-- `MainInterface.tsx`: deterministic map editor, timeline, layers, palette, and cropped-SVG export interface.
-- `copy.ts`: bilingual Map UI and progress copy.
-- `code/ase.ts`: ASE palette reader.
-- `code/map.ts`: map validation, deterministic SVG rendering, and report generation.
-- `code/generate-server.ts`: optional model-backed map-generation API implementation.
-- `code/timeline-server.ts`: timeline API implementation.
-- `code/map-catalog.ts`: present-day geography and physical layer selection.
-- `code/historical-boundaries.ts`: historical boundary selection by date.
-- `code/cliopatria.ts`: cached reading of the Cliopatria timeline.
-- `code/data/cliopatria-timeline.json`: processed historic polity timeline.
-- `code/data/cshapes-timeline.json`: processed CShapes historical-boundary data.
-- `code/data/koppen-climate.json`, `natural-earth-geography.json`, `natural-earth-water.json`: processed physical map layers.
-- `code/data/cliopatria-LICENSE.md`: licence/source note for the retained Cliopatria data.
-- `prompts/system.md`, `research.md`, `research-context.md`: stable instructions for the optional model-created map flow.
-- `scripts/import-*.mjs`: repeatable import commands for each local data source.
-- `scripts/run-map-eval.mjs`: map evaluation command.
-- `docs/map generation eval.md`, `docs/map-generator-handoff.md`, `docs/map-prompts.md`: app-specific evaluation, handoff, and prompt notes.
-- `info.en.md`, `info.cs.md`: live drawer content.
-- `tests/map.test.mts`: map renderer, catalog, and historical-map regressions.
-
-#### Cover Generator: `app/_tools/image/cover-generator/`
-
-- `MainInterface.tsx`: optional reference intake, audience/subject/keyword controls, FLUX/Gemini model choice, two-or-four-concept batches, preference and rejection controls, results, exports, and lightbox.
-- `copy.ts`: bilingual in-app UI copy.
-- `code/server.ts`: validates the concept request, coordinates planner fallback and parallel image generation, retries each failed concept once, and returns generated concepts with warnings and usage metadata.
-- `code/concept-plan.ts`: asks Mistral Small for distinct structured concept plans and broad reference guidance, validates the response, and provides deterministic local fallback directions.
-- `code/types.ts`: audience, subject, concept-plan, reference-guidance, and planner metadata types.
-- `code/cover-artboard.ts`: browser-created PDF contact sheet.
-- `prompts/plan-concepts.md`: stable concept-planning and reference-guidance instructions.
-- `prompts/sketch.md`: stable text-free cover-art generation instructions.
-- `prompts/subject-default.md`, `subject-evolution.md`: retained subject-specific prompt fragments that the current runtime does not load.
-- `scripts/create-cover-artboard-sample.py`, `evaluate-cover-model.mjs`, and `test-cover-workflow.mjs`: local maintenance and evaluation tools, not application runtime code.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Image Generator: `app/_tools/image/image-generator/`
-
-- `MainInterface.tsx`: prompt and reference intake, local document import, sequential queue controller, cancellation, results, downloads, and lightbox.
-- `copy.ts`: bilingual in-app UI copy.
-- `code/prompts.ts`: blank-line prompt splitting, queue capping, and local `.docx`, `.md`, and `.txt` reading.
-- `code/server.ts`: validates one queued request and generates one square image through OpenRouter.
-- `prompts/generate.md`: stable generation instruction.
-- `tests/prompts.test.mts`: prompt splitting and 15-image cap regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Concept Illustrator: `app/_tools/image/concept-illustrator/`
-
-- `MainInterface.tsx`: three-column browser-local memory, article and concept workflow, selected-concept editing, generated revision history, art direction, critique, and final editorial decision.
-- `copy.ts`: bilingual Concept Illustrator UI copy.
-- `code/types.ts`: persistent project, house-style, concept, revision, critique, and usage contracts.
-- `code/history.ts`: IndexedDB persistence and recent editorial-feedback context.
-- `code/contracts.ts`: server-neutral validation for concepts, prompts, aspect ratios, image references, edits, and critiques.
-- `code/server.ts`: action-dispatched OpenRouter planning, visual compilation, FLUX.2 generation/editing, and vision critique.
-- `prompts/`: stable planning, regeneration, compilation, editing, and critique instructions.
-- `tests/concept-illustrator.test.mts`: deterministic contract regressions.
-- `info.en.md`, `info.cs.md`: live drawer content, including local-memory and AI-processing privacy details.
-
-#### GREP Builder: `app/_tools/design/grep-builder/`
-
-- `MainInterface.tsx`: instruction input and copyable GREP result UI.
-- `copy.ts`: bilingual in-app UI copy.
-- `server.ts`: private GREP request, deterministic-intent dispatch, response normalization, safe limitation handling, and post-generation validation.
-- `intent.ts`: bounded bilingual recognition for high-confidence recurring text operations; unsupported or ambiguous requests continue to the model.
-- `validation.ts`: narrow deterministic corrections for a duplicated token protected by a terminal positive lookahead and incorrectly counted four-period ellipses.
-- `prompts/system.md`: stable conversion rules.
-- `tests/validation.test.mts`: validator regression coverage, including idempotence and warning safety.
-- `tests/intent.test.mts`: bilingual deterministic-intent coverage and negative fail-closed cases.
-- `tests/prompt.test.mts`: protects the documented four-pass conditional date-padding workflow.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Cover Splitter: `app/_tools/design/cover-splitter/`
-
-- `MainInterface.tsx`: multi-PDF upload and first-page preview grid with independent A5/A4/B5/half controls, plus a right sidebar for file actions, optional inside-cover splitting, local console, progress, and ZIP download.
-- `copy.ts`: bilingual in-app UI copy and validation messages.
-- `code/pdf-preview.ts`: local first-page rendering and page-dimension reading with PDF.js.
-- `public/pyodide-worker.js`: browser worker that downloads Pyodide and `pypdf`, then processes all PDFs locally.
-- `public/split_cover.py`: vector-preserving panel extraction and ZIP packaging. Fixed sizes retain the outer trim-width panels and omit the middle spine; half mode divides at the midpoint. Page 2 is ignored by default or optionally mapped left to `FRONT-inside` and right to `BACK-inside`.
-- `tests/cover-splitter.test.mjs`: preset geometry, mixed per-file settings, first-page-only behavior, vector output, and archive-name regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Barcode Generator: `app/_tools/design/barcode-generator/`
-
-- `MainInterface.tsx`: ISBN input, barcode preview, and PDF download UI.
-- `copy.ts`: bilingual in-app UI copy.
-- `code/ean13.ts`: ISBN/EAN validation, SVG bar construction, and vector-PDF creation.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Solutions Importer: `app/_tools/design/solutions-importer/`
-
-- `MainInterface.tsx`: three-file input, local comparison worker, operation review, and JSON/script downloads.
-- `copy.ts`: bilingual in-app UI copy.
-- `code/pdf.ts`: positioned text extraction from PDFs for the worker.
-- `public/pyodide-worker.js`: browser worker that runs the local Python extractor.
-- `public/extract_solution_operations.py`: PDF/IDML comparison that writes the `indesign-solutions-v2` manifest.
-- `public/import_solutions.jsx`: the only InDesign importer, with a post-validation ScriptUI choice between Advanced answer-box/table-aware placement and Simple direct coordinate placement.
-- `solutions-exporter-workflow.md`: human maintenance guide for the v2 format and canonical importer.
-- `tests/solutions-importer.test.mjs`: format and script-contract tests.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Script Buffet: `app/_tools/design/script-buffet/`
-
-- `MainInterface.tsx`: card grid, Adobe-application filter, installation guide, and per-browser download counter.
-- `public/preview-placeholder.svg`: temporary script-preview asset.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Typesetter: `app/_tools/design/typesetter/`
-
-- `MainInterface.tsx`: staged DOCX/IDML upload, local inventory, AI role suggestions, inventory-backed mapping, batched classification, review, and download UI.
-- `copy.ts`: bilingual interface and setup guidance.
-- `roles.ts`, `types.ts`: controlled semantic-role catalogue and versioned data contracts.
-- `code/server.ts`: private schema-constrained pre-scan and classification endpoint implementation.
-- `code/validation.ts`: deterministic style mapping, source-preservation, review, and manifest checks.
-- `prompts/prescan.md`, `prompts/classify.md`: stable semantic instructions.
-- `public/pyodide-worker.js`, `public/extract_typesetter.py`: browser-local DOCX and IDML ZIP/XML extraction.
-- `public/import_typesetter.jsx`: one-undo InDesign importer for a labelled main story and unanchored image-request frames.
-- `tests/typesetter.test.mts`: mapping, source-preservation, summary, and importer-contract tests.
-- `plan.md`: agreed V1 product and implementation plan.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Style Trainer: `app/_tools/design/style-trainer/`
-
-- `MainInterface.tsx`: reference upload, test prompt, round gallery with voting, editable style prompt, refinement chat, final review, and Asana submission UI.
-- `copy.ts`: bilingual interface copy.
-- `code/plan.ts`: pure style-plan contract, planner response schema, and strict normalizer shared with tests.
-- `code/validation.ts`: pure request validators for references, prompts, seeds, and the final submission.
-- `code/style-plan.ts`: Mistral vision analyze and refine calls with a Ministral fallback through the shared OpenRouter transport.
-- `code/style-request.ts`: Asana task formatting with a ready-to-paste Image Generator preset entry.
-- `code/server.ts`: one POST handler for the analyze, refine, generate, and submit modes; generations use FLUX.2 Pro with server-chosen random seeds.
-- `prompts/analyze-style.md`, `prompts/refine-style.md`, `prompts/generate.md`: stable planner and test-generation instructions.
-- `tests/style-trainer.test.mts`: plan normalization, reference, seed, and submission validation, and Asana payload regressions.
-- `info.en.md`, `info.cs.md`: live drawer content.
-
-#### Design Manual: `app/_tools/design-manual/`
-
-- `MainInterface.tsx`: existing manual chapter renderer and image lightbox.
-- `parse.ts`: Markdown-to-chapter parser used by the page.
-- `manual.en.md`, `manual.cs.md`: English and Czech live manual sources.
-- `changelog.md`: shared appendix appended to both PDF editions.
-- `images/image1.png` through `images/image14.png`: the manual's actual illustrated content.
-- `public/design-manual.en.pdf`, `public/design-manual.cs.pdf`: generated download files, regenerated with `npm run manual:pdf`.
-
-#### Running the Design Manual PDF export
-
-`npm run manual:pdf` runs `app/_tools/design-manual/scripts/export-pdf.mjs`. With no extra argument it builds both languages; `npm run manual:pdf -- en` and `npm run manual:pdf -- cs` build one edition.
-
-For each edition, the script reads `manual.<language>.md` and `changelog.md`, parses Markdown using `remark-parse`, and draws an A4 PDF using PDFKit. It creates a custom cover, chapter pages, headings, bullets, paragraphs, image captions, page headers/footers, and a final changelog appendix. It takes every image filename from Markdown and loads the matching file from `design-manual/images/`.
-
-The output is written to `design-manual/public/design-manual.en.pdf` and `design-manual.cs.pdf`; the `public/design-manual/downloads` link exposes those files in the browser. The website uses the same Markdown source but its own React renderer, so the PDF is visually similar rather than a pixel-for-pixel browser export. The script currently registers Verdana from macOS system paths, which must be made configurable before it can reliably run on Windows or Linux.
-
-### `tests/` and `docs/`
-
-- `tests/architecture.test.mjs`: protects the folder rules, Markdown drawer source, and lack of Tailwind.
-- `tests/translations.test.mjs`: discovers every app-owned `copy.ts` module and verifies matching English/Czech dictionary paths.
-
-- App-specific scripts, tests, and handoff notes live with their app.
-
-## OpenRouter provisioning and usage attribution
-
-Robot has separate DEV and DEPLOY inference-key sets for its 12 model-backed apps. `app/_tools/openrouter/config.ts` is the canonical app-to-environment-variable mapping. Remote names use `DEV/<product-folder-slug>` and `DEPLOY/<product-folder-slug>`, not internal app IDs or display names:
-
-| Product folder slug   | Runtime variable (same for DEV and DEPLOY) |
-| --------------------- | ------------------------------------------ |
-| `text-extractor`      | `OPENROUTER_TEXT_EXTRACTOR_API_KEY`        |
-| `index-creator`       | `OPENROUTER_INDEX_CREATOR_API_KEY`         |
-| `graph-generator`     | `OPENROUTER_GRAPH_GENERATOR_API_KEY`       |
-| `diagram-generator`   | `OPENROUTER_DIAGRAM_GENERATOR_API_KEY`     |
-| `cover-generator`     | `OPENROUTER_COVER_GENERATOR_API_KEY`       |
-| `concept-illustrator` | `OPENROUTER_CONCEPT_ILLUSTRATOR_API_KEY`   |
-| `layer-splitter`      | `OPENROUTER_LAYER_SPLITTER_API_KEY`        |
-| `image-generator`     | `OPENROUTER_IMAGE_GENERATOR_API_KEY`       |
-| `style-trainer`       | `OPENROUTER_STYLE_TRAINER_API_KEY`         |
-| `grep-builder`        | `OPENROUTER_GREP_BUILDER_API_KEY`          |
-| `prompt-extractor`    | `OPENROUTER_PROMPT_EXTRACTOR_API_KEY`      |
-| `typesetter`          | `OPENROUTER_TYPESETTER_API_KEY`            |
-
-`app/_tools/openrouter/server.ts` selects the appropriate key by runtime variable, attaches a stable pseudonymous identifier derived from the authenticated Robot username, and emits a content-free `[openrouter-usage]` JSON record for each response. DEV/DEPLOY names are management metadata, not routing rules; the migration changes neither UI nor app behavior.
-
-### Maintenance commands and storage boundary
-
-Place `OPENROUTER_MANAGEMENT_API_KEY` only in the ignored `.env.openrouter-management.local` file. It is never deployed or loaded by Next.js. From the repository root:
+The underscore makes `_tools` private to Next.js routing. This ownership scheme scales to a 201-folder layout without adding a central file-by-file inventory: a tool's implementation, prompts, tests, downloads and documentation travel together. Do not introduce category-wide abstractions merely because two tools share a category; extract only small, identical, tested behavior that does not pull unrelated data or models into a tool.
+
+The shell split is complete: `Workspace.tsx` is now a few hundred formatted lines rather than the former 2,816-line controller. The shell composes `WorkspaceHeader`, `WorkspaceSidebar`, `WorkspaceClock`, `InfoDrawer`, `ToolHost`, and the separate Design Manual `Tool` reference. All 17 registered tools own their state and controllers in their own folders, not in `Workspace.tsx`. `app/content/ui.ts` contains shell copy, not tool prose. Handwritten global CSS stays in place; stylesheet splitting is outside this migration.
+
+## Registry: source versus generated output
+
+`appRegistryEntries` in `app/_tools/registry.ts` contains only `id`, `category`, `folder`, `available`, and `hidden`. Its order controls navigation. Each of the 17 tool folders supplies a pure-data `manifest.ts`, typed with `ToolManifest`, for bilingual labels, status, feature flags, routes, assets and the dedicated OpenRouter environment-variable name.
+
+- `hidden: true` removes navigation, not implementation or API access. Empty hidden categories disappear.
+- `available: false` independently gives visible tools the disabled/coming-soon behavior.
+- Release visibility, availability and the user's five alpha status assignments are protected release policy. Do not normalize or infer statuses from implementation readiness; preserve the user's assignments.
+
+`scripts/generate-tools.mts` validates folder ownership and declarations, then produces:
+
+| Committed output                           | Responsibility                                                              |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
+| `app/_tools/generated/registry.data.ts`    | public metadata and OpenRouter app descriptors (names, never secret values) |
+| `app/_tools/generated/registry.client.tsx` | explicit lazy imports of every registered `Tool.tsx`                        |
+| `app/_tools/generated/registry.models.ts`  | server-only model map with explicit static imports                          |
+| `app/_tools/generated/assets.json`         | stable public asset mappings                                                |
+| 15 native `app/api/**/route.ts` adapters   | handler exports and literal Next.js settings from manifests                 |
+| declared `public/` symlinks                | stable URLs pointing to owned source assets                                 |
+
+Next.js needs statically visible literal route settings: `dynamic`, `runtime`, `revalidate` and `maxDuration` come from manifests and are emitted directly in adapters, not re-exported. The compatibility `/api/figures` dispatcher remains unchanged, as do the existing API contracts. Authentication and feedback are shared infrastructure, not tool installation entries.
+
+Use `npm run tools:generate` after source changes; `npm run tools:check` checks drift without writing. Generated outputs are committed and reviewed alongside their sources. Never hand-edit generated registration, adapters, model maps or asset manifests. Generation runs through `predev`, `prebuild`, `pretest`, and the `preopenrouter:*` maintenance hooks. `prebuild` also materializes public links for Vercel.
+
+## Installing a tool
+
+Start with a local-only tool; no route or key registration is necessary. For example, create `app/_tools/design/local-example/`:
+
+```tsx
+// Tool.tsx
+"use client";
+import type { ToolProps } from "../../types";
+
+export default function LocalExample({ language, label }: ToolProps) {
+  return (
+    <section aria-label={label}>
+      <h1>{label}</h1>
+      <p>{language === "cs" ? "Místní příklad." : "Local example."}</p>
+    </section>
+  );
+}
+```
+
+```ts
+// manifest.ts — handwritten source, not a generated file
+import type { ToolManifest } from "../../types";
+
+export default {
+  label: { en: "Local Example", cs: "Místní příklad" },
+  routes: [],
+  assets: [],
+} satisfies ToolManifest;
+```
+
+Add this fully typed entry to the existing `appRegistryEntries` array (do not replace the array):
+
+```ts
+const localExampleEntry = {
+  id: "localExample",
+  category: "design",
+  folder: "design/local-example",
+  available: true,
+  hidden: true,
+} as const satisfies {
+  id: string;
+  category: "text" | "image" | "design";
+  folder: string;
+  available: boolean;
+  hidden: boolean;
+};
+// Insert the object above into appRegistryEntries at the intended sidebar position.
+```
+
+Provide `info.en.md`, `info.cs.md` and tests under `tests/`; add bilingual `copy.ts` when needed. `ToolProps` includes `language`, `active`, `section: string | null`, `label`, optional `onDiagnostics`, and optional parsed manuals. Keep component state in `Tool.tsx` or tool-owned controller files.
+
+For a server-backed extension, declare routes with an owned handler path and HTTP methods; put static route settings in the manifest. For downloads, declare `{ source, publicPath }` assets. For AI, add `openRouter: { envName: "..." }` and canonical `model-definitions.ts`; handlers must consume those definitions. Run generation and drift checks, inspect outputs, then run the relevant tests and full checks. **Do not** manually add adapters, client imports, asset links or OpenRouter key-map entries. A new secret still requires explicit DEV and DEPLOY provisioning, explicit Vercel environment upload and a fresh deployment; generation cannot do that.
+
+## Lifecycle and execution flows
+
+1. `proxy.ts` and `app/lib/auth.ts` enforce signed sessions for protected pages and APIs.
+2. `app/page.tsx` loads live bilingual info and parsed manual content server-side.
+3. `ToolHost` lazy-loads a tool on its first visit, then retains its entire mounted subtree under a stable key. Switching tools hides and makes inactive subtrees inert; it does not reset their controllers.
+4. `active` must gate global listeners, keyboard/paste handlers, overlays and other foreground-only effects. Hidden tools must not capture input or display portals. Running jobs can finish while the user is away.
+5. Local processing stays in the browser; private requests use stable `/api/...` addresses and owned server handlers. Results return for review, copying and download.
+6. Refresh resets ordinary tool state. Explicit tool memory is an exception, such as Concept Illustrator's browser-local IndexedDB projects and house-style profile; retained mounting is not durable persistence.
+
+Representative privacy and output boundaries:
+
+- Text Extractor sends supplied images/PDF input to private model-backed OCR and correction endpoints.
+- Index Creator reads PDF text and sparse-page OCR locally; the model receives requested terms for grammatical forms, not PDF pages.
+- Prompt Extractor renders manuscript pages locally, then sends page images for model analysis.
+- Map Maker uses owned local historical/present-day datasets and deterministic timeline rendering. The legacy model-generation URL returns `410 Gone`. Graph and Diagram use model-backed specification generation and owned validation/rendering.
+- Image, Cover and Concept tools use private model requests; Concept's explicit project memory is local, not a server database.
+- Layer Splitter performs scene analysis/reconstruction with OpenRouter and server-side keying/PSD assembly. Do not describe PSD assembly as browser-local.
+- Cover Splitter, Barcode and Solutions perform their documented file processing locally. Solutions produces reviewed JSON for a local InDesign importer.
+- Typesetter inventories DOCX/IDML locally and sends its controlled semantic classification input to AI; it exports reviewed JSON, not an automatically finished InDesign layout.
+- Style Trainer uses model-backed prompt/test rounds; submitting a reviewed style request is an explicit Asana action. Script Buffet is a download catalog with local counters.
+
+Detailed current behavior belongs in each tool's live info drawer and tests, not a second exhaustive inventory here.
+
+## Models and live info
+
+The canonical source is each model-backed tool's `model-definitions.ts`: the integrated registry covers 35 model stages, including actual server defaults, environment precedence and failure fallbacks. Request code and drawer documentation share these definitions. Do not maintain a separate historical model table or hardcode a competing list in Markdown.
+
+`models-server.ts` resolves configured model values only on the server. The generated `registry.models.ts` uses explicit imports, never runtime path construction/import magic. `info.ts` loads `info.en.md`/`info.cs.md` and appends the resolved model sections inline in both languages. No inference key or arbitrary environment value is exposed. Stable instructions remain in tool-owned `prompts/*.md`; TypeScript adds changing request data. Ensure prompt files remain included in deployed server tracing (`next.config.ts`).
+
+## Privacy, authentication and external services
+
+Feedback accepts only an allowlisted diagnostic summary for the **selected tool** plus shell/browser metadata and the user's description. Do not serialize arbitrary component state, inactive tool summaries, uploaded contents, extracted text, prompts, outputs, cookies or credentials. The server validates the signed `ta_session` cookie independently and derives the username there.
+
+`app/_feedback/asana.ts` owns server-only OAuth refresh, short-lived token caching and task creation/retry. Its `ASANA_*` configuration must never use `NEXT_PUBLIC_`. The scoped account cannot list empty sections; `npm run feedback:section` discovers configured membership after a temporary task has been placed in the exact section. Style requests share this client but submit only reviewed style fields, not reference or generated images.
+
+OpenRouter runtime configuration is derived from generated manifest metadata through `app/_tools/openrouter/config.ts`. Preserve all 12 existing dedicated runtime names:
+
+```text
+OPENROUTER_TEXT_EXTRACTOR_API_KEY       OPENROUTER_INDEX_CREATOR_API_KEY
+OPENROUTER_GRAPH_GENERATOR_API_KEY      OPENROUTER_DIAGRAM_GENERATOR_API_KEY
+OPENROUTER_COVER_GENERATOR_API_KEY      OPENROUTER_CONCEPT_ILLUSTRATOR_API_KEY
+OPENROUTER_LAYER_SPLITTER_API_KEY       OPENROUTER_IMAGE_GENERATOR_API_KEY
+OPENROUTER_STYLE_TRAINER_API_KEY        OPENROUTER_GREP_BUILDER_API_KEY
+OPENROUTER_PROMPT_EXTRACTOR_API_KEY     OPENROUTER_TYPESETTER_API_KEY
+```
+
+Remote names remain `DEV/<product-folder-slug>` and `DEPLOY/<product-folder-slug>`, not internal IDs or translated labels. `.env.local` holds DEV inference values and is loaded by Next.js. `.env.openrouter-deploy.local` holds DEPLOY values under the same names, is ignored with permission `0600`, and is not auto-loaded. `.env.openrouter-management.local` holds only local management credentials/defaults; never deploy it.
 
 ```bash
 npm run openrouter:rename-dev -- --dry-run
@@ -505,558 +178,38 @@ npm run openrouter:provision -- --target deploy
 npm run openrouter:verify
 ```
 
-- `openrouter:rename-dev` defaults to a read-only dry-run; only `--apply` renames existing per-app DEV keys. Renaming preserves secrets, limits, and usage history.
-- `openrouter:provision` requires `--target dev|deploy`; `--dry-run` is read-only. DEV values go to `.env.local`; DEPLOY values go to `.env.openrouter-deploy.local`. Both are ignored and written with permission `0600`; Next.js does **not** auto-load the DEPLOY file. Existing configured keys are retained.
-- Missing DEV keys use the existing configured `OPENROUTER_APP_KEY_LIMIT_USD` and `OPENROUTER_APP_KEY_LIMIT_RESET` (`daily`, `weekly`, or `monthly`) defaults from the management file. New DEPLOY keys inherit the corresponding existing DEV key's `limit`, `limit_reset`, and `include_byok_in_limit`; complete the DEV set first.
-- OpenRouter returns plaintext only at key creation. Each new secret is saved immediately, never printed. A matching remote key whose secret is missing locally is an orphan: provisioning fails rather than silently replacing it.
-- `openrouter:verify` is read-only and checks completeness of both 12-key sets, DEV/DEPLOY separation, and remote names and active status.
+These are external maintenance operations, not part of normal generation/testing. Rename defaults to dry-run and preserves secret values, limits and usage. Provisioning requires an explicit target, retains configured keys, and saves new plaintext immediately without printing it. DEV limits use configured management defaults; DEPLOY inherits the matching DEV key's limit/reset/BYOK settings. Complete DEV first. A remote key with no locally recoverable secret is an orphan and must be resolved explicitly, not silently replaced.
 
-### Deployment cutover and legacy fallback
+The existing Vercel project is `taktik-robot`, using DEPLOY inference values for both Production and Preview. The duplicate `robot` project was deleted in the previous operation. This is existing operational context, **not** evidence that the folder restructure has been deployed. New/changed secrets require an explicit secure upload and fresh redeploy in the intended environments; remote renaming alone changes no runtime routing.
 
-Vercel Production must receive the DEPLOY values under the **same existing per-app runtime variable names**, followed by a **fresh redeploy**. Preview remains a deliberate separate choice; these commands do not automatically change its configuration. Never deploy the management credential or management file. Renaming alone does not switch a deployment: existing Vercel instances may still use DEV-labelled secrets until their environment values are replaced and they are redeployed.
+The dedicated variable wins over legacy `OPENROUTER_API_KEY`; missing dedicated values use that fallback and log a warning. Remove the shared fallback only after all dedicated variables are present, otherwise missing-key requests return HTTP 503. Runtime attribution uses a stable pseudonymous authenticated-user identifier. `[openrouter-usage]` logs contain operation, model, generation ID, status, tokens and cost, never prompts, files or model output.
 
-`OPENROUTER_API_KEY` is retained as a migration fallback; this migration does not remove it. For each request, the dedicated app variable wins; the shared key is read only if that app variable is absent. The shared key can be removed from an environment once all 12 variables from `openRouterApps` are configured there. Removing it earlier causes apps with missing dedicated keys to return HTTP 503.
+## Protected contracts, assets and sources
 
-## Main execution flow
+- Solutions emits only `indesign-solutions-v2`. `/solutions/import_solutions.jsx` is **one canonical JSX with two strategies** chosen in ScriptUI: Advanced layout-aware placement and Simple direct PDF-coordinate placement. Keep table detection, answer-box alignment and continuation logic in Advanced only; Simple is the more failsafe fallback. Preserve workers, schema, filenames and `/solutions-beta/*` compatibility assets.
+- Typesetter preserves `indesign-typesetter-v1`, one labelled threaded story, real template paragraph styles, source content and unanchored image-request frames for manual placement.
+- Preserve stable download names/URLs, deterministic Map output, existing local-only PDF boundaries, validation and user review steps.
+- ExtendScript is not modern browser JavaScript. Node contract tests cannot validate InDesign placement, tables, layers, styles, swatches, coordinates or undo. Changes to those require manual fixture validation in real InDesign, always on copies.
 
-1. A request enters `proxy.ts`.
-2. Public files and the login API pass through. Other requests need a valid signed cookie from `app/lib/auth.ts`.
-3. `app/page.tsx` reads drawer Markdown through `app/_tools/info.ts` and Design Manual Markdown through `design-manual/parse.ts`.
-4. `app/Workspace.tsx` receives the parsed content, shows the shell, and uses `app/_tools/registry.ts` to build the sidebar.
-5. A sidebar click changes `selected`. The workspace shows that app's interface without navigating away, so current form state is retained while switching tools.
-6. Local tools run in the browser. AI tools call a private `/api/...` URL. Those route files forward to the owning app's server function.
-7. Results are displayed, copied, or downloaded in the browser. InDesign tools additionally provide a local JSX importer.
+Public URLs derive from declared manifest assets; tracked symlinks point to owned files. `scripts/materialize-public-links.mjs` makes disposable copies in Vercel's build workspace to avoid self-copy issues. Preserve `/cover-splitter/*`, `/solutions/*`, `/typesetter/*`, `/script-buffet/*`, `/design-manual/media/*`, `/design-manual/downloads/*` and `/data/cliopatria-timeline.json`. Shared icons and PDF.js assets remain directly in `public/`.
 
-## App flows and module contracts
+Map datasets and their licence/source notes live in `app/_tools/image/map-generator/code/data/`; data preparation/evaluation scripts live beside the tool. Do not duplicate Cliopatria or remove attribution/licences when moving data. Other tool downloads, source notes and maintenance scripts remain in their owning folders.
 
-### Text Extractor
+The Design Manual sources are `app/_tools/design-manual/manual.en.md`, `manual.cs.md`, `changelog.md` and relative `images/` assets. `npm run manual:pdf` (optionally `-- en` or `-- cs`) uses `scripts/export-pdf.mjs` in that folder, PDFKit and remark parsing to write owned bilingual PDF downloads. Its print layout is separate from the React renderer. Export currently depends on macOS Verdana font paths; configure paths before exporting on Windows/Linux. Regenerate PDFs after manual/changelog changes.
 
-**Input:** pasted text, PNG/JPEG, or short PDF; optional correction instruction.
+## Checks and validation
 
-**Flow:**
+Node.js **22.13 or newer** is required for the project's native type-stripping and environment-file commands. Read `package.json`, `scripts/run-tests.mjs`, root tests and the affected tool's tests before changing behavior.
 
-```text
-Browser file or pasted text
-↓
-POST /api/ocr
-↓
-ocr-server.POST
-↓
-OpenRouter OCR or vision call
-↓
-Plain text in the editor
-↓
-Optional POST /api/correct
-↓
-Corrected replacement text
+```bash
+npm run tools:check
+npm run lint
+npm test
+npm run test:ui
 ```
 
-**Output:** copied text or `.md`/`.txt` download.
+`npm test` builds production and then runs `scripts/run-tests.mjs`, which automatically discovers canonical `*.test.mjs`, `*.test.mts` and `*.test.ts` files in root `tests/` and tool-owned `tests/` directories, excluding fixtures and dependencies. Do not add another hand-maintained test enumeration.
 
-**Dependencies:** browser File APIs and OpenRouter. For Mistral models, OCR and correction requests use OpenRouter's standard API while explicitly selecting the `mistral/eu` provider endpoint first, then retrying through the regular `mistral` endpoint if EU fails; non-Mistral model overrides retain normal OpenRouter routing. OCR uses `mistralai/mistral-small-2603` and retries that same model once after a temporary provider rate limit; if the provider remains busy, the interface enables a manual retry for the current file after 10 seconds. PDF input also enables OpenRouter's `mistral-ocr` file-parser engine. Correction uses `mistralai/ministral-8b-2512` with a strict source-language-preservation instruction. The environment variables in `.env.example` can override the OCR and correction model names. The interface is app-owned; file validation, request control, and result formatting remain in `Workspace.tsx`.
+`npm run test:ui` runs `scripts/test-ui.mjs`: desktop and narrow browser fixtures use an isolated Next.js process with synthetic authentication, no real environment credentials and no external AI calls. The suite checks released tools and a sandbox-only hidden-tool harness; it is separate browser validation, not a deployment or live-model verification.
 
-### Index Creator
-
-**Input:** live-text PDF, one term per line, PDF-page/printed-page anchor.
-
-**Flow:**
-
-```text
-PDF.js reads page text locally
-↓
-detectPrintedPageAnchor proposes page numbering
-↓
-forms-server.POST expands grammatical forms
-↓
-findIndexCandidates finds and ranks possible pages locally
-↓
-Workspace lets the user accept or demote candidate pages
-↓
-Workspace formats accepted pages as tab-separated ranges
-```
-
-**Output:** editable index, copy, `.md`, or `.txt`.
-
-**Dependencies:** PDF.js plus one OpenRouter call. Grammatical-form expansion uses `mistralai/mistral-medium-3-5`; candidate search, ranking, review, and output formatting remain local. Only the term list goes to OpenRouter.
-
-### Map Maker
-
-**Input:** year, visible layers, pan/zoom, country fills, and optional ASE palette.
-
-**Flow:**
-
-```text
-Year or layer change
-↓
-GET /api/maps/timeline
-↓
-timeline-server.GET selects Cliopatria, CShapes, or current boundaries
-↓
-map-catalog adds local physical data
-↓
-renderMapSvg draws deterministic SVG
-↓
-Browser applies view, visibility, and palette
-↓
-Cropped SVG download
-```
-
-**Output:** editable SVG and warnings.
-
-**Dependencies:** local processed datasets, Natural Earth/world-atlas data, D3 geographic helpers, TopoJSON, and the ASE parser. The visible timeline flow calls no LLM and no OpenRouter model. The prompt field is displayed but is not connected to an action.
-
-### Diagram Generator
-
-**Input:** written biological request, up to three reference images, and optional ASE palette.
-
-**Flow:**
-
-```text
-Request, references, and palette
-↓
-POST /api/figures with diagram mode
-↓
-OpenRouter returns a limited diagram description
-↓
-validateDiagramSpec checks the description
-↓
-renderDiagramSvg draws coordinates and labels
-↓
-SVG and verification report
-```
-
-**Output:** editable SVG plus Markdown verification report.
-
-**Dependencies:** OpenRouter model `mistralai/mistral-large-2512`, the shared diagram validator/renderer, browser image handling, and the ASE parser. The LLM describes the parts; code draws the SVG. Biological facts still need editorial review.
-
-### Graph Generator
-
-**Input:** separate chart instructions, typed or pasted data, optional CSV or XLSX data file, optional named sources, and optional ASE palette.
-
-**Flow:**
-
-```text
-Separate user prompt and typed, pasted, CSV, or XLSX data
-↓
-The browser converts imported tabular files to Markdown
-↓
-POST /api/figures with chart mode
-↓
-OpenRouter structures only the supplied values
-↓
-validateGraphSpec checks data and shape for safe rendering
-↓
-renderGraphSvg calculates scales, axes, marks, and chart-specific geometry
-↓
-Editable SVG
-```
-
-**Output:** editable SVG.
-
-**Dependencies:** OpenRouter model `mistralai/mistral-large-2512`, `read-excel-file` for local XLSX parsing, the graph validator/renderer, and the ASE parser. The model must not research, estimate, or invent graph numbers.
-
-### Cover Generator
-
-**Input:** audience and subject, automatic or explicitly selected visual treatment, optional custom subject and keywords, zero to three optional reference images, an optional preferred earlier concept, a batch size of one, two, or four, and a FLUX or Gemini image-model choice.
-
-**Flow:**
-
-```text
-Audience, subject, and optional keywords
-↓
-Mistral Medium plans one, two, or four distinct structured concepts and chooses the treatment only in Automatic mode
-↓
-Ministral 14B provider fallback
-↓
-Optional reference images join each concept as direct image-model inputs
-↓
-Parallel image generation with FLUX.2 Pro or Gemini Flash Lite Image at 1K
-↓
-One replacement attempt for each failed image
-↓
-User keeps, prefers, or rejects concepts and may generate another batch
-↓
-ZIP with JPEGs, Markdown report, and project JSON, or artboard PDF
-```
-
-**Output:** text-free concept images, a ZIP containing the active JPEGs plus `generation-report.md` and `project.json`, and a browser-created artboard PDF. A preferred concept can guide a later batch; there is no master-image or separate-asset production stage.
-
-**Dependencies:** OpenRouter planner `mistralai/mistral-medium-3-5` with `mistralai/ministral-14b-2512` as the same-family provider fallback; image model `black-forest-labs/flux.2-pro` for default 1K concepts, `black-forest-labs/flux.2-klein-4b` for 512 px concepts, or `google/gemini-3.1-flash-lite-image` for alternative 1K concepts. These current Cover Generator model names are code constants rather than environment overrides. Browser ZIP/PDF helpers produce downloads. The interface and server implementation are app-owned; long-lived workflow state, ZIP writing, and report creation remain in `Workspace.tsx`.
-
-### GREP Builder
-
-**Input:** plain Find and Change instructions.
-
-**Flow:**
-
-```text
-Find and Change instructions
-↓
-POST /api/grep
-↓
-OpenRouter returns a GREP candidate or safe limitation warning
-↓
-Narrow deterministic post-generation validation
-↓
-Copy buttons
-```
-
-**Output:** InDesign GREP Find What and Change To strings.
-
-**Dependencies:** OpenRouter model `mistralai/ministral-8b-2512`. No document is uploaded.
-
-### Cover Splitter
-
-**Input:** one or more cover PDFs, up to 30 MB per file. Source page 1 is always processed. Source page 2 is ignored by default and can optionally be split as the inside cover.
-
-**Flow:**
-
-```text
-PDF.js renders each first-page preview locally
-↓
-User selects A5, A4, B5, or Split in half per PDF
-↓
-Optional checkbox enables page-2 inside-cover output
-↓
-Pyodide worker loads local Python and pypdf
-↓
-Python extracts the left back panel and right front panel
-↓
-Fixed presets omit any middle spine
-↓
-Outside _BACK.pdf and _FRONT.pdf files are packaged as a ZIP
-↓
-When enabled, page 2 left becomes _FRONT-inside.pdf and right becomes _BACK-inside.pdf
-```
-
-**Output:** a ZIP containing one vector back PDF and one vector front PDF for every source file, plus matching front-inside and back-inside PDFs when the checkbox is enabled.
-
-**Dependencies:** PDF.js for previews and browser-local Pyodide/`pypdf` for PDF output. The source PDFs are not sent to the server; the browser downloads the Python runtime and PDF package on first use.
-
-### Prompt Extractor
-
-**Input:** manuscript PDF up to 20 pages.
-
-**Flow:**
-
-```text
-PDF.js renders pages locally
-↓
-Browser sends one page image at a time
-↓
-POST /api/prompts
-↓
-OpenRouter returns structured illustration descriptions
-↓
-Server validates them
-↓
-Workspace groups SIMPLE and COMPLEX items
-```
-
-**Output:** editable prompt list, copy, `.md`, or `.txt`.
-
-**Dependencies:** PDF.js and OpenRouter vision model `qwen/qwen3.5-122b-a10b`. The interface is app-owned; rendering, batching, formatting, and long-lived state remain in `Workspace.tsx`.
-
-### Solutions Importer
-
-**Input:** clean PDF, annotated manuscript PDF, matching clean IDML, print-mark setting, font, and size.
-
-**Flow:**
-
-```text
-Clean PDF, annotated PDF, and IDML
-↓
-MainInterface extracts positioned text from both PDFs
-↓
-Worker loads Pyodide and pdfplumber
-↓
-Python reads annotations and IDML structure
-↓
-indesign-solutions-v2 operations
-↓
-User reviews and enables operations
-↓
-Reviewed JSON download plus canonical import_solutions.jsx
-↓
-Importer selects and validates the shared JSON
-↓
-ScriptUI offers Advanced or Simple
-↓
-Advanced maps text into answer boxes and table cells
-or
-Simple places text directly at PDF coordinates
-```
-
-**Output:** one v2 JSON file and one canonical downloadable JSX importer. Advanced is recommended for tables and answer boxes; Simple is the more failsafe fallback when Advanced fails.
-
-**Dependencies:** PDF.js, Pyodide/pdfplumber, ZIP/XML parsing in Python, and Adobe InDesign. It calls no LLM and no OpenRouter model. The canonical script accepts only `indesign-solutions-v2`.
-
-### Script Buffet
-
-**Input:** optional Adobe application filter and installation-guide expansion.
-
-**Flow:**
-
-```text
-Registry selects Script Buffet
-↓
-MainInterface loads its local script catalog
-↓
-User filters InDesign, Illustrator, or Photoshop cards
-↓
-Browser downloads the linked app-owned script
-↓
-localStorage increments that browser's local count
-```
-
-**Output:** JSX downloads and installation paths for macOS and Windows.
-
-**Dependencies:** browser state, `localStorage`, and app-owned public files. It makes no API, LLM, or OpenRouter call. Counts are local, not global.
-
-### Barcode Generator
-
-**Input:** ISBN-10 or ISBN-13.
-
-**Flow:**
-
-```text
-ISBN input
-↓
-normalizeIsbn validates or converts it
-↓
-eanCheckDigit verifies EAN-13
-↓
-eanModules produces the bars
-↓
-Browser draws the SVG preview
-↓
-createEan13Pdf writes outlined vector digits
-```
-
-**Output:** vector PDF EAN-13.
-
-**Dependencies:** browser code only. It makes no API, LLM, or OpenRouter call.
-
-### Design Manual
-
-**Input:** language and chapter selection; Markdown chapter source maintained by a human developer.
-
-**Flow:**
-
-```text
-manual.en.md or manual.cs.md
-↓
-parseDesignManual reads headings, lists, images, and captions
-↓
-app/page.tsx passes the existing chapter shape to Workspace
-↓
-The existing manual renderer creates the same chapter DOM
-↓
-Optional image lightbox
-```
-
-PDF export is a parallel local flow:
-
-```text
-manual.en.md or manual.cs.md plus changelog.md
-↓
-npm run manual:pdf
-↓
-export-pdf.mjs parses Markdown and reads local images
-↓
-PDFKit lays out the manual and changelog
-↓
-design-manual.en.pdf and design-manual.cs.pdf
-```
-
-**Output:** an on-screen reference manual with the existing layout and downloadable English/Czech PDFs.
-
-**Dependencies:** local Markdown, `remark-parse`, PDFKit, and local PNG images. It makes no API, LLM, or OpenRouter call.
-
-### Image Generator
-
-**Input:** one or more prompts separated by empty lines, optionally imported locally from `.docx`, `.md`, or `.txt`, plus up to three optional PNG, JPEG, or WebP references.
-
-**Flow:**
-
-```text
-Typed or locally imported prompt text
-↓
-Blank lines split and cap the queue at 15 prompts
-↓
-The browser sends one to three prompts at a time to /api/images
-↓
-The app-owned handler calls OpenRouter with the Image Generator key
-↓
-Each square result appears as its request completes
-```
-
-The Stop action aborts every active browser request and marks unstarted queue entries as stopped. The route passes request abort signals to OpenRouter so cancellation also stops in-flight upstream fetches when the runtime propagates disconnects. The app stays mounted while another sidebar tool is active, retaining its browser-session state and allowing its queue to continue.
-
-Failed cards can retry their own request. Completed 512 px and 1K cards can be upscaled one size step through FLUX.2 Pro image editing: 512 px to 1K, or 1K to 2K. This is generative enhancement rather than pixel-identical scaling; the source image is supplied as a reference and a stable prompt requires the model to preserve its composition. 2K is the maximum square output.
-
-**Output:** separate square JPEG images with individual and batch download controls.
-
-**Dependencies:** browser File, Canvas, ZIP decompression, and DOM APIs for local input preparation; OpenRouter image generation using FLUX.2 Klein for fast 512 px output and FLUX.2 Pro for high-fidelity output and generative upscaling. The imported source document itself is not uploaded.
-
-### Typesetter
-
-**Input:** an unstructured DOCX manuscript, a prepared IDML template, template ID/version, and designer-approved semantic-role mappings.
-
-**Flow:**
-
-```text
-DOCX manuscript and IDML template
-↓
-Pyodide worker opens both ZIP/XML packages locally
-↓
-Browser receives ordered source blocks and an inventory of styles, labels, layers, and page size
-↓
-POST /api/typesetter pre-scan suggests roles from the controlled catalogue
-↓
-Designer accepts roles and maps them to styles selected from the IDML inventory
-↓
-POST /api/typesetter classifies the complete manuscript in bounded batches
-↓
-Designer resolves uncertain, unsupported, and image-request blocks
-↓
-Versioned indesign-typesetter-v1 JSON plus import_typesetter.jsx
-↓
-Importer validates the labelled main story and mapped styles before mutation
-↓
-One undoable import fills the threaded story and creates unanchored image-request frames
-```
-
-**Output:** reviewed `indesign-typesetter-v1` JSON and a downloadable ExtendScript importer. Original source block text and order are retained. Image requests become ordinary labelled frames on the `IMAGE REQUESTS` layer; V1 does not anchor or position them automatically.
-
-**Dependencies:** browser File/Worker APIs, Pyodide with Python standard-library ZIP/XML parsing, OpenRouter structured outputs, and Adobe InDesign. The DOCX and IDML files remain local; only extracted manuscript blocks and controlled role context are sent to OpenRouter. The pre-scan defaults to `mistralai/ministral-14b-2512`, and full classification defaults to `mistralai/mistral-large-2512`.
-
-### Style Trainer
-
-**Input:** one to six style reference images plus a test prompt naming the subject to test the style on.
-
-**Flow:**
-
-```text
-Reference images and test prompt
-↓
-POST /api/style-trainer analyze sends the references to the Mistral vision planner
-↓
-The planner returns a validated style plan (kebab-case ID, name, FLUX.2 Pro prompt, analysis)
-↓
-A round runs: three generate requests combine the style prompt and test prompt
-↓
-Each FLUX.2 Pro 1K image returns with its own server-chosen random seed
-↓
-The editor votes for the best image, pinning its seed as the candidate style seed
-↓
-Refine rounds: a chat instruction revises the style prompt (optionally with the voted image as guidance) and start the next round automatically
-↓
-Finish Style shows the final prompt and pinned seed with copy actions
-↓
-POST /api/style-trainer submit files an Asana style request with a ready-to-paste Image Generator preset entry
-```
-
-Test generations deliberately exclude the reference images: the finished style ships to the Image Generator as a prompt plus a pinned seed alone, so each round must reproduce the style without them, the same way the storybook presets pin their seed. The style prompt remains editable during testing, and manual edits survive planner revisions of other rounds.
-
-**Output:** a reviewed style prompt plus pinned seed, and an Asana task containing exactly the ready-to-paste `style-presets.ts` entry. No reference or generated image is uploaded to Asana.
-
-**Dependencies:** browser File/Canvas APIs for reference preparation, OpenRouter structured outputs for planning, FLUX.2 Pro for seeded 1K square test generations, and the shared Asana client for style requests. Planning defaults to `mistralai/mistral-medium-3-5` with a `mistralai/ministral-14b-2512` fallback; test generation defaults to `black-forest-labs/flux.2-pro`.
-
-## OpenRouter model map
-
-`.env.example` lists the environment setting for each configurable model. A dash means the current model is an intentional code constant and changing it requires a code change.
-
-| App               | Job                   | Setting                       | Default model                  |
-| ----------------- | --------------------- | ----------------------------- | ------------------------------ |
-| Text Extractor    | OCR and image reading | `OPENROUTER_OCR_MODEL`        | `mistralai/mistral-small-2603` |
-| Text Extractor    | correction            | `OPENROUTER_CORRECTION_MODEL` | `mistralai/ministral-8b-2512`  |
-| Index Creator     | grammatical forms     | `OPENROUTER_INDEX_MODEL`      | `mistralai/mistral-medium-3-5` |
-| Diagram Generator | diagram description   | `OPENROUTER_FIGURE_MODEL`     | `mistralai/mistral-large-2512` |
-| Graph Generator   | chart structure       | `OPENROUTER_FIGURE_MODEL`     | `mistralai/mistral-large-2512` |
-
-| Cover Generator | primary concept planning | — | `mistralai/mistral-medium-3-5` |
-| Cover Generator | backup concept planning | — | `mistralai/ministral-14b-2512` |
-| Cover Generator | default 1K concepts | — | `black-forest-labs/flux.2-pro` |
-| Cover Generator | fast 512 px concepts | — | `black-forest-labs/flux.2-klein-4b` |
-| Cover Generator | alternative 1K concepts | — | `google/gemini-3.1-flash-lite-image` |
-| Image Generator | fast 512 px images | `OPENROUTER_COVER_SKETCH_MODEL` | `black-forest-labs/flux.2-klein-4b` |
-| Image Generator | high-quality images | `OPENROUTER_COVER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro` |
-| Image Generator | 2× generative upscale | `OPENROUTER_IMAGE_UPSCALE_MODEL`* | `black-forest-labs/flux.2-pro` |
-| Layer Splitter | scene planning | `OPENROUTER_LAYER_SPLITTER_PLAN_MODEL` | `mistralai/mistral-small-2603` |
-| Layer Splitter | fast reconstruction | `OPENROUTER_LAYER_SPLITTER_FAST_MODEL` | `black-forest-labs/flux.2-klein-4b` |
-| Layer Splitter | fidelity reconstruction | `OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL` | `black-forest-labs/flux.2-pro` |
-| GREP Builder | GREP conversion | `OPENROUTER_GREP_MODEL` | `mistralai/ministral-8b-2512` |
-| Prompt Extractor | page-image reading | `OPENROUTER_PROMPT_EXTRACTOR_MODEL` | `qwen/qwen3.5-122b-a10b` |
-| Typesetter | semantic pre-scan | `OPENROUTER_TYPESETTER_PRESCAN_MODEL` | `mistralai/ministral-14b-2512` |
-| Typesetter | block classification | `OPENROUTER_TYPESETTER_MODEL` | `mistralai/mistral-large-2512` |
-| Style Trainer | style planning and revision | `OPENROUTER_STYLE_TRAINER_MODEL` | `mistralai/mistral-medium-3-5` |
-| Style Trainer | seeded test rounds | `OPENROUTER_STYLE_TRAINER_IMAGE_MODEL`* | `black-forest-labs/flux.2-pro` |
-
-`*` `OPENROUTER_STYLE_TRAINER_IMAGE_MODEL` and `OPENROUTER_IMAGE_UPSCALE_MODEL` are optional; the Style Trainer otherwise uses `OPENROUTER_COVER_FIDELITY_MODEL`, then `black-forest-labs/flux.2-pro`, and the Image Generator uses `OPENROUTER_COVER_PRODUCTION_MODEL`, then `black-forest-labs/flux.2-pro`. The three `OPENROUTER_COVER_*` settings retain their legacy names but now configure Image Generator, not Cover Generator.
-
-Map Maker, Solutions Importer, Script Buffet, Barcode Generator, and Design Manual make no OpenRouter call in their current visible flows. Map Maker's legacy generated-map endpoint remains at its stable URL but returns `410 Gone`.
-
-## Important functions
-
-`Workspace.tsx` functions:
-
-- `selectApp`: opens an available app and selects its generation mode while preserving the existing image-workbench state.
-- `toggleLanguage`, `toggleTheme`: update shell preferences.
-- `handlePaste`, `selectSourceFile`, `extractSource`, `correctText`: Text Extractor input and API flow.
-- `selectIndexFile`, `createIndex`, `formatIndexOutput`: Index Creator orchestration and display formatting.
-- `generateGrep`, `copyGrep`: GREP request and clipboard handling.
-- `extractPrompts`, `formatPromptOutput`: prompt batching and output formatting.
-- `generateFigure`, `loadTimelineYear`: model-backed figures and local historical maps.
-- `mapPointerDown`, `mapPointerMove`, `mapPointerUp`, `mapWheel`: map viewport interaction.
-- `applyMapPalette`, `downloadCroppedMap`: final map appearance and SVG export.
-- `generateCoverSketches`: requests a planned two-or-four-concept Cover Generator batch.
-- `downloadCoverZip`, `exportCoverArtboard`: cover deliverables.
-- `downloadBarcode`: barcode PDF download.
-- `downloadText`, `downloadFigure`: shared browser download helpers.
-- `verificationMarkdown`: converts a figure report from JSON to readable Markdown.
-- `PageLoadStatus`: shared changing status text. `LoadingText` is in `app/_components/LoadingText.tsx`.
-
-The exported functions in `graph-generator/code/graph.ts`, `diagram-generator/code/diagram.ts`, and `map-generator/code/map.ts` are deliberately pure where possible: each validator accepts unknown input and returns a safe description plus checks; each renderer accepts that description and returns SVG; each report function returns a serializable report.
-
-## Where responsibilities are still mixed
-
-- `app/Workspace.tsx` still mixes shell navigation with every app's long-lived browser state, local file work, API calls, and downloads. Interfaces are separated, but controller ownership is now its main extension risk.
-- `app/_tools/image/cover-generator/code/server.ts` still combines request validation, planner fallback orchestration, image-prompt construction, parallel image calls, retry handling, and response assembly; structured concept planning itself is separated into `concept-plan.ts`.
-- `app/Workspace.tsx` preserves image-app state in one controller while rendering three interfaces. This avoids a behavior change during the split, but controller ownership remains to be moved.
-- Some download and upload helpers are repeated rather than shared because they have slightly different limits and output rules.
-
-## Duplication, dead code, and confusing names
-
-- OpenRouter transport, attribution headers, pseudonymous user attachment, JSON parsing, and usage logging are centralized in `requestOpenRouter()`. App handlers still own model selection, request/response validation, and app-specific error interpretation.
-- PDF.js worker setup appears in the index, prompt, and Solutions PDF helpers.
-- File validation, drag/drop, clipboard, and Blob download patterns repeat in the workspace.
-- Solutions has one extractor but two importer strategies. Keep their shared v2 input contract tested while allowing their placement code to remain deliberately different.
-- `findIndexMatches` and `formatIndex` in `pdf-indexer.ts` appear unused by the current UI.
-- `mapEditPrompt` and its field are not connected to generation.
-
-- `bio` means Diagram Generator and `graph` means chart generation. These keys are old internal names and should eventually become `diagram` and `chart` through a tested migration.
-- “blank”, “clean”, “answers”, “solutions”, “manuscript”, and “annotated manuscript” name related but different files. New code should use the terms documented in each Solutions contract.
-
-## Extension risks
-
-- Adding an app currently requires a registry entry, app-owned bilingual `copy.ts`, two info files, an interface, CSS, and a component call in `Workspace.tsx`. Missing one is easy.
-- Workspace state can accidentally leak assumptions between graph, diagram, and map because their controller state is still co-located.
-- Long functions make it hard to test one workflow without rendering the full page.
-- API response shapes are local TypeScript types rather than shared checked contracts.
-- Large map JSON imports can increase build and memory cost for unrelated figure routes.
-- InDesign JSX cannot be covered by normal Node tests; format checks and real InDesign fixture runs are both necessary.
-- AI endpoints have little automated coverage because model calls are external and variable.
-
-## Practical next structure
-
-Continue the current structure without adding a framework inside the framework:
-
-1. Move one complete controller at a time from `Workspace.tsx` to the owning app after adding a switching-app browser test.
-2. Give an interface a small controller hook only when its state and actions are large enough to benefit from it.
-3. Decide explicitly whether each app should preserve or reset its form when switching; moving state changes that behavior.
-4. Move one image-app controller at a time only after a switching-app browser test protects its state behavior.
-5. Keep application handlers routed through the shared `requestOpenRouter()` transport, and extend its tests when shared error or logging behavior changes.
-6. Remove confirmed dead files and functions in separate changes so behavior changes are easy to review.
-
-Do not create a general “tool engine”, service container, or class hierarchy. The apps have different inputs and outputs; simple modules with explicit functions are easier to own.
+For UI/CSS, verify desktop/narrow layouts, English/Czech drawers, browser console/network errors, first-visit loading, retained subtree state, inactive input/overlay isolation, jobs finishing away and refresh semantics. Figure-specific tests are useful during development but do not replace full checks. `.next/`, `node_modules/`, `tmp/` and generated declarations are not handwritten source.

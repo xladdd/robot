@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ToolHeader } from "../../../_components/ToolChrome";
 import { typesetterUi } from "./copy";
 import { semanticRoles, isSemanticRoleId } from "./roles";
@@ -24,6 +24,8 @@ import type {
   TypesetterManifest,
   TypesetterSourceBlock,
 } from "./types";
+
+import type { ToolProps } from "../../types";
 
 type Language = "en" | "cs";
 type InputKind = "manuscript" | "template";
@@ -94,7 +96,15 @@ function downloadText(text: string, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export function TypesetterMainInterface({ language }: { language: Language }) {
+export function TypesetterMainInterface({
+  language,
+  active = true,
+  onDiagnostics,
+}: {
+  language: Language;
+  active?: boolean;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+}) {
   const t = typesetterUi[language];
   const [files, setFiles] = useState<Record<InputKind, File | null>>({
     manuscript: null,
@@ -514,6 +524,37 @@ export function TypesetterMainInterface({ language }: { language: Language }) {
     );
   }
 
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: (inspecting || prescanning || analysing)
+        ? "running"
+        : (error)
+        ? "error"
+        : (analysed.length > 0)
+        ? "completed"
+        : "idle",
+      progress,
+      inputSummary: {
+        hasInput: Object.values(files).some(Boolean),
+        fileType: null,
+        fileSize: null,
+        referenceCount: Object.values(files).filter(Boolean).length,
+        hasResult: analysed.length > 0,
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    inspecting,
+    prescanning,
+    analysing,
+    analysed.length,
+    files,
+    progress,
+    error,
+  ]);
+
   return (
     <div className="solutions-module solutions-detail-module typesetter-module">
       <ToolHeader
@@ -546,8 +587,12 @@ export function TypesetterMainInterface({ language }: { language: Language }) {
                 key={kind}
                 className={files[kind] ? "has-file" : ""}
                 onClick={() => inputRefs[kind].current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => handleDrop(kind, event)}
+                onDragOver={(event) => {
+                  if (active) event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  if (active) handleDrop(kind, event);
+                }}
               >
                 <span>
                   {String(index + 1).padStart(2, "0")} / {t[kind]}

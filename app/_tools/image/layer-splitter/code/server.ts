@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveFailureFallbackModels, resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
@@ -37,9 +39,7 @@ import {
   patchBackground,
 } from "./extract";
 import {
-  backgroundModelForQuality,
   buildImageRequest,
-  objectCompletionModel,
   type ImagePurpose,
 } from "./image-model";
 import {
@@ -212,8 +212,7 @@ async function prepareImage(bytes: Buffer, width: number, height: number) {
 
 function planModel() {
   return (
-    process.env.OPENROUTER_LAYER_SPLITTER_PLAN_MODEL ||
-    "mistralai/mistral-large-4-0"
+    resolveModel(modelStages['planner'])
   );
 }
 
@@ -289,11 +288,7 @@ async function analyseLayers(
 }
 
 function maskModels() {
-  return [
-    process.env.OPENROUTER_LAYER_SPLITTER_MASK_MODEL || "qwen/qwen3.7-flash",
-    process.env.OPENROUTER_LAYER_SPLITTER_MASK_FALLBACK_MODEL ||
-      "google/gemini-3.6-flash",
-  ].filter((model, index, models) => models.indexOf(model) === index);
+  return [resolveModel(modelStages.mask), ...resolveFailureFallbackModels(modelStages.mask)];
 }
 
 function maskModel() {
@@ -524,11 +519,7 @@ async function generateSemanticMask(
   height: number,
   signal?: AbortSignal,
 ): Promise<Uint8Array> {
-  const models = [
-    process.env.OPENROUTER_LAYER_SPLITTER_MASK_FALLBACK_MODEL ||
-      "google/gemini-3.6-flash",
-    process.env.OPENROUTER_LAYER_SPLITTER_MASK_MODEL || "qwen/qwen3.7-flash",
-  ].filter((model, index, values) => values.indexOf(model) === index);
+  const models = [resolveModel(modelStages["subject-mask"]), ...resolveFailureFallbackModels(modelStages["subject-mask"])];
   let lastError = "the model returned no usable semantic mask";
   for (let attempt = 0; attempt < models.length; attempt++) {
     const model = models[attempt];
@@ -738,8 +729,7 @@ async function generateImage(
 
 function decompositionModel() {
   return (
-    process.env.OPENROUTER_LAYER_SPLITTER_DECOMPOSITION_MODEL ||
-    "inclusionai/ming-image-0.1-design-layer"
+    resolveModel(modelStages['decomposition'])
   );
 }
 
@@ -1829,4 +1819,12 @@ export async function POST(request: Request) {
     console.error(`[layer-splitter] ${message}`);
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function backgroundModelForQuality(quality: "fast" | "fidelity") {
+  return resolveModel(modelStages[quality === "fidelity" ? "background-fidelity" : "background-fast"]);
+}
+
+function objectCompletionModel() {
+  return resolveModel(modelStages.completion);
 }

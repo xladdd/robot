@@ -75,27 +75,6 @@ function references(input: string | readonly string[]) {
   return urls.map((url) => ({ type: "image_url", image_url: { url } }));
 }
 
-export function backgroundModelForQuality(quality: LayerSplitterQuality) {
-  if (quality === "fidelity")
-    return (
-      process.env.OPENROUTER_LAYER_SPLITTER_BACKGROUND_FIDELITY_MODEL ||
-      process.env.OPENROUTER_LAYER_SPLITTER_FIDELITY_MODEL ||
-      "bytedance-seed/seedream-5-0-pro"
-    );
-  return (
-    process.env.OPENROUTER_LAYER_SPLITTER_BACKGROUND_FAST_MODEL ||
-    process.env.OPENROUTER_LAYER_SPLITTER_FAST_MODEL ||
-    "bytedance-seed/seedream-5-0-flash"
-  );
-}
-
-export function objectCompletionModel() {
-  return (
-    process.env.OPENROUTER_LAYER_SPLITTER_OBJECT_COMPLETION_MODEL ||
-    "openai/gpt-image-2.5-sunburst"
-  );
-}
-
 export function buildImageRequest(
   input: ImageRequestInput,
 ): Record<string, unknown> {

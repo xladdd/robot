@@ -6,8 +6,15 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "tools:generate": "node --experimental-strip-types scripts/generate-tools.mts",
+    "tools:check": "node --experimental-strip-types scripts/generate-tools.mts --check",
+    "predev": "npm run tools:generate",
     "dev": "next dev",
-    "prebuild": "node scripts/materialize-public-links.mjs",
+    "prebuild": "npm run tools:generate && node scripts/materialize-public-links.mjs",
+    "pretest": "npm run tools:generate",
+    "preopenrouter:provision": "npm run tools:generate",
+    "preopenrouter:rename-dev": "npm run tools:generate",
+    "preopenrouter:verify": "npm run tools:generate",
     "build": "next build --webpack",
     "manual:pdf": "node app/_tools/design-manual/scripts/export-pdf.mjs",
     "openrouter:provision": "node --env-file-if-exists=.env.openrouter-management.local --experimental-strip-types app/_tools/openrouter/scripts/provision-keys.mts",
@@ -15,7 +22,8 @@
     "openrouter:verify": "node --env-file-if-exists=.env.openrouter-management.local --experimental-strip-types app/_tools/openrouter/scripts/provision-keys.mts --verify",
     "feedback:section": "node --env-file-if-exists=.env.local app/_feedback/scripts/find-section.mjs",
     "start": "next start",
-    "test": "npm run build && node --experimental-strip-types --test tests/architecture.test.mjs tests/openrouter.test.mjs app/_tools/openrouter/tests/key-management.test.mts tests/translations.test.mjs tests/feedback.test.mjs app/_tools/text/text-extractor/tests/text-extractor.test.mts app/_tools/text/index-creator/tests/index-creator.test.mts app/_tools/design/grep-builder/tests/validation.test.mts app/_tools/text/prompt-extractor/tests/prompt-extractor.test.mts app/_tools/design/grep-builder/tests/intent.test.mts app/_tools/design/grep-builder/tests/prompt.test.mts app/_tools/design/cover-splitter/tests/cover-splitter.test.mjs app/_tools/image/graph-generator/tests/graph.test.mts app/_tools/image/diagram-generator/tests/diagram.test.mts app/_tools/image/diagram-generator/tests/pipeline.test.mts app/_tools/image/map-generator/tests/map.test.mts app/_tools/image/image-generator/tests/prompts.test.mts app/_tools/image/image-generator/tests/cutout.test.mts app/_tools/image/image-generator/tests/zip.test.mts app/_tools/image/layer-splitter/tests/completion.test.mts app/_tools/image/layer-splitter/tests/decomposition.test.mts app/_tools/image/layer-splitter/tests/image-model.test.mts app/_tools/image/layer-splitter/tests/layer-plan.test.mts app/_tools/image/layer-splitter/tests/mask.test.mts app/_tools/image/layer-splitter/tests/occlusion.test.mts app/_tools/image/layer-splitter/tests/psd.test.mts app/_tools/image/layer-splitter/tests/subject-regeneration.test.mts app/_tools/image/cover-generator/tests/cover-generator.test.mjs app/_tools/image/concept-illustrator/tests/concept-illustrator.test.mts app/_tools/design/solutions-importer/tests/solutions-importer.test.mjs app/_tools/design/style-trainer/tests/style-trainer.test.mts app/_tools/design/typesetter/tests/typesetter.test.mts",
+    "test": "npm run build && node scripts/run-tests.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "test:figures": "node --experimental-strip-types --test app/_tools/image/graph-generator/tests/graph.test.mts app/_tools/image/diagram-generator/tests/diagram.test.mts app/_tools/image/map-generator/tests/map.test.mts",
     "diagram:eval": "node app/_tools/image/diagram-generator/scripts/run-diagram-eval.mjs"

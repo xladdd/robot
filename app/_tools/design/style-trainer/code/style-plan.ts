@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import "server-only";
 
 import { loadPrompt } from "../../../load-prompt";
@@ -12,7 +14,7 @@ import {
   type StylePlannerMetadata,
 } from "./plan.ts";
 
-export const STYLE_PLANNER_FALLBACK_MODEL = "mistralai/ministral-14b-2512";
+export const STYLE_PLANNER_FALLBACK_MODEL = modelStages.planner.failureFallbackModels[0].defaultModel;
 
 const analyzePrompt = loadPrompt(
   "design/style-trainer/prompts/analyze-style.md",
@@ -95,7 +97,7 @@ async function runPlanner(
   operation: string,
 ): Promise<PlannerResult> {
   const model =
-    process.env.OPENROUTER_STYLE_TRAINER_MODEL || "mistralai/mistral-medium-3-5";
+    resolveModel(modelStages['planner']);
   const content: Array<Record<string, unknown>> = [
     { type: "text", text: requestText },
   ];

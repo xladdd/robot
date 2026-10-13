@@ -168,6 +168,7 @@ export function CoverLightbox({
 }
 
 type CoverProps = {
+  active?: boolean;
   language: Language;
   inputRef: RefObject<HTMLInputElement | null>;
   references: CoverReference[];
@@ -205,6 +206,7 @@ type CoverProps = {
 };
 
 export function CoverGeneratorMainInterface({
+  active = true,
   language,
   inputRef,
   references,
@@ -251,7 +253,7 @@ export function CoverGeneratorMainInterface({
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   const styleHelpButtonRef = useRef<HTMLButtonElement>(null);
   const workspacePortalRoot =
-    (helpOpen || styleHelpOpen) && typeof document !== "undefined"
+    active && (helpOpen || styleHelpOpen) && typeof document !== "undefined"
       ? document.querySelector<HTMLElement>(".workspace")
       : null;
   const styleLabels: Record<CoverTreatment, string> = {
@@ -285,7 +287,7 @@ export function CoverGeneratorMainInterface({
       }[requestedCount];
 
   useEffect(() => {
-    if (!helpOpen && !styleHelpOpen) return;
+    if (!active || (!helpOpen && !styleHelpOpen)) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (styleHelpOpen) {
@@ -298,7 +300,7 @@ export function CoverGeneratorMainInterface({
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [helpOpen, styleHelpOpen]);
+  }, [active, helpOpen, styleHelpOpen]);
 
   async function copySelectedStylePrompt() {
     try {

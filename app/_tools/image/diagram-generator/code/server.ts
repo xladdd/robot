@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { fillPrompt, loadPrompt } from "../../../load-prompt";
@@ -495,7 +497,7 @@ async function planDiagram(
   signal?: AbortSignal,
 ) {
   const model =
-    process.env.OPENROUTER_DIAGRAM_PLANNER_MODEL || "openai/gpt-6.1-sol";
+    resolveModel(modelStages['planner']);
   const catalogue = JSON.stringify(selectReference(request));
   const prompt = `${briefPrompt}\n\n${languageInstruction(language)}\n\nUser request:\n${request}\n\nBest local catalogue match:\n${catalogue}`;
   const content: Array<Record<string, unknown>> = [
@@ -639,7 +641,7 @@ async function reconstruct(
   });
   const result = await completeJson<{ reconstruction: unknown }>(
     openRouter,
-    process.env.OPENROUTER_DIAGRAM_VECTOR_MODEL || "anthropic/claude-opus-5.5",
+    resolveModel(modelStages['vector']),
     operation,
     [
       {
@@ -836,11 +838,9 @@ export async function POST(request: Request) {
       const brief = normalizeBrief(body.brief);
       const palette = normalizePalette(body.palette);
       const draftModel =
-        process.env.OPENROUTER_DIAGRAM_DRAFT_MODEL ||
-        "openai/gpt-image-2.5-flare";
+        resolveModel(modelStages['draft']);
       const finalModel =
-        process.env.OPENROUTER_DIAGRAM_IMAGE_MODEL ||
-        "openai/gpt-image-2.5-sunburst";
+        resolveModel(modelStages['image']);
       const generated = await Promise.allSettled([
         generateCandidate(
           openRouter,
@@ -994,11 +994,9 @@ export async function POST(request: Request) {
       );
       const vectorPreview = await renderSvgPreview(canonical.svg);
       const visualModel =
-        process.env.OPENROUTER_DIAGRAM_VISUAL_REVIEW_MODEL ||
-        "google/gemini-3.8-flash";
+        resolveModel(modelStages['visual-review']);
       const biologyModel =
-        process.env.OPENROUTER_DIAGRAM_CONTENT_REVIEW_MODEL ||
-        "openai/gpt-6.1-sol";
+        resolveModel(modelStages['content-review']);
       const context = `\n\nThe first image is the approved raster candidate. The second image is the rendered canonical SVG.\n\nBIOLOGICAL BRIEF:\n${JSON.stringify(brief, null, 2)}\n\nSEMANTIC OBJECT MANIFEST:\n${JSON.stringify(reconstruction.objects, null, 2)}`;
       const reviewImages = [candidate, vectorPreview];
       const [visual, biology] = await Promise.all([

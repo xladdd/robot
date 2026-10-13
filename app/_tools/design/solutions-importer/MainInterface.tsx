@@ -1,9 +1,11 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { extractPositionedPdfText } from "./code/pdf";
 import { solutionsImporterUi } from "./copy";
 import { ToolHeader } from "../../../_components/ToolChrome";
+
+import type { ToolProps } from "../../types";
 
 type Language = "en" | "cs";
 type SolutionOperation = {
@@ -60,8 +62,12 @@ type SolutionFont = "Arial" | "Noto Sans" | "Times New Roman";
 
 export function SolutionsImporterMainInterface({
   language,
+  active = true,
+  onDiagnostics,
 }: {
   language: Language;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+  active?: boolean;
 }) {
   const t = solutionsImporterUi[language];
   const [files, setFiles] = useState<Record<InputKind, File | null>>({
@@ -295,6 +301,35 @@ export function SolutionsImporterMainInterface({
     solutionFont === "Times New Roman" ? solutionFont : "Arial";
   const analysisComplete = Boolean(manifest && !processing);
 
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: (processing)
+        ? "running"
+        : (error)
+        ? "error"
+        : (Boolean(manifest))
+        ? "completed"
+        : "idle",
+      progress,
+      inputSummary: {
+        hasInput: Object.values(files).some(Boolean),
+        fileType: null,
+        fileSize: null,
+        referenceCount: Object.values(files).filter(Boolean).length,
+        hasResult: Boolean(manifest),
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    processing,
+    manifest,
+    files,
+    progress,
+    error,
+  ]);
+
   return (
     <div className="solutions-module solutions-detail-module">
       <ToolHeader
@@ -334,8 +369,12 @@ export function SolutionsImporterMainInterface({
                 key={kind}
                 className={files[kind] ? "has-file" : ""}
                 onClick={() => inputRefs[kind].current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => handleDrop(kind, event)}
+                onDragOver={(event) => {
+                  if (active) event.preventDefault();
+                }}
+                onDrop={(event) => {
+                  if (active) handleDrop(kind, event);
+                }}
               >
                 <span>
                   {String(index + 1).padStart(2, "0")} / {t[kind]}

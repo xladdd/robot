@@ -37,10 +37,13 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
+*.tsbuildinfo
 /dist/
 /.wrangler/
 /outputs/
 /work/
 /tmp/
+# Generated ownership ledger for tool public links and Vercel copies.
+/public/.robot-tool-assets.json
 /cover-workflow-results/
 INTERFACE.pdf

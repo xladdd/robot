@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Browser-test sandboxes and render artifacts are generated, not source.
+    "tmp/**",
     "public/**",
     // Adobe ExtendScript downloads use directives such as `#target` that
     // ESLint's JavaScript parser does not understand.

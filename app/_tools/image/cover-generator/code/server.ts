@@ -1,3 +1,4 @@
+import { modelStages } from "../model-definitions.ts";
 import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 
@@ -21,8 +22,8 @@ const MAX_KEYWORDS_LENGTH = 1_500;
 const MAX_CUSTOM_SUBJECT_LENGTH = 300;
 const MAX_PREFERENCE_LENGTH = 1_000;
 const MAX_SEED = 2_000_000_000;
-const FLUX_PRO_MODEL = "black-forest-labs/flux.2-pro" as const;
-const GEMINI_MODEL = "google/gemini-3.1-flash-lite-image" as const;
+const FLUX_PRO_MODEL = modelStages.image.defaultModel;
+const GEMINI_MODEL = modelStages["alternative-image"].defaultModel;
 
 const DEFAULT_MODEL = FLUX_PRO_MODEL;
 const COVER_MODE = "sketch" as const;

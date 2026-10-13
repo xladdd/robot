@@ -5,6 +5,7 @@ import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "../../registry";
+import type { ToolProps } from "../../types";
 import {
   renderFirstPdfPage,
   renderSplitPdfPanel,
@@ -18,6 +19,8 @@ export type CoverSizeChoice = "A5" | "A4" | "B5" | "half";
 type CoverSplitterMainInterfaceProps = {
   language: Language;
   section: string | null;
+  active?: boolean;
+  onDiagnostics?: ToolProps["onDiagnostics"];
 };
 
 type CoverFileEntry = {
@@ -176,6 +179,8 @@ function releaseObjectUrl(url: string, registry: Set<string>): void {
 export function CoverSplitterMainInterface({
   language,
   section,
+  active = true,
+  onDiagnostics,
 }: CoverSplitterMainInterfaceProps) {
   const t = coverSplitterCopy[language];
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -219,6 +224,8 @@ export function CoverSplitterMainInterface({
   });
 
   useEffect(() => {
+    if (!active) return;
+
     function hasFiles(event: globalThis.DragEvent): boolean {
       const types = event.dataTransfer?.types;
       return !!types && Array.from(types).includes("Files");
@@ -243,7 +250,7 @@ export function CoverSplitterMainInterface({
       window.removeEventListener("dragover", onDragOver);
       window.removeEventListener("drop", onDrop);
     };
-  }, []);
+  }, [active]);
 
   function replaceResult(nextResult: ZipResult | null): void {
     const current = resultRef.current;
@@ -667,6 +674,37 @@ export function CoverSplitterMainInterface({
   const uploadDisabled =
     isPreparing || isProcessing || exportingFormat !== null;
 
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: (isPreparing || isProcessing || exportingFormat !== null)
+        ? "running"
+        : (error)
+        ? "error"
+        : (Boolean(result))
+        ? "completed"
+        : "idle",
+      progress,
+      inputSummary: {
+        hasInput: files.length > 0,
+        fileType: null,
+        fileSize: null,
+        referenceCount: files.length,
+        hasResult: Boolean(result),
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    isPreparing,
+    isProcessing,
+    exportingFormat,
+    result,
+    files.length,
+    progress,
+    error,
+  ]);
+
   return (
     <div className="cover-splitter-module has-files">
       <input
@@ -687,8 +725,10 @@ export function CoverSplitterMainInterface({
             type="button"
             className="start-button action-button upload-button cover-splitter-add"
             onClick={() => inputRef.current?.click()}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleDrop}
+            onDragOver={(event) => {
+              if (active) event.preventDefault();
+            }}
+            onDrop={active ? handleDrop : undefined}
             disabled={uploadDisabled}
           >
             <span>{hasFiles ? t.addMore : t.upload}</span>
@@ -852,8 +892,10 @@ export function CoverSplitterMainInterface({
                 type="button"
                 className="cover-splitter-empty"
                 onClick={() => inputRef.current?.click()}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={handleDrop}
+                onDragOver={(event) => {
+                  if (active) event.preventDefault();
+                }}
+                onDrop={active ? handleDrop : undefined}
                 disabled={uploadDisabled}
               >
                 <EmptyViewportState>{t.upload}</EmptyViewportState>

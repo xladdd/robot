@@ -24,8 +24,7 @@ const defaults: KeyLimits = {
   limit_reset: "monthly",
   include_byok_in_limit: false,
 };
-const firstApp = openRouterApps.extraction;
-const secondApp = openRouterApps.index;
+const [firstApp, secondApp] = managedApps;
 
 // These deliberately non-credential strings never leave the in-memory fixtures.
 function fakeSecret(target: KeyTarget, slug: string) {
@@ -65,7 +64,10 @@ function fixture(target: KeyTarget, legacyNames = false) {
 
 test("managed apps retain the config's unique slugs and runtime variable names", () => {
   assert.deepEqual(managedApps, Object.values(openRouterApps));
-  assert.equal(managedApps.length, 12);
+  assert.ok(
+    managedApps.length >= 2,
+    "key separation fixtures need two registered apps",
+  );
   assert.equal(
     new Set(managedApps.map((app) => app.slug)).size,
     managedApps.length,

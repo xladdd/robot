@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { ToolMeta } from "../../../_components/ToolChrome";
 import type { Language } from "../../registry";
+import type { ToolProps } from "../../types";
 import { conceptIllustratorUi } from "./copy";
 import {
   buildFeedbackContext,
@@ -183,10 +184,12 @@ function imageFilename(project: IllustrationProject, revision: ImageRevision) {
 
 export function ConceptIllustratorMainInterface({
   language,
-  active,
+  onDiagnostics,
+  active = true,
 }: {
   language: Language;
-  active: boolean;
+  onDiagnostics?: ToolProps["onDiagnostics"];
+  active?: boolean;
 }) {
   const t = conceptIllustratorUi[language];
   const [project, setProject] = useState<IllustrationProject>(() =>
@@ -797,7 +800,35 @@ export function ConceptIllustratorMainInterface({
     }).format(timestamp);
   }
 
-  if (!active) return null;
+  useEffect(() => {
+    if (!active || !onDiagnostics) return;
+    onDiagnostics({
+      appStatus: (Boolean(busy))
+        ? "running"
+        : (error || memoryError)
+        ? "error"
+        : (project.revisions.length > 0)
+        ? "completed"
+        : "idle",
+      progress: null,
+      inputSummary: {
+        hasInput: Boolean(project.article.trim()),
+        fileType: null,
+        fileSize: null,
+        referenceCount: styleProfile.references.length,
+        hasResult: project.revisions.length > 0,
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    busy,
+    project.article,
+    project.revisions.length,
+    styleProfile.references.length,
+    error,
+    memoryError,
+  ]);
 
   return (
     <div className="concept-illustrator-module">

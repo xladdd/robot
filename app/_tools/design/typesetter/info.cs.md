@@ -15,3 +15,5 @@ Sazeč převádí nejednotně stylovaný rukopis ve Wordu na zkontrolovaný sém
 Soubory DOCX a IDML zůstávají v prohlížeči. Při předběžné a úplné analýze se nakonfigurovanému modelu OpenRouter odesílají extrahované bloky rukopisu; soubor IDML se neodesílá. V1 podporuje jeden hlavní článek, odstavcové styly, jednoduché seznamy, popisky a požadavky na obrázky. Nenavrhuje stránky, nesází složité tabulky ani neopravuje přetečený text.
 
 Požadavky na obrázky vznikají jako běžné neukotvené rámečky ve vrstvě `IMAGE REQUESTS`. Umístěte nebo nahraďte je ručně. Importér vždy spouštějte na kopii a celý výsledek zkontrolujte.
+
+Extrakce zachovává prostý text a pořadí, nikoli formátování Wordu. Importér nahradí označený hlavní článek a přeskočí nepodporované bloky; práce s tabulkami je omezená, proto na kopii zkontrolujte vynechaný obsah i sazbu. Pro místní extrakci se mohou stahovat runtime Pythonu v prohlížeči.

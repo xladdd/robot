@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ChangeEvent, type RefObject } from "react";
+import { useEffect, useState, type ChangeEvent, type RefObject } from "react";
+import type { ToolDiagnostics } from "../../types";
 import { LoadingText } from "../../../_components/LoadingText";
 import {
   EmptyViewportState,
@@ -89,6 +90,8 @@ export function DiagramMainInterface({
   onGenerate: _legacyGenerate,
   onDownload,
   onVerificationMarkdown,
+  active = true,
+  onDiagnostics,
 }: {
   language: Language;
   section: string | null;
@@ -111,6 +114,8 @@ export function DiagramMainInterface({
   onGenerate: () => void;
   onDownload: (content: string, filename: string, type: string) => void;
   onVerificationMarkdown: (report: string) => string;
+  active?: boolean;
+  onDiagnostics?: (summary: ToolDiagnostics) => void;
 }) {
   void _legacyOutput;
   void _legacyGenerating;
@@ -145,6 +150,40 @@ export function DiagramMainInterface({
         : stage === "input"
           ? t.ready
           : t[stage];
+
+  const hasInput = Boolean(request.trim() || references.length);
+  const hasResult = Boolean(pipelineOutput || _legacyOutput);
+  useEffect(() => {
+    if (!active) return;
+    onDiagnostics?.({
+      appStatus:
+        busy || _legacyGenerating
+          ? "running"
+          : pipelineError || _legacyError
+            ? "error"
+            : hasResult
+              ? "completed"
+              : "idle",
+      progress: null,
+      inputSummary: {
+        hasInput,
+        fileType: null,
+        fileSize: null,
+        referenceCount: references.length,
+        hasResult,
+      },
+    });
+  }, [
+    active,
+    onDiagnostics,
+    busy,
+    _legacyGenerating,
+    pipelineError,
+    _legacyError,
+    hasInput,
+    hasResult,
+    references.length,
+  ]);
 
   function resetWorkflow() {
     setStage("input");

@@ -1,3 +1,5 @@
+import { evaluationModels as allowedEvaluationModels, modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { NextResponse } from "next/server";
 import { loadPrompt } from "../../../load-prompt";
 import {
@@ -236,13 +238,8 @@ export async function POST(request: Request) {
       };
     });
     const configuredModel =
-      process.env.OPENROUTER_FIGURE_MODEL || "mistralai/mistral-large-2512";
-    const evaluationModels = new Set([
-      "qwen/qwen3.6-35b-a3b",
-      "openai/gpt-oss-120b",
-      "google/gemma-4-26b-a4b-it",
-      "meta-llama/llama-4-maverick",
-    ]);
+      resolveModel(modelStages['structure']);
+    const evaluationModels = new Set<string>(allowedEvaluationModels);
     const model =
       typeof body.evaluationModel === "string" &&
       evaluationModels.has(body.evaluationModel)

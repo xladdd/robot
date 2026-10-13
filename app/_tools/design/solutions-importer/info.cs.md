@@ -1,7 +1,9 @@
 ### Co to je?
 
-Přidejte čisté PDF, odpovídající anotovaný rukopis v PDF a odpovídající IDML a poté zkontrolujte nalezené operace textu, tabulek, značek a barev. Získáte JSON ve formátu `indesign-solutions-v2`, který stažený skript InDesignu vloží pokročilým režimem podle rozvržení nebo jednoduchým režimem podle přímých souřadnic.
+Místně porovnejte čisté PDF, odpovídající anotovaný rukopis PDF a IDML a zkontrolujte navržené textové odpovědi. Stáhněte JSON indesign-solutions-v2 a pokročilý nebo jednoduchý importér InDesignu. Oba importéry vkládají pouze text: neobnovují libovolné ruční značky, kresby ani změny barev.
 
 ### Jak to funguje?
 
-`PDF.js`, `Pyodide`, Python, `pdfplumber` a parser IDML běží v prohlížeči, porovnají PDF podle polohy a spojí rozdíly s metadaty stran, tabulek, stylů, vzorníku a odkazů. Vaše volby z kontroly se zapíší do JSON; žádný dokument se neodesílá a nepoužívá se model AI. Skript InDesignu JSON před použitím zvoleného režimu ověří. Pro tabulky a zarovnaná pole odpovědí použijte pokročilý režim; pokud selže, import vraťte zpět a spusťte skript znovu ve spolehlivějším jednoduchém režimu.
+PDF.js a zpracování Python/IDML v prohlížeči porovnají polohy a získají podpůrná metadata stran, tabulek a stylů. Dokumenty zůstávají místně; runtime prohlížeče a závislosti se mohou stahovat. Model AI se nepoužívá. Pokročilý importér zohledňuje rozvržení tabulek a odpovědí; jednoduchý vytváří textové rámečky podle přímých souřadnic. Při selhání pokročilého importu jej vraťte zpět a na kopii zkuste jednoduchý.
+
+Pokročilý importér nahradí všechny objekty ve vrstvě SOLUTIONS, včetně ručně přidaných. Jednoduchý odstraní jen svůj dříve označený výstup. Importéry mohou také aktualizovat styly. Dokument zálohujte, prohlédněte JSON a zkontrolujte každou importovanou stranu.

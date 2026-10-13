@@ -63,6 +63,7 @@ function applyMapViewBox(container: HTMLDivElement, viewport: MapViewport) {
 
 export function MapMainInterface({
   language,
+  active = true,
   palette,
   output,
   error,
@@ -94,6 +95,7 @@ export function MapMainInterface({
   onWheel,
 }: {
   language: Language;
+  active?: boolean;
   palette: AseSwatch[];
   output: MapOutput | null;
   error: string;
@@ -162,11 +164,16 @@ export function MapMainInterface({
     const container = mapTransformRef.current;
     if (!container) return;
     container.innerHTML = svgMarkup;
-    const svg = container.querySelector<SVGSVGElement>("svg");
-    if (svg) layoutMapSvgLabels(svg, labelOptionsRef.current);
   }, [svgMarkup]);
 
+  useLayoutEffect(() => {
+    if (!active) return;
+    const svg = mapTransformRef.current?.querySelector<SVGSVGElement>("svg");
+    if (svg) layoutMapSvgLabels(svg, labelOptionsRef.current);
+  }, [svgMarkup, active]);
+
   useEffect(() => {
+    if (!active) return;
     const timeout = window.setTimeout(() => {
       const svg = mapTransformRef.current?.querySelector<SVGSVGElement>("svg");
       if (!svg) return;
@@ -182,6 +189,7 @@ export function MapMainInterface({
     }, 80);
     return () => window.clearTimeout(timeout);
   }, [
+    active,
     svgMarkup,
     mapZoom,
     mapLayers.labels,
@@ -193,9 +201,9 @@ export function MapMainInterface({
   useLayoutEffect(() => {
     const viewport = { zoom: mapZoom, pan: mapPan };
     viewportRef.current = viewport;
-    if (mapTransformRef.current)
+    if (active && mapTransformRef.current)
       applyMapViewBox(mapTransformRef.current, viewport);
-  }, [mapZoom, mapPan, output]);
+  }, [active, mapZoom, mapPan, output]);
 
   useLayoutEffect(() => {
     wheelHandlerRef.current = onWheel;
@@ -203,21 +211,21 @@ export function MapMainInterface({
 
   useEffect(() => {
     const container = mapTransformRef.current;
-    if (!container || !output) return;
+    if (!active || !container || !output) return;
     const observer = new ResizeObserver(() =>
       applyMapViewBox(container, viewportRef.current),
     );
     observer.observe(container);
     return () => observer.disconnect();
-  }, [output]);
+  }, [active, output]);
 
   useEffect(() => {
     const canvas = mapCanvasRef.current;
-    if (!canvas) return;
+    if (!active || !canvas) return;
     const handleWheel = (event: WheelEvent) => wheelHandlerRef.current(event);
     canvas.addEventListener("wheel", handleWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", handleWheel);
-  }, []);
+  }, [active]);
   return (
     <div className="figure-module map-module">
       <div className="figure-workbench map-workbench">

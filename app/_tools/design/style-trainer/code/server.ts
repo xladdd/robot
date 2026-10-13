@@ -1,3 +1,5 @@
+import { modelStages } from "../model-definitions.ts";
+import { resolveModel } from "../../../models-server.ts";
 import { cookies } from "next/headers.js";
 import { NextResponse } from "next/server.js";
 
@@ -61,9 +63,7 @@ function userFacingError(error: unknown) {
 
 function styleImageModel() {
   return (
-    process.env.OPENROUTER_STYLE_TRAINER_IMAGE_MODEL ||
-    process.env.OPENROUTER_COVER_FIDELITY_MODEL ||
-    "black-forest-labs/flux.2-pro"
+    resolveModel(modelStages['image'])
   );
 }
 

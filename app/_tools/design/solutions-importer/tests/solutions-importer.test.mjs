@@ -5,8 +5,11 @@ import test from "node:test";
 const root = new URL("../../../../../", import.meta.url);
 
 test("registers one Solutions Importer with one v2 extraction flow", async () => {
-  const [workspace, registry, component] = await Promise.all([
-    readFile(new URL("app/Workspace.tsx", root), "utf8"),
+  const [tool, registry, component] = await Promise.all([
+    readFile(
+      new URL("app/_tools/design/solutions-importer/Tool.tsx", root),
+      "utf8",
+    ),
     readFile(new URL("app/_tools/registry.ts", root), "utf8"),
     readFile(
       new URL("app/_tools/design/solutions-importer/MainInterface.tsx", root),
@@ -14,12 +17,9 @@ test("registers one Solutions Importer with one v2 extraction flow", async () =>
     ),
   ]);
 
-  assert.match(workspace, /selected === "solutions"/);
-  assert.match(
-    workspace,
-    /<SolutionsImporterMainInterface language=\{language\}/,
-  );
-  assert.doesNotMatch(workspace, /solutionsBeta|SolutionsBeta|SolutionsAlpha/);
+  assert.match(tool, /ToolProps/);
+  assert.match(tool, /<SolutionsImporterMainInterface\s+\{\.\.\.props\}/);
+  assert.doesNotMatch(tool, /solutionsBeta|SolutionsBeta|SolutionsAlpha/);
   assert.equal((registry.match(/id: "solutions"/g) || []).length, 1);
   assert.match(registry, /folder: "design\/solutions-importer"/);
   assert.match(component, /indesign-solutions-v2/);
