@@ -150,20 +150,10 @@ export type SidebarStatus = "tested" | "to-test" | "alpha";
 export type Language = "en" | "cs";
 
 export const sidebarStatuses: Partial<Record<AppId, SidebarStatus>> = {
-  extraction: "tested",
-  prompt: "tested",
-  index: "to-test",
   map: "alpha",
   bio: "alpha",
-  image: "tested",
-  cover: "tested",
   conceptIllustrator: "alpha",
-  layerSplitter: "to-test",
-  barcode: "tested",
   styleTrainer: "alpha",
-  grep: "tested",
-  coverSplitter: "tested",
-  solutions: "tested",
   typesetter: "alpha",
 };
 export type InfoDrawers = Record<Language, Record<string, string>>;
