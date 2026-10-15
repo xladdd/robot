@@ -6,4 +6,4 @@ https://creativecommons.org/licenses/by/4.0/
 Source: Seshat Global History Databank, Cliopatria
 https://github.com/Seshat-Global-History-Databank/cliopatria
 
-The copy used by Taktik Automat has simplified geometry and quantized coordinates for interactive web rendering.
+The copy used by Taktik Automat has quantized coordinates for interactive web rendering; upstream geometry is otherwise unmodified.

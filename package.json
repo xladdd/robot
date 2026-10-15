@@ -32,6 +32,7 @@
     "@tesseract.js-data/ces": "^1.0.0",
     "ag-psd": "^31.0.2",
     "d3-geo": "^3.1.1",
+    "d3-geo-projection": "^4.0.0",
     "mdast-util-to-string": "^4.0.0",
     "next": "16.2.6",
     "pdfjs-dist": "6.2.108",
@@ -54,9 +55,11 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@types/topojson-client": "^3.1.5",
+    "d3-contour": "^4.0.2",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "pdfkit": "^0.20.2",
+    "shapefile": "^0.6.6",
     "typescript": "5.9.3"
   },
   "type": "module"

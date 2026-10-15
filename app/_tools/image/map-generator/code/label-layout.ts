@@ -1,9 +1,14 @@
+import type { MapLabelDensity } from "./editor-options.ts";
+
 export type MapLabelKind =
   "country" | "water" | "feature" | "city" | "mountain";
 
 export type MapLabelLayers = {
   labels: boolean;
   water: boolean;
+  waterLabels: boolean;
+  lakes: boolean;
+  rivers: boolean;
   cities: boolean;
   mountains: boolean;
 };
@@ -21,6 +26,10 @@ export type MapLabelCandidate = {
   anchor: "start" | "middle" | "end";
   rootX: number;
   rootY: number;
+  manualDx?: number;
+  manualDy?: number;
+  manualVariant?: MapLabelVariant;
+  waterFeature?: "lake" | "river" | "";
 };
 
 export type MapLabelGroup = {
@@ -40,6 +49,8 @@ export type MapLabelPlacement = {
 export type MapLabelLayoutOptions = {
   zoom: number;
   layers: MapLabelLayers;
+  density?: MapLabelDensity;
+  fontScale?: number;
   width?: number;
   height?: number;
 };
@@ -81,8 +92,9 @@ function characterWidth(character: string) {
 export function estimateMapLabelBox(
   candidate: MapLabelCandidate,
   zoom: number,
+  fontScale = 1,
 ) {
-  const fontSize = labelFontSize(candidate.kind, zoom);
+  const fontSize = labelFontSize(candidate.kind, zoom) * fontScale;
   const italicAllowance = candidate.kind === "water" ? fontSize * 0.3 : 0;
   const textWidth = [...candidate.text].reduce(
     (width, character) => width + characterWidth(character) * fontSize,
@@ -100,8 +112,9 @@ function boxAt(
   zoom: number,
   dx: number,
   dy: number,
+  fontScale = 1,
 ): Box {
-  const size = estimateMapLabelBox(candidate, zoom);
+  const size = estimateMapLabelBox(candidate, zoom, fontScale);
   const x = candidate.rootX + dx;
   const baseline = candidate.rootY + dy;
   const left =
@@ -131,13 +144,52 @@ function intersectionArea(left: Box, right: Box) {
   );
 }
 
-function insideBounds(box: Box, width: number, height: number) {
+function insideBounds(
+  box: Box,
+  width: number,
+  height: number,
+  edgePadding = BOX_PADDING,
+) {
   return (
-    box.left >= BOX_PADDING &&
-    box.top >= BOX_PADDING &&
-    box.right <= width - BOX_PADDING &&
-    box.bottom <= height - BOX_PADDING
+    box.left >= edgePadding &&
+    box.top >= edgePadding &&
+    box.right <= width - edgePadding &&
+    box.bottom <= height - edgePadding
   );
+}
+
+function expandedBox(box: Box, padding: number): Box {
+  return {
+    left: box.left - padding,
+    top: box.top - padding,
+    right: box.right + padding,
+    bottom: box.bottom + padding,
+  };
+}
+
+function worldScaleFactor(zoom: number) {
+  return Math.max(0, Math.min(1, (3 - zoom) / 2));
+}
+
+function collisionPadding(
+  candidate: MapLabelCandidate,
+  zoom: number,
+  density: MapLabelDensity,
+) {
+  const densityFactor =
+    density === "essential" ? 1.75 : density === "detailed" ? 0 : 1;
+  const factor = worldScaleFactor(zoom) * densityFactor;
+  if (!factor) return 0;
+  if (candidate.waterFeature) return 6 * factor;
+  if (candidate.kind === "water") return 4 * factor;
+  if (candidate.kind === "city" || candidate.kind === "mountain")
+    return 3.5 * factor;
+  return 2 * factor;
+}
+
+function edgePadding(candidate: MapLabelCandidate, zoom: number) {
+  if (!candidate.waterFeature) return BOX_PADDING;
+  return BOX_PADDING + 8 * worldScaleFactor(zoom);
 }
 
 function offsetsFor(candidate: MapLabelCandidate, zoom: number) {
@@ -186,10 +238,10 @@ function offsetsFor(candidate: MapLabelCandidate, zoom: number) {
 }
 
 function kindPriority(kind: MapLabelKind) {
-  if (kind === "feature") return 0;
-  if (kind === "water") return 1;
-  if (kind === "country") return 2;
-  if (kind === "city") return 3;
+  if (kind === "country") return 0;
+  if (kind === "feature") return 1;
+  if (kind === "city") return 2;
+  if (kind === "mountain") return 3;
   return 4;
 }
 
@@ -199,29 +251,102 @@ function layerVisible(
 ) {
   if (candidate.kind === "country" || candidate.kind === "feature")
     return options.layers.labels;
-  if (candidate.kind === "water") return options.layers.water;
+  if (candidate.kind === "water") {
+    if (candidate.waterFeature === "lake")
+      return options.layers.lakes && options.layers.waterLabels;
+    if (candidate.waterFeature === "river")
+      return options.layers.rivers && options.layers.waterLabels;
+    return options.layers.water;
+  }
   if (candidate.kind === "city") return options.layers.cities;
   return options.layers.mountains;
 }
 
-function rankVisible(candidate: MapLabelCandidate, zoom: number) {
+function rankVisible(
+  candidate: MapLabelCandidate,
+  zoom: number,
+  density: MapLabelDensity,
+) {
+  if (candidate.required) return true;
+  if (candidate.waterFeature && candidate.kind === "water") {
+    const limit =
+      density === "essential"
+        ? zoom >= 8
+          ? 6
+          : zoom >= 3
+            ? 3
+            : zoom >= 1.75
+              ? 2
+              : 1
+        : density === "detailed"
+          ? zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 8
+              : zoom >= 1.75
+                ? 5
+                : 4
+          : zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 5
+              : zoom >= 1.75
+                ? 3
+                : 2;
+    return candidate.rank <= limit;
+  }
   if (candidate.kind !== "city" && candidate.kind !== "mountain") return true;
-  if (zoom >= 8) return true;
-  if (candidate.kind === "city") return candidate.rank <= (zoom >= 3 ? 6 : 3);
-  return candidate.rank <= (zoom >= 3 ? 5 : 2);
+  const limit =
+    candidate.kind === "city"
+      ? density === "essential"
+        ? zoom >= 8
+          ? 6
+          : zoom >= 3
+            ? 3
+            : 1
+        : density === "detailed"
+          ? zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 9
+              : 5
+          : zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 6
+              : 3
+      : density === "essential"
+        ? zoom >= 8
+          ? 6
+          : zoom >= 3
+            ? 3
+            : 1
+        : density === "detailed"
+          ? zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 8
+              : 4
+          : zoom >= 8
+            ? Number.POSITIVE_INFINITY
+            : zoom >= 3
+              ? 5
+              : 2;
+  return candidate.rank <= limit;
 }
 
 function orderedGroups(
   groups: MapLabelGroup[],
   options: MapLabelLayoutOptions,
 ) {
+  const density = options.density ?? "standard";
   return groups
     .filter(({ candidates }) => {
       const candidate = candidates[0];
       return (
         candidate &&
         layerVisible(candidate, options) &&
-        rankVisible(candidate, options.zoom)
+        rankVisible(candidate, options.zoom, density)
       );
     })
     .slice()
@@ -242,6 +367,8 @@ export function placeMapLabels(
   groups: MapLabelGroup[],
   options: MapLabelLayoutOptions,
 ) {
+  const density = options.density ?? "standard";
+  const fontScale = options.fontScale ?? 1;
   const width = options.width ?? MAP_WIDTH;
   const height = options.height ?? MAP_HEIGHT;
   const occupied: Box[] = [];
@@ -257,15 +384,52 @@ export function placeMapLabels(
       (CandidatePosition & { variant: MapLabelVariant }) | null = null;
     let selected: (CandidatePosition & { variant: MapLabelVariant }) | null =
       null;
+    const manual = variants.find(
+      (candidate) =>
+        candidate.manualDx !== undefined && candidate.manualDy !== undefined,
+    );
+    if (manual) {
+      const candidate =
+        variants.find(
+          ({ variant }) => variant === (manual.manualVariant ?? manual.variant),
+        ) ?? manual;
+      const dx = manual.manualDx ?? 0;
+      const dy = manual.manualDy ?? 0;
+      const box = boxAt(candidate, options.zoom, dx, dy, fontScale);
+      const overlap = occupied.reduce(
+        (total, occupiedBox) => total + intersectionArea(box, occupiedBox),
+        0,
+      );
+      selected = {
+        dx,
+        dy,
+        box,
+        overlap,
+        penalty: overlap * 1000,
+        variant: candidate.variant,
+      };
+    }
 
-    for (const candidate of variants) {
+    for (const candidate of manual ? [] : variants) {
       const variantPenalty = candidate.variant === "short" ? 0.25 : 0;
       for (const [index, [dx, dy]] of offsetsFor(
         candidate,
         options.zoom,
       ).entries()) {
-        const box = boxAt(candidate, options.zoom, dx, dy);
-        if (!insideBounds(box, width, height)) continue;
+        const labelBox = boxAt(candidate, options.zoom, dx, dy, fontScale);
+        if (
+          !insideBounds(
+            labelBox,
+            width,
+            height,
+            edgePadding(candidate, options.zoom),
+          )
+        )
+          continue;
+        const box = expandedBox(
+          labelBox,
+          collisionPadding(candidate, options.zoom, density),
+        );
         const overlap = occupied.reduce(
           (total, occupiedBox) => total + intersectionArea(box, occupiedBox),
           0,
@@ -346,6 +510,19 @@ function readCandidate(element: SVGTextElement): MapLabelCandidate | null {
       "start" | "middle" | "end",
     rootX: finiteNumber(element.dataset.mapLabelRootX),
     rootY: finiteNumber(element.dataset.mapLabelRootY),
+    manualDx:
+      element.dataset.labelManualDx === undefined
+        ? undefined
+        : finiteNumber(element.dataset.labelManualDx),
+    manualDy:
+      element.dataset.labelManualDy === undefined
+        ? undefined
+        : finiteNumber(element.dataset.labelManualDy),
+    manualVariant: element.dataset.labelManualVariant as
+      MapLabelVariant | undefined,
+    waterFeature:
+      (element.dataset.mapLabelWaterFeature as
+        "lake" | "river" | "" | undefined) || "",
   };
 }
 
@@ -353,11 +530,15 @@ export function layoutMapSvgLabels(
   root: SVGSVGElement,
   options: MapLabelLayoutOptions,
 ) {
+  // Raw timeline SVGs keep optional layers hidden. Once the editor or exporter
+  // performs an explicit layout pass, its classes/inline styles own visibility.
+  root.classList.add("map-layer-visibility-managed");
   const elements = [
     ...root.querySelectorAll<SVGTextElement>("text[data-map-label-key]"),
   ];
   const groupsByKey = new Map<string, MapLabelGroup>();
   for (const element of elements) {
+    if (element.dataset.labelHidden === "true") continue;
     const candidate = readCandidate(element);
     if (!candidate) continue;
     const group = groupsByKey.get(candidate.key) || {
@@ -370,6 +551,13 @@ export function layoutMapSvgLabels(
   const placements = placeMapLabels([...groupsByKey.values()], options);
 
   for (const element of elements) {
+    // Labels hidden by the user stay hidden; the layout engine must not
+    // restore them during collision passes or export.
+    if (element.dataset.labelHidden === "true") {
+      element.style.display = "none";
+      element.setAttribute("data-label-state", "user-hidden");
+      continue;
+    }
     const key = element.dataset.mapLabelKey;
     const placement = key ? placements.get(key) : null;
     const variant = (element.dataset.mapLabelVariant ||
@@ -400,5 +588,15 @@ export function layoutMapSvgLabels(
       element.setAttribute("data-label-state", "minimum-overlap");
     }
   }
-  return placements;
+
+  // A summit symbol and its elevation label are one editorial unit. Hiding the
+  // whole marker after collision/rank resolution keeps rank/density behavior
+  // consistent and avoids fields of unlabeled triangles.
+  for (const marker of root.querySelectorAll<SVGGElement>(
+    "#summit-markers .summit-marker",
+  )) {
+    const label = marker.querySelector<SVGTextElement>(".summit-label");
+    marker.style.display =
+      label && label.style.display !== "none" ? "inline" : "none";
+  }
 }

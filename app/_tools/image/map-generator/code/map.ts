@@ -1,10 +1,22 @@
-import { geoMercator, geoPath } from "d3-geo";
-import { feature } from "topojson-client";
+import {
+  geoDistance,
+  geoGraticule,
+  geoMercator,
+  geoNaturalEarth1,
+  geoPath,
+} from "d3-geo";
+import type { GeoPermissibleObjects, GeoProjection } from "d3-geo";
+import { geoEckert4, geoRobinson } from "./extra-projections.ts";
 import worldAtlas from "world-atlas/countries-50m.json" with { type: "json" };
-import worldLand from "world-atlas/land-50m.json" with { type: "json" };
+import naturalEarthLand10m from "./data/natural-earth-land.json" with { type: "json" };
+import naturalEarthCountries10m from "./data/natural-earth-countries.json" with { type: "json" };
+import { mapPalette } from "./palette.ts";
 import naturalEarthWater from "./data/natural-earth-water.json" with { type: "json" };
 import koppenClimate from "./data/koppen-climate.json" with { type: "json" };
 import naturalEarthGeography from "./data/natural-earth-geography.json" with { type: "json" };
+import naturalEarthPeaks from "./data/natural-earth-peaks.json" with { type: "json" };
+import pleiadesPlacesData from "./data/pleiades-places.json" with { type: "json" };
+import czechNamesData from "./data/czech-names.json" with { type: "json" };
 
 export type MapPoint = { lon: number; lat: number };
 export type MapSource = { id: string; title: string; url: string };
@@ -35,7 +47,13 @@ export type MapSpec = {
   subtitle: string;
   place: string;
   date: string;
-  projection: "schematic";
+  // Numeric political year used to select year-aware overlays such as ancient
+  // Pleiades cities. Optional for compatibility; there is no year zero.
+  politicalYear?: number;
+  // Label language for translatable place names (countries, capitals).
+  labelLanguage?: "en" | "cs";
+  // Base map projection. "schematic" is the Mercator fit used historically.
+  projection: "schematic" | "robinson" | "eckert4" | "naturalEarth";
   geometry: "countries" | "historical";
   categories: Array<{ id: string; label: string; color: string }>;
   regions: MapRegion[];
@@ -67,18 +85,6 @@ const mapColors = new Set([
   "red",
   "brown",
 ]);
-const mapPalette: Record<string, string> = {
-  orange: "#ff9b66",
-  teal: "#73d3cf",
-  purple: "#aaa0ff",
-  pink: "#ed98c0",
-  green: "#86bf8d",
-  yellow: "#f0ca68",
-  blue: "#82b9e8",
-  grey: "#c7c7c7",
-  red: "#d76555",
-  brown: "#a77b58",
-};
 export type RenderSwatch = {
   name: string;
   hex: string;
@@ -410,6 +416,19 @@ export function validateMapSpec(input: unknown): {
   };
   if (viewport.west >= viewport.east || viewport.south >= viewport.north)
     throw new Error("The geographic viewport bounds are invalid.");
+  const projections = new Set([
+    "schematic",
+    "robinson",
+    "eckert4",
+    "naturalEarth",
+  ]);
+  const projection = projections.has(String(raw.projection))
+    ? (String(raw.projection) as MapSpec["projection"])
+    : null;
+  if (!projection)
+    throw new Error(
+      "The map projection must be schematic (Mercator), robinson, eckert4, or naturalEarth.",
+    );
   const spec: MapSpec = {
     version: 1,
     kind: "map",
@@ -417,7 +436,24 @@ export function validateMapSpec(input: unknown): {
     subtitle: text(raw.subtitle, 240),
     place,
     date,
-    projection: "schematic",
+    politicalYear:
+      raw.politicalYear === undefined || raw.politicalYear === null
+        ? undefined
+        : (() => {
+            const year = Number(raw.politicalYear);
+            if (
+              !Number.isInteger(year) ||
+              year === 0 ||
+              year < -3400 ||
+              year > 2026
+            )
+              throw new Error(
+                "Political year must be an integer between 3400 BCE and 2026 CE; there is no year zero.",
+              );
+            return year;
+          })(),
+    projection,
+    labelLanguage: raw.labelLanguage === "cs" ? "cs" : "en",
     geometry,
     categories,
     regions,
@@ -440,7 +476,7 @@ export function validateMapSpec(input: unknown): {
       level: "pass",
       message:
         geometry === "countries"
-          ? `${regions.length} mapped countries use Natural Earth 1:50m boundaries.`
+          ? `${regions.length} mapped countries use Natural Earth 1:10m boundaries.`
           : `${regions.length} historical regions use bounded, non-executable polygon geometry.`,
     },
     {
@@ -457,7 +493,7 @@ export function validateMapSpec(input: unknown): {
   if (missingBoundaryRegions.length)
     checks.push({
       level: "warning",
-      message: `${missingBoundaryRegions.map(({ label }) => label).join(", ")} ${missingBoundaryRegions.length === 1 ? "is" : "are"} classified in the data but not drawn separately by the Natural Earth 1:50m boundary dataset.`,
+      message: `${missingBoundaryRegions.map(({ label }) => label).join(", ")} ${missingBoundaryRegions.length === 1 ? "is" : "are"} classified in the data but not drawn separately by the Natural Earth 1:10m boundary dataset.`,
     });
   if (geometry === "historical" && regions.length > 12)
     checks.push({
@@ -467,8 +503,56 @@ export function validateMapSpec(input: unknown): {
   return { spec, checks };
 }
 
+const EARTH_RADIUS_KM = 6371.0088;
+
+export function createMapScaleBar(projection: GeoProjection) {
+  const maximumWidth = 220;
+  let maximumKilometres = 0;
+  for (const y of [640, 620, 600, 560, 500]) {
+    const west = projection.invert?.([500 - maximumWidth / 2, y]);
+    const east = projection.invert?.([500 + maximumWidth / 2, y]);
+    if (
+      !west ||
+      !east ||
+      !west.every(Number.isFinite) ||
+      !east.every(Number.isFinite)
+    )
+      continue;
+    const distance = geoDistance(west, east) * EARTH_RADIUS_KM;
+    if (Number.isFinite(distance) && distance > 0) {
+      maximumKilometres = distance;
+      break;
+    }
+  }
+  if (!maximumKilometres) maximumKilometres = 1000;
+
+  const rawStep = maximumKilometres / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const multiplier =
+    [1, 2, 2.5, 5, 10].filter((candidate) => candidate <= normalized).at(-1) ??
+    1;
+  const segmentKilometres = multiplier * magnitude;
+  const segmentCount = 4;
+  const totalKilometres = segmentKilometres * segmentCount;
+  return {
+    segmentCount,
+    segmentKilometres,
+    totalKilometres,
+    width: (totalKilometres / maximumKilometres) * maximumWidth,
+  };
+}
+
 export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
   const canvas = { x: 0, y: 0, width: 1000, height: 700 };
+  const localizedCountryName = (label: string) =>
+    spec.labelLanguage === "cs"
+      ? ((czechNamesData.countries as Record<string, string>)[label] ?? label)
+      : label;
+  const localizedName = (label: string) =>
+    spec.labelLanguage === "cs"
+      ? ((czechNamesData.cities as Record<string, string>)[label] ?? label)
+      : label;
   const layer = (id: string, name: string, content: string, className = "") =>
     `<g id="${id}" data-name="${name}"${className ? ` class="${className}"` : ""}>${content}</g>`;
   const mapLabel = ({
@@ -485,6 +569,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     rank = 0,
     prominence = 0,
     required = false,
+    waterFeature = "",
   }: {
     key: string;
     label: string;
@@ -499,8 +584,9 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     rank?: number;
     prominence?: number;
     required?: boolean;
+    waterFeature?: "lake" | "river" | "";
   }) =>
-    `<text x="${x}" y="${y}" class="${className}" text-anchor="${anchor}" data-map-label-key="${escapeXml(key)}" data-map-label-kind="${kind}" data-map-label-variant="${variant}" data-map-label-rank="${rank}" data-map-label-prominence="${prominence.toFixed(3)}" data-map-label-required="${required}" data-map-label-root-x="${rootX}" data-map-label-root-y="${rootY}" data-map-label-base-x="${x}" data-map-label-base-y="${y}">${escapeXml(label)}</text>`;
+    `<text x="${x}" y="${y}" class="${className}" text-anchor="${anchor}" data-map-label-key="${escapeXml(key)}" data-map-label-kind="${kind}" data-map-label-variant="${variant}" data-map-label-rank="${rank}" data-map-label-prominence="${prominence.toFixed(3)}" data-map-label-required="${required}" data-map-label-water-feature="${waterFeature}" data-map-label-root-x="${rootX}" data-map-label-root-y="${rootY}" data-map-label-base-x="${x}" data-map-label-base-y="${y}">${escapeXml(label)}</text>`;
 
   const viewportGeometry: GeoJSON.Polygon = {
     type: "Polygon",
@@ -518,7 +604,15 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     spec.viewport.east - spec.viewport.west >= 350
       ? { type: "Sphere" as const }
       : viewportGeometry;
-  const projection = geoMercator()
+  const baseProjection =
+    spec.projection === "robinson"
+      ? geoRobinson()
+      : spec.projection === "eckert4"
+        ? geoEckert4()
+        : spec.projection === "naturalEarth"
+          ? geoNaturalEarth1()
+          : geoMercator();
+  const projection = baseProjection
     .fitExtent(
       [
         [canvas.x, canvas.y],
@@ -531,6 +625,68 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       [canvas.x + canvas.width, canvas.y + canvas.height],
     ]);
   const path = geoPath(projection);
+  const largestProjectedPolygon = (
+    geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon,
+  ): GeoJSON.Polygon => {
+    if (geometry.type === "Polygon") return geometry;
+    let largest: GeoJSON.Polygon = {
+      type: "Polygon",
+      coordinates: geometry.coordinates[0] || [],
+    };
+    let largestArea = -Infinity;
+    for (const coordinates of geometry.coordinates) {
+      const polygon: GeoJSON.Polygon = { type: "Polygon", coordinates };
+      const area = path.area(polygon);
+      if (area > largestArea) {
+        largest = polygon;
+        largestArea = area;
+      }
+    }
+    return largest;
+  };
+  // Graticule is rendered twice — behind and in front of the land — and the
+  // editor/export show exactly one copy, so no re-render is needed to move it.
+  // The graticule is sampled every 10 degrees and projection.clipExtent
+  // disables d3's adaptive resampling, so densify to 2-degree steps or the
+  // curved projections render meridians as angular chords.
+  const graticuleLines = geoGraticule()().coordinates.map((line) => {
+    const dense: [number, number][] = [];
+    for (let index = 0; index < line.length - 1; index += 1) {
+      const [lon1, lat1] = line[index];
+      const [lon2, lat2] = line[index + 1];
+      dense.push([lon1, lat1]);
+      const steps = Math.max(
+        1,
+        Math.round(Math.max(Math.abs(lon2 - lon1), Math.abs(lat2 - lat1)) / 2),
+      );
+      for (let step = 1; step < steps; step += 1) {
+        dense.push([
+          lon1 + ((lon2 - lon1) * step) / steps,
+          lat1 + ((lat2 - lat1) * step) / steps,
+        ]);
+      }
+    }
+    const last = line[line.length - 1];
+    dense.push([last[0], last[1]]);
+    return dense;
+  });
+  const graticulePath =
+    path({
+      type: "MultiLineString",
+      coordinates: graticuleLines,
+    } as GeoPermissibleObjects) || "";
+  const graticuleBehind = layer(
+    "graticule-behind",
+    "Graticule behind land",
+    `<path d="${graticulePath}"/>`,
+    "graticule",
+  );
+  const graticuleFront = layer(
+    "graticule-front",
+    "Graticule in front of land",
+    `<path d="${graticulePath}"/>`,
+    "graticule",
+  );
   const categoryById = new Map(
     spec.categories.map((category, index) => [
       category.id,
@@ -584,34 +740,30 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         : "";
     })
     .join("");
-  const arrows =
-    `<filter id="climate-soften" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation=".48"/></filter>` +
-    spec.categories
-      .map(
-        (category, index) =>
-          `<marker id="arrow-${index}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="${swatches.length ? swatches[index % swatches.length].hex : mapPalette[category.color]}"/></marker>`,
-      )
-      .join("");
-  const midLatitude = (spec.viewport.south + spec.viewport.north) / 2;
-  const viewportKilometres =
-    (spec.viewport.east - spec.viewport.west) *
-    111.32 *
-    Math.cos((midLatitude * Math.PI) / 180);
-  const scaleKilometres =
-    viewportKilometres > 5000
-      ? 1000
-      : viewportKilometres > 2000
-        ? 500
-        : viewportKilometres > 800
-          ? 200
-          : 100;
-  const scaleWidth = Math.max(
-    70,
-    Math.min(220, (scaleKilometres / viewportKilometres) * canvas.width),
-  );
-  const ornaments = `${spec.showNorthArrow ? `<g class="north" transform="translate(952 54)"><path d="M0,24 L10,0 L20,24 L10,18 Z" fill="#1a1a1a"/><text x="10" y="-7" text-anchor="middle">N</text></g>` : ""}${spec.showScaleBar ? `<g class="scale" transform="translate(${950 - scaleWidth} 660)"><rect width="${scaleWidth}" height="8" fill="#fff" stroke="#1a1a1a"/><rect width="${scaleWidth / 2}" height="8" fill="#1a1a1a"/><text x="${scaleWidth / 2}" y="-6" text-anchor="middle">${scaleKilometres.toLocaleString("en")} km</text></g>` : ""}`;
-  const sharedStyle = `text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.map-label{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.label-short{display:none}.free-label,.feature-label{font-size:7px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.8px}.free-label.water{font-size:7.5px;fill:#256a86;font-style:italic}.base-land path{fill:#eeeeec;stroke:#777;stroke-width:.7;stroke-linejoin:round}.regions path{stroke:#1a1a1a;stroke-width:.8;stroke-linejoin:round}.feature.area{stroke:#1a1a1a;stroke-width:1;fill-opacity:.42}.feature.line,.feature.route{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.feature.river{stroke-width:2}.feature.mountain{stroke-dasharray:2 4;stroke-width:5}.feature.route{stroke-width:4}.coast-overlay path{fill:none;stroke:#555;stroke-width:.7}.north text,.scale text{font-size:7px;font-weight:400}`;
-  const geographyStyle = `.natural-terrain path{stroke:none;fill-opacity:.32}.terrain-desert{fill:#e3b85f}.terrain-plateau{fill:#ad8b64}.terrain-plain{fill:#9fc98d}.terrain-basin{fill:#8db5a1}.natural-mountains path{fill:#8b6a52;fill-opacity:.3;stroke:#654936;stroke-width:.45}.natural-mountains text,.natural-cities text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.natural-mountains text{fill:#654936;font-style:italic}.disputed-boundaries path{fill:none;stroke:#d35a40;stroke-width:1.2;stroke-dasharray:4 2}.natural-cities circle{fill:#1a1a1a;stroke:#fff;stroke-width:.6}`;
+  const arrows = spec.categories
+    .map(
+      (category, index) =>
+        `<marker id="arrow-${index}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="${swatches.length ? swatches[index % swatches.length].hex : mapPalette[category.color]}"/></marker>`,
+    )
+    .join("");
+  const scaleBar = createMapScaleBar(projection);
+  const formatScaleNumber = (value: number) =>
+    value.toLocaleString("en", { maximumFractionDigits: 1 });
+  const scaleSegments = Array.from(
+    { length: scaleBar.segmentCount },
+    (_, index) =>
+      `<rect class="scale-segment scale-segment-${index % 2 ? "light" : "dark"}" x="${(scaleBar.width * index) / scaleBar.segmentCount}" width="${scaleBar.width / scaleBar.segmentCount}" height="9"/>`,
+  ).join("");
+  const scaleLabels = Array.from(
+    { length: scaleBar.segmentCount + 1 },
+    (_, index) =>
+      `<text x="${(scaleBar.width * index) / scaleBar.segmentCount}" y="-5" text-anchor="middle">${formatScaleNumber(scaleBar.segmentKilometres * index)}</text>`,
+  ).join("");
+  const scaleMarkup = `<g id="graphic-scale" class="scale" data-name="Graphic scale" transform="translate(${950 - scaleBar.width} 660)">${scaleSegments}<rect class="scale-outline" width="${scaleBar.width}" height="9"/>${scaleLabels}<text class="scale-unit" x="${scaleBar.width + 8}" y="8">km</text></g>`;
+  const ornaments = `${spec.showNorthArrow ? `<g class="north" transform="translate(952 54)"><path d="M0,24 L10,0 L20,24 L10,18 Z" fill="#1a1a1a"/><text x="10" y="-7" text-anchor="middle">N</text></g>` : ""}${spec.showScaleBar ? scaleMarkup : ""}`;
+  const sharedStyle = `text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.map-label{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.label-short{display:none}.free-label,.feature-label{font-size:7px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.8px}.free-label.water{font-size:7.5px;fill:#256a86;font-style:italic}.base-land path{fill:#eeeeec;stroke:#777;stroke-width:.35;stroke-linejoin:round}.regions path{stroke:#1a1a1a;stroke-width:.4;stroke-linejoin:round}.feature.area{stroke:#1a1a1a;stroke-width:1;fill-opacity:.42}.feature.line,.feature.route{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.feature.river{stroke-width:2}.feature.mountain{stroke-dasharray:2 4;stroke-width:5}.feature.route{stroke-width:4}.coast-overlay path{fill:none;stroke:#555;stroke-width:.35}.north text,.scale text{font-size:7px;font-weight:400}.scale text{paint-order:stroke;stroke:#fff;stroke-width:2px;stroke-linejoin:round}.scale-segment-dark{fill:#1a1a1a}.scale-segment-light{fill:#fff}.scale-outline{fill:none;stroke:#1a1a1a;stroke-width:.6}.scale-unit{dominant-baseline:auto}svg:not(.map-layer-visibility-managed) .climate-zones,svg:not(.map-layer-visibility-managed) .natural-terrain,svg:not(.map-layer-visibility-managed) .natural-mountains,svg:not(.map-layer-visibility-managed) .natural-cities,svg:not(.map-layer-visibility-managed) .disputed-boundaries,svg:not(.map-layer-visibility-managed) .graticule,svg:not(.map-layer-visibility-managed) .water-feature-labels{display:none}`;
+  const geographyStyle = `.graticule path{fill:none;stroke:#9cb6c2;stroke-width:.2;stroke-opacity:.65}.natural-lakes text,.natural-rivers text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round;fill:#256a86;font-style:italic}.natural-terrain path{stroke:none;fill-opacity:.1}.terrain-desert{fill:#e3b85f}.terrain-plateau{fill:#ad8b64}.terrain-plain{fill:#9fc98d}.terrain-basin{fill:#8db5a1}.natural-mountains .range-shape{fill:#b77b72;fill-opacity:.025;stroke:#76554a;stroke-opacity:.18;stroke-width:.35}.mountain-relief path{fill:none;stroke-linecap:round;stroke-linejoin:round}.mountain-relief .relief-ridge{stroke:#8e5f58;stroke-opacity:.68;stroke-width:.65}.mountain-relief .relief-shadow{stroke:#9b6768;stroke-opacity:.46;stroke-width:.6}.summit-marker{display:none}.summit-rank-1,.summit-rank-2{display:inline}.summit-marker .summit-symbol{fill:#76554a;stroke:#fff;stroke-width:1.1;stroke-linejoin:round;paint-order:stroke fill}.natural-mountains text,.natural-cities text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.natural-mountains text{fill:#654936;font-style:italic}.disputed-boundaries path{fill:none;stroke:#d35a40;stroke-width:.55;stroke-dasharray:3 2}.natural-cities circle{fill:#1a1a1a;stroke:#fff;stroke-width:.6}`;
+  const physicalStyle = `.natural-lakes path{fill:#eaf6fa;stroke:#69a9c0;stroke-width:.3}.natural-rivers path{fill:none;stroke:#69a9c0;stroke-width:.3;stroke-linecap:round;stroke-linejoin:round}.climate-zones{opacity:.58;pointer-events:none}.climate-zones path{stroke:none;fill-rule:evenodd}`;
   const rivers = naturalEarthWater.rivers
     .map(
       ({ geometry, rank }) =>
@@ -624,71 +776,306 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         `<path class="water-rank-${rank}" d="${path(geometry as GeoJSON.Geometry) || ""}"/>`,
     )
     .join("");
-  const climateZones = (
-    koppenClimate.runs as Array<[string, number, number, number, number]>
-  )
-    .map(([group, west, south, east, north]) => {
-      if (
-        east < spec.viewport.west ||
-        west > spec.viewport.east ||
-        north < spec.viewport.south ||
-        south > spec.viewport.north
-      )
-        return "";
-      const topLeft = projection([west, north]),
-        bottomRight = projection([east, south]);
-      if (!topLeft || !bottomRight) return "";
-      const color =
-        koppenClimate.groups[group as keyof typeof koppenClimate.groups].color;
-      return `<rect class="climate-${group}" x="${topLeft[0].toFixed(2)}" y="${topLeft[1].toFixed(2)}" width="${Math.max(0, bottomRight[0] - topLeft[0]).toFixed(2)}" height="${Math.max(0, bottomRight[1] - topLeft[1]).toFixed(2)}" fill="${color}"/>`;
+  const lakeLabels = naturalEarthWater.lakes
+    .map(({ geometry, name, rank }, lakeIndex) => {
+      if (!name) return "";
+      const mapGeometry = geometry as GeoJSON.Geometry;
+      const [x, y] = path.centroid(mapGeometry);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return "";
+      return mapLabel({
+        key: `lake-${lakeIndex}`,
+        label: name,
+        kind: "water",
+        rootX: x,
+        rootY: y,
+        className: `water-feature-label rank-${rank}`,
+        anchor: "middle",
+        rank,
+        prominence: path.area(mapGeometry),
+        waterFeature: "lake",
+      });
     })
     .join("");
-  const lakeLayer = layer("lakes", "Lakes", lakes, "natural-lakes");
-  const riverLayer = layer("rivers", "Rivers", rivers, "natural-rivers");
-  const climateLayer = `<g id="climate-zones" data-name="Climate zones (Köppen–Geiger, 1980–2016)" class="climate-zones" style="filter:url(#climate-soften)" aria-label="Köppen–Geiger climate zones, 1980–2016">${climateZones}</g>`;
+  const riverLabels = naturalEarthWater.rivers
+    .map(({ geometry, name, rank }, riverIndex) => {
+      if (!name) return "";
+      const coordinates =
+        geometry.type === "LineString"
+          ? [geometry.coordinates]
+          : (geometry as GeoJSON.MultiLineString).coordinates;
+      let best: [number, number] | null = null;
+      let bestLength = 0;
+      for (const line of coordinates)
+        for (let i = 0; i + 1 < line.length; i++) {
+          const start = projection(line[i] as [number, number]);
+          const end = projection(line[i + 1] as [number, number]);
+          if (!start || !end) continue;
+          const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+          if (length > bestLength) {
+            bestLength = length;
+            best = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+          }
+        }
+      if (!best) return "";
+      return mapLabel({
+        key: `river-${riverIndex}`,
+        label: name,
+        kind: "water",
+        rootX: best[0],
+        rootY: best[1],
+        className: `water-feature-label rank-${rank}`,
+        anchor: "middle",
+        rank,
+        prominence: bestLength,
+        waterFeature: "river",
+      });
+    })
+    .join("");
+  const climateZones = Object.entries(koppenClimate.polygons)
+    .map(([group, coordinates]) => {
+      const color =
+        koppenClimate.groups[group as keyof typeof koppenClimate.groups].color;
+      const geometry = {
+        type: "MultiPolygon" as const,
+        coordinates,
+      } as GeoJSON.MultiPolygon;
+      return `<path class="climate-${group}" d="${path(geometry) || ""}" fill="${color}"/>`;
+    })
+    .join("");
+  const lakeLayer = layer(
+    "lakes",
+    "Lakes",
+    `${lakes}<g class="water-feature-labels">${lakeLabels}</g>`,
+    "natural-lakes",
+  );
+  const riverLayer = layer(
+    "rivers",
+    "Rivers",
+    `${rivers}<g class="water-feature-labels">${riverLabels}</g>`,
+    "natural-rivers",
+  );
+  const climateLayer = `<g id="climate-zones" data-name="Climate zones (Köppen–Geiger, 1980–2016)" class="climate-zones" aria-label="Köppen–Geiger climate zones, 1980–2016">${climateZones}</g>`;
   const terrain = naturalEarthGeography.terrain
     .map(
       ({ geometry, kind, name }) =>
         `<path d="${path(geometry as GeoJSON.Geometry) || ""}" class="terrain-${kind.toLowerCase()}" data-name="${escapeXml(name)}"/>`,
     )
     .join("");
-  const mountains = naturalEarthGeography.mountains
-    .map(({ geometry, name, rank }, mountainIndex) => {
-      const mapGeometry = geometry as GeoJSON.Geometry,
-        [x, y] = path.centroid(mapGeometry);
+  const mountainClipDefinitions: string[] = [];
+  const mountainRelief = (
+    mapGeometry: GeoJSON.Geometry,
+    rank: number,
+    mountainIndex: number,
+    shape: string,
+  ) => {
+    const polygons =
+      mapGeometry.type === "Polygon"
+        ? [mapGeometry.coordinates]
+        : (mapGeometry as GeoJSON.MultiPolygon).coordinates;
+    const vertices: Array<[number, number]> = [];
+    for (const polygon of polygons)
+      for (const ring of polygon)
+        for (const coordinate of ring) {
+          const position = projection([coordinate[0], coordinate[1]]);
+          if (position) vertices.push(position);
+        }
+    if (vertices.length < 4) return "";
+
+    const centerX = vertices.reduce((sum, [x]) => sum + x, 0) / vertices.length;
+    const centerY =
+      vertices.reduce((sum, [, y]) => sum + y, 0) / vertices.length;
+    let sumXX = 0;
+    let sumXY = 0;
+    let sumYY = 0;
+    for (const [x, y] of vertices) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      sumXX += dx * dx;
+      sumXY += dx * dy;
+      sumYY += dy * dy;
+    }
+    const angle = 0.5 * Math.atan2(2 * sumXY, sumXX - sumYY);
+    const alongX = Math.cos(angle);
+    const alongY = Math.sin(angle);
+    const acrossX = -alongY;
+    const acrossY = alongX;
+    const transformed = vertices.map(([x, y]) => ({
+      along: alongX * (x - centerX) + alongY * (y - centerY),
+      across: acrossX * (x - centerX) + acrossY * (y - centerY),
+    }));
+    const minimumAlong = Math.min(...transformed.map(({ along }) => along));
+    const maximumAlong = Math.max(...transformed.map(({ along }) => along));
+    const minimumAcross = Math.min(...transformed.map(({ across }) => across));
+    const maximumAcross = Math.max(...transformed.map(({ across }) => across));
+    const extent = maximumAlong - minimumAlong;
+    const crossExtent = maximumAcross - minimumAcross;
+    if (extent < 2 || crossExtent < 1) return "";
+
+    const clipId = `mountain-range-clip-${mountainIndex}`;
+    mountainClipDefinitions.push(
+      `<clipPath id="${clipId}"><path d="${shape}"/></clipPath>`,
+    );
+    const inset = Math.min(extent * 0.08, 5);
+    const ridgeStart = minimumAlong + inset;
+    const ridgeEnd = maximumAlong - inset;
+    const ridgePoint = (along: number, across = 0) => [
+      centerX + alongX * along + acrossX * across,
+      centerY + alongY * along + acrossY * across,
+    ];
+    const ridgeWave = (ratio: number) =>
+      Math.sin(ratio * Math.PI * 2 + mountainIndex * 0.73) *
+      Math.min(crossExtent * 0.12, 3.2) *
+      Math.sin(Math.PI * ratio);
+    const ridgeSamples = Array.from({ length: 7 }, (_, index) => {
+      const ratio = index / 6;
+      return ridgePoint(
+        ridgeStart + ratio * (ridgeEnd - ridgeStart),
+        ridgeWave(ratio),
+      );
+    });
+    const ridgePath = ridgeSamples
+      .map(([x, y], index) =>
+        index === 0
+          ? `M${x.toFixed(2)},${y.toFixed(2)}`
+          : `L${x.toFixed(2)},${y.toFixed(2)}`,
+      )
+      .join(" ");
+    const ridge = `<path class="relief-ridge" d="${ridgePath}"/>`;
+    const strokeCount = Math.min(
+      rank <= 2 ? 34 : 24,
+      Math.max(4, Math.round(extent / (rank <= 2 ? 4 : 5.5))),
+    );
+    const hachures: string[] = [];
+    for (let index = 0; index < strokeCount; index += 1) {
+      const ratio = (index + 0.5) / strokeCount;
+      const along = ridgeStart + ratio * (ridgeEnd - ridgeStart);
+      const deterministicWave = Math.sin(
+        (mountainIndex + 1) * 1.618 + index * 2.414,
+      );
+      const ridgeOffset =
+        ridgeWave(ratio) +
+        deterministicWave * Math.min(crossExtent * 0.045, 1.1);
+      const taper = Math.sin(Math.PI * ratio);
+      const length = Math.max(1.8, Math.min(13, crossExtent * 0.48 * taper));
+      const [ridgeX, ridgeY] = ridgePoint(along, ridgeOffset);
+      const [shadowX, shadowY] = ridgePoint(along, ridgeOffset + length);
+      const curveAlong = deterministicWave * Math.min(length * 0.24, 2.2);
+      const [shadowControlX, shadowControlY] = ridgePoint(
+        along + curveAlong,
+        ridgeOffset + length * 0.5,
+      );
+      hachures.push(
+        `<path class="relief-shadow" d="M${ridgeX.toFixed(2)},${ridgeY.toFixed(2)} Q${shadowControlX.toFixed(2)},${shadowControlY.toFixed(2)} ${shadowX.toFixed(2)},${shadowY.toFixed(2)}"/>`,
+      );
+    }
+    return `<g class="mountain-relief" clip-path="url(#${clipId})">${ridge}${hachures.join("")}</g>`;
+  };
+  const mountainParts = naturalEarthGeography.mountains.map(
+    ({ geometry, name, rank }, mountainIndex) => {
+      const mapGeometry = geometry as GeoJSON.Geometry;
+      const shape = path(mapGeometry) || "";
+      const [x, y] = path.centroid(mapGeometry);
+      if (!shape) return { relief: "", label: "" };
       const label =
         name && Number.isFinite(x) && Number.isFinite(y)
-          ? mapLabel({
-              key: `mountain-${mountainIndex}`,
-              label: name,
-              kind: "mountain",
-              rootX: x,
-              rootY: y,
-              className: "mountain-label",
-              anchor: "middle",
-              rank,
-              prominence: path.area(mapGeometry),
-            })
+          ? `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}">${mapLabel(
+              {
+                key: `mountain-${mountainIndex}`,
+                label: name,
+                kind: "mountain",
+                rootX: x,
+                rootY: y,
+                className: "mountain-label",
+                anchor: "middle",
+                rank,
+                prominence: path.area(mapGeometry),
+              },
+            )}</g>`
           : "";
-      return `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}"><path d="${path(mapGeometry) || ""}"/>${label}</g>`;
+      return {
+        relief: `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}"><path class="range-shape" d="${shape}"/>${mountainRelief(mapGeometry, rank, mountainIndex, shape)}</g>`,
+        label,
+      };
+    },
+  );
+  const mountainRanges = mountainParts.map(({ relief }) => relief).join("");
+  const mountainLabels = mountainParts.map(({ label }) => label).join("");
+  const summitMarkers = (
+    naturalEarthPeaks.peaks as Array<{
+      name: string;
+      elevation: number;
+      rank: number;
+      minZoom: number;
+      geometry: { type: "Point"; coordinates: [number, number] };
+    }>
+  )
+    .map(({ geometry, name, elevation, rank, minZoom }, peakIndex) => {
+      const position = projection(geometry.coordinates);
+      if (!position) return "";
+      const [x, y] = position;
+      const size = rank <= 2 ? 4.2 : rank <= 4 ? 3.5 : 2.8;
+      const symbolPath = `M0,${(-size).toFixed(1)} L${(size * 0.86).toFixed(1)},${(size * 0.55).toFixed(1)} L${(-size * 0.86).toFixed(1)},${(size * 0.55).toFixed(1)} Z`;
+      const label = mapLabel({
+        key: `summit-${peakIndex}`,
+        label: `${name} · ${elevation.toLocaleString("en")} m`,
+        kind: "mountain",
+        rootX: x + size + 2,
+        rootY: y - 1,
+        x: size + 2,
+        y: -1,
+        className: "summit-label",
+        rank,
+        prominence: elevation,
+      });
+      return `<g class="summit-marker summit-rank-${rank}" data-rank="${rank}" data-min-zoom="${minZoom}" data-name="${escapeXml(name)}" transform="translate(${x.toFixed(2)} ${y.toFixed(2)})"><path class="summit-symbol" d="${symbolPath}"/>${label}</g>`;
     })
     .join("");
+  const mountains = `${layer("mountain-relief", "Mountain relief", mountainRanges)}${layer("mountain-range-labels", "Mountain range labels", mountainLabels)}${layer("summit-markers", "Summit markers", summitMarkers)}`;
   const disputed = naturalEarthGeography.disputed
     .map(
       ({ geometry, name }) =>
         `<path d="${path(geometry as GeoJSON.Geometry) || ""}" data-name="${escapeXml(name)}"/>`,
     )
     .join("");
-  const cities = naturalEarthGeography.cities
-    .map(({ geometry, name, rank }, cityIndex) => {
-      const position = projection(
-        (geometry as GeoJSON.Point).coordinates as [number, number],
-      );
-      return position
-        ? `<g class="city-rank-${rank}" data-name="${escapeXml(name)}" transform="translate(${position[0]} ${position[1]})"><circle r="1.7"/>${mapLabel({ key: `city-${cityIndex}`, label: name, kind: "city", rootX: position[0] + 4, rootY: position[1] + 2, x: 4, y: 2, className: "city-label", rank })}</g>`
-        : "";
-    })
-    .join("");
+  const ancientCities =
+    typeof spec.politicalYear === "number" && spec.politicalYear < 1000
+      ? (
+          pleiadesPlacesData as {
+            places: Array<{
+              id: string;
+              title: string;
+              fromYear: number;
+              toYear: number;
+              lon: number;
+              lat: number;
+              rank: number;
+            }>;
+          }
+        ).places.filter(
+          (place) =>
+            place.fromYear <= spec.politicalYear! &&
+            spec.politicalYear! <= place.toYear,
+        )
+      : null;
+  const cities = ancientCities
+    ? ancientCities
+        .map((place, cityIndex) => {
+          const position = projection([place.lon, place.lat]);
+          return position
+            ? `<g class="city-kind-pleiades city-rank-${place.rank}" data-name="${escapeXml(place.title)}" transform="translate(${position[0]} ${position[1]})"><circle r="1.7"/>${mapLabel({ key: `pleiades-city-${cityIndex}`, label: place.title, kind: "city", rootX: position[0] + 4, rootY: position[1] + 2, x: 4, y: 2, className: "city-label", rank: place.rank })}</g>`
+            : "";
+        })
+        .join("")
+    : naturalEarthGeography.cities
+        .map(({ geometry, name, rank }, cityIndex) => {
+          const position = projection(
+            (geometry as GeoJSON.Point).coordinates as [number, number],
+          );
+          return position
+            ? `<g class="city-rank-${rank}" data-name="${escapeXml(name)}" transform="translate(${position[0]} ${position[1]})"><circle r="1.7"/>${mapLabel({ key: `city-${cityIndex}`, label: localizedName(name), kind: "city", rootX: position[0] + 4, rootY: position[1] + 2, x: 4, y: 2, className: "city-label", rank })}</g>`
+            : "";
+        })
+        .join("");
   const terrainLayer = layer(
     "terrain",
     "Terrain regions",
@@ -722,7 +1109,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     const baseGeography = layer(
       "base-geography",
       "Base geography",
-      `${layer("land", "Land", baseLand, "base-land")}${lakeLayer}`,
+      layer("land", "Land", baseLand, "base-land"),
     );
     const politicalGeography = layer(
       "political-geography",
@@ -732,23 +1119,21 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     const thematicOverlays = layer(
       "thematic-overlays",
       "Thematic overlays",
-      `${terrainLayer}${climateLayer}${mountainLayer}${riverLayer}`,
+      `${terrainLayer}${climateLayer}${mountainLayer}${lakeLayer}${riverLayer}`,
     );
     const labelLayers = layer(
       "labels",
       "Labels",
       `${cityLayer}<g id="country-abbreviations" data-name="Country abbreviations">${shortLabels}</g>${layer("country-names", "Country names", fullLabels)}${layer("geographic-labels", "Geographic labels", freeLabels)}`,
     );
-    return `${layer("seas-oceans", "Seas and oceans", `<rect width="1000" height="700" fill="#eaf6fa"/>`)}${baseGeography}${politicalGeography}${thematicOverlays}${layer("map-features", "Map features", featureMarkup)}${labelLayers}${layer("coastline", "Coastline", baseLand, "coast-overlay")}${layer("map-ornaments", "Map ornaments", ornaments)}`;
+    return `${layer("seas-oceans", "Seas and oceans", `<rect width="1000" height="700" fill="#eaf6fa"/>`)}${graticuleBehind}${baseGeography}${politicalGeography}${thematicOverlays}${graticuleFront}${layer("map-features", "Map features", featureMarkup)}${labelLayers}${layer("coastline", "Coastline", baseLand, "coast-overlay")}${layer("map-ornaments", "Map ornaments", ornaments)}`;
   };
   if (spec.geometry === "countries") {
-    const atlas = feature(
-      worldAtlas as never,
-      worldAtlas.objects.countries as never,
-    ) as unknown as GeoJSON.FeatureCollection<
-      GeoJSON.Geometry,
-      { name?: string }
-    >;
+    const countryFeatures = naturalEarthCountries10m.countries as Array<{
+      iso: string;
+      name: string;
+      geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon;
+    }>;
     const regionById = new Map(
       spec.regions
         .filter(({ isoNumeric }) => isoNumeric)
@@ -759,19 +1144,15 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         .filter(({ atlasName }) => atlasName)
         .map((region) => [region.atlasName, region]),
     );
-    const regionForFeature = (item: GeoJSON.Feature) =>
-      regionById.get(item.id == null ? "" : String(item.id).padStart(3, "0")) ||
-      regionByName.get(String(item.properties?.name || ""));
-    const selected = {
-      type: "FeatureCollection",
-      features: atlas.features.filter(regionForFeature),
-    } as GeoJSON.FeatureCollection;
-    const baseLand = atlas.features
-      .map((item) => `<path d="${path(item) || ""}"/>`)
+    const regionForFeature = (item: { iso: string; name: string }) =>
+      regionById.get(item.iso) || regionByName.get(item.name);
+    const selected = countryFeatures.filter(regionForFeature);
+    const baseLand = countryFeatures
+      .map((item) => `<path d="${path(item.geometry) || ""}"/>`)
       .join("");
-    const shapes = selected.features
+    const shapes = selected
       .map((item) => {
-        const id = item.id == null ? "" : String(item.id).padStart(3, "0"),
+        const id = item.iso,
           region = regionForFeature(item)!;
         const category = spec.categories.find(
           ({ id: categoryId }) => categoryId === region.category,
@@ -782,23 +1163,20 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         const fill = swatches.length
           ? swatches[categoryIndex % swatches.length].hex
           : mapPalette[category.color];
-        return `<path d="${path(item) || ""}" fill="${fill}"${id ? ` data-iso-numeric="${id}"` : ` data-map-unit="${escapeXml(region.atlasName)}"`}/>`;
+        return `<path d="${path(item.geometry) || ""}" fill="${fill}"${id ? ` data-iso-numeric="${id}"` : ` data-map-unit="${escapeXml(region.atlasName)}"`}/>`;
       })
       .join("");
-    const labelParts = selected.features.map((item) => {
+    const labelParts = selected.map((item) => {
       const region = regionForFeature(item)!;
-      const [x, y] = path.centroid(item);
-      const key = `country-${
-        item.id == null
-          ? region.atlasName || region.label
-          : String(item.id).padStart(3, "0")
-      }`;
-      const prominence = path.area(item);
+      const labelGeometry = largestProjectedPolygon(item.geometry);
+      const [x, y] = path.centroid(labelGeometry);
+      const key = `country-${item.iso}`;
+      const prominence = path.area(labelGeometry);
       return Number.isFinite(x) && Number.isFinite(y)
         ? {
             short: mapLabel({
               key,
-              label: shortMapLabel(region.label),
+              label: shortMapLabel(localizedCountryName(region.label)),
               kind: "country",
               rootX: x,
               rootY: y,
@@ -809,7 +1187,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
             }),
             full: mapLabel({
               key,
-              label: region.label,
+              label: localizedCountryName(region.label),
               kind: "country",
               rootX: x,
               rootY: y,
@@ -823,13 +1201,10 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     });
     const shortLabels = labelParts.map(({ short }) => short).join("");
     const fullLabels = labelParts.map(({ full }) => full).join("");
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Country boundaries from Natural Earth. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}</defs><style>${sharedStyle}${geographyStyle}.natural-lakes path{fill:#eaf6fa;stroke:#69a9c0;stroke-width:.45}.natural-rivers path{fill:none;stroke:#69a9c0;stroke-width:.45;stroke-linecap:round;stroke-linejoin:round}.climate-zones{opacity:.58;pointer-events:none}.climate-zones rect{stroke:none}</style>${composeLayers(baseLand, shapes, shortLabels, fullLabels)}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Country boundaries from Natural Earth. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}${mountainClipDefinitions.join("")}</defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, shapes, shortLabels, fullLabels)}</svg>`;
   }
-  const land = feature(
-    worldLand as never,
-    worldLand.objects.land as never,
-  ) as unknown as GeoJSON.Feature<GeoJSON.Geometry>;
-  const landPath = path(land) || "";
+  const landPath =
+    path(naturalEarthLand10m.geometry as GeoJSON.MultiPolygon) || "";
   const baseLand = `<path d="${landPath}"/>`;
   const regionParts = spec.regions.map((region, regionIndex) => {
     const category = categoryById.get(region.category)!;
@@ -860,7 +1235,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       region.labelVisible !== false && labelPosition
         ? mapLabel({
             key: labelKey,
-            label: shortMapLabel(region.label),
+            label: shortMapLabel(localizedCountryName(region.label)),
             kind: "country",
             rootX: labelPosition[0],
             rootY: labelPosition[1],
@@ -874,7 +1249,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       region.labelVisible !== false && labelPosition
         ? mapLabel({
             key: labelKey,
-            label: region.label,
+            label: localizedCountryName(region.label),
             kind: "country",
             rootX: labelPosition[0],
             rootY: labelPosition[1],
@@ -898,7 +1273,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     .map(({ fullLabel }) => fullLabel)
     .join("");
   const clippedRegions = `<g clip-path="url(#historical-land-clip)">${regions}</g>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Historical political geometry clipped to Natural Earth coastlines. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}<clipPath id="historical-land-clip"><path d="${landPath}"/></clipPath></defs><style>${sharedStyle}${geographyStyle}.natural-lakes path{fill:#eaf6fa;stroke:#69a9c0;stroke-width:.45}.natural-rivers path{fill:none;stroke:#69a9c0;stroke-width:.45;stroke-linecap:round;stroke-linejoin:round}.climate-zones{opacity:.58;pointer-events:none}.climate-zones rect{stroke:none}</style>${composeLayers(baseLand, clippedRegions, shortRegionLabels, fullRegionLabels)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Historical political geometry clipped to Natural Earth coastlines. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}${mountainClipDefinitions.join("")}<clipPath id="historical-land-clip"><path d="${landPath}"/></clipPath></defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, clippedRegions, shortRegionLabels, fullRegionLabels)}</svg>`;
 }
 
 export function createMapReport(

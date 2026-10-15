@@ -165,12 +165,13 @@ test("all registered AI tools retain manifest key metadata and declared native r
   }
 });
 
-test("keeps legacy map generation routes as explicit local-only responses", async () => {
+test("keeps map prompt interpretation structured and geometry-free", async () => {
   const source = await readFile(
     new URL("app/_tools/image/map-generator/code/generate-server.ts", root),
     "utf8",
   );
-  assert.match(source, /status:\s*410/);
-  assert.match(source, /local-only/);
-  assert.doesNotMatch(source, /OpenRouter|OPENROUTER/);
+  assert.match(source, /requestOpenRouter/);
+  assert.match(source, /response_format/);
+  assert.match(source, /map-generator\/prompts\/map-prompt\.md/);
+  assert.doesNotMatch(source, /polygons/);
 });

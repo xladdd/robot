@@ -349,7 +349,11 @@ export async function runWorkspaceBrowserTests({
         await expect(slot(id)).toHaveAttribute("data-tool-active", "true");
         await expect(slot(id).locator(".tool-loading")).toHaveCount(0);
         await expect(slot(id)).not.toHaveAttribute("hidden", "");
-        await expect(slot(id).locator("h1").first()).toBeVisible();
+        await expect(
+          slot(id)
+            .locator(id === "map" ? "input[type=number]" : "h1")
+            .first(),
+        ).toBeVisible();
       }
       async function retained(id, selector, value) {
         await select("barcode");
@@ -371,11 +375,350 @@ export async function runWorkspaceBrowserTests({
           );
         await expect(
           page.locator('[data-app-id="scriptBuffet"]'),
-        ).toHaveAttribute("aria-disabled", "true");
+        ).toHaveAttribute("aria-disabled", "false");
         await expect(page.locator("[data-tool-id]")).toHaveCount(0);
         await select("extraction");
         await expect(page.locator("[data-tool-id]")).toHaveCount(1);
       });
+      await stage(
+        "Map Maker fixture covers crop, drawing, language, compact layout, zoom, and export",
+        async () => {
+          const map = slot("map");
+          const languageButton = page.locator(".utility.language");
+          try {
+            await select("map");
+            if (
+              size === "narrow" &&
+              (await page
+                .locator(".brand-mark")
+                .getAttribute("aria-expanded")) === "true"
+            ) {
+              await page.locator(".brand-mark").click();
+              await expect(page.locator(".brand-mark")).toHaveAttribute(
+                "aria-expanded",
+                "false",
+              );
+            }
+
+            const svg = map.locator('svg[data-fixture-map-year="2026"]');
+            await expect(svg).toHaveCount(1);
+            const mapAiIndicator = map.locator(
+              ".figure-controls > .processing-badge",
+            );
+            await expect(mapAiIndicator).toBeVisible();
+            await expect(mapAiIndicator).toHaveText("AI ENABLED");
+            await expect(
+              map.locator(".map-prompt-field .map-ai-indicator"),
+            ).toHaveCount(0);
+            const politicalPreset = map
+              .locator(".map-purpose-grid .map-choice-button")
+              .filter({ hasText: "Political" });
+            const physicalPreset = map
+              .locator(".map-purpose-grid .map-choice-button")
+              .filter({ hasText: "Physical" });
+            const detailedDensity = map
+              .locator(".map-density-grid .map-choice-button")
+              .filter({ hasText: "Detailed" });
+            await expect(politicalPreset).toHaveAttribute(
+              "aria-pressed",
+              "true",
+            );
+            await expect(
+              map
+                .locator(".map-density-grid .map-choice-button")
+                .filter({ hasText: "Standard" }),
+            ).toHaveAttribute("aria-pressed", "true");
+            await expect(
+              map.locator('[data-testid="map-print-preset"]'),
+            ).toHaveValue("original");
+            await expect(
+              map.locator('[data-testid="map-publication-preflight"]'),
+            ).toContainText("Review needed");
+
+            const beforePurpose = hiddenState.timelines.length;
+            await physicalPreset.click();
+            await expect
+              .poll(() => hiddenState.timelines.length)
+              .toBe(beforePurpose + 1);
+            for (const layer of [
+              "water",
+              "lakes",
+              "rivers",
+              "terrain",
+              "mountains",
+              "waterLabels",
+            ])
+              await expect(
+                map.locator(`.map-layer-${layer} input`),
+              ).toBeChecked();
+            await expect(
+              map.locator(".map-layer-boundaries input"),
+            ).not.toBeChecked();
+            await map.locator(".map-layer-rivers input").uncheck();
+            await expect(map.locator(".map-purpose-custom")).toBeVisible();
+            await politicalPreset.click();
+            await expect(politicalPreset).toHaveAttribute(
+              "aria-pressed",
+              "true",
+            );
+            await detailedDensity.click();
+            await expect(detailedDensity).toHaveAttribute(
+              "aria-pressed",
+              "true",
+            );
+
+            const geometry = await map.evaluate((root) => {
+              const describe = (selector) => {
+                const node = root.querySelector(selector);
+                if (!node) return null;
+                const rect = node.getBoundingClientRect();
+                return {
+                  left: rect.left,
+                  right: rect.right,
+                  top: rect.top,
+                  bottom: rect.bottom,
+                  width: rect.width,
+                  height: rect.height,
+                };
+              };
+              return {
+                crop: describe(".map-export-crop"),
+                transform: describe(".map-transform"),
+                preview: describe(".figure-preview-column"),
+                controls: describe(".figure-controls"),
+              };
+            });
+            expect(geometry.crop).not.toBeNull();
+            expect(geometry.transform).not.toBeNull();
+            expect(geometry.crop.width).toBeGreaterThan(
+              size === "narrow" ? 280 : 300,
+            );
+            expect(geometry.crop.height).toBeGreaterThan(190);
+            for (const edge of ["left", "top", "width", "height"])
+              expect(
+                Math.abs(geometry.crop[edge] - geometry.transform[edge]),
+                `${size}: crop and transformed map ${edge} should match`,
+              ).toBeLessThanOrEqual(1.5);
+            if (size === "narrow") {
+              expect(
+                geometry.controls.top,
+                "390px controls should flow below the preview",
+              ).toBeGreaterThanOrEqual(geometry.preview.bottom - 1);
+              expect(
+                geometry.crop.bottom,
+                "390px crop should not overlap the controls",
+              ).toBeLessThanOrEqual(geometry.controls.top + 1);
+            }
+
+            await map.locator(".map-draw-toggle").click();
+            const canvas = map.locator(".map-editor-canvas");
+            await canvas.evaluate((node) =>
+              node.scrollIntoView({ block: "start", inline: "nearest" }),
+            );
+            const cropBox = await map.locator(".map-export-crop").boundingBox();
+            expect(cropBox).not.toBeNull();
+            await page.mouse.click(
+              cropBox.x + cropBox.width / 2,
+              cropBox.y + cropBox.height / 2,
+            );
+            const drawGroup = map.locator("#editor-draw");
+            await expect(drawGroup).toHaveCount(1);
+            const drawItems = JSON.parse(
+              (await drawGroup.getAttribute("data-draw-items")) ?? "[]",
+            );
+            expect(drawItems).toHaveLength(1);
+            expect(drawItems[0].kind).toBe("battle");
+            expect(drawItems[0].x).toBeGreaterThan(497);
+            expect(drawItems[0].x).toBeLessThan(503);
+            expect(drawItems[0].y).toBeGreaterThan(347);
+            expect(drawItems[0].y).toBeLessThan(353);
+
+            const beforeCzech = hiddenState.timelines.length;
+            await languageButton.click();
+            await expect(languageButton.locator(".active-option")).toHaveText(
+              "CZ",
+            );
+            await expect
+              .poll(() => hiddenState.timelines.length)
+              .toBeGreaterThan(beforeCzech);
+            await expect
+              .poll(() => hiddenState.timelines.at(-1)?.lang)
+              .toBe("cs");
+            expect(hiddenState.timelines.at(-1)).toEqual({
+              year: 2026,
+              lang: "cs",
+              projection: "schematic",
+            });
+            await expect(svg).toHaveAttribute("data-fixture-map-lang", "cs");
+            await expect(mapAiIndicator).toHaveText("AI AKTIVNÍ");
+            await expect(
+              map
+                .locator(".map-purpose-grid .map-choice-button")
+                .filter({ hasText: "Politická" }),
+            ).toHaveAttribute("aria-pressed", "true");
+            await expect(
+              map
+                .locator(".map-density-grid .map-choice-button")
+                .filter({ hasText: "Podrobná" }),
+            ).toHaveAttribute("aria-pressed", "true");
+
+            await languageButton.click();
+            await expect(languageButton.locator(".active-option")).toHaveText(
+              "EN",
+            );
+            await expect
+              .poll(() => hiddenState.timelines.at(-1)?.lang)
+              .toBe("en");
+            await expect(svg).toHaveAttribute("data-fixture-map-lang", "en");
+            await expect(mapAiIndicator).toHaveText("AI ENABLED");
+
+            const parseTransform = async () => {
+              const style = (await svg.getAttribute("style")) ?? "";
+              const match = style.match(
+                /translate\(([-\d.]+)px,\s*([-\d.]+)px\) scale\(([-\d.]+)\)/,
+              );
+              return match
+                ? {
+                    x: Number(match[1]),
+                    y: Number(match[2]),
+                    scale: Number(match[3]),
+                  }
+                : null;
+            };
+            await map
+              .locator(".map-projection select")
+              .nth(1)
+              .selectOption("europe");
+            await expect
+              .poll(async () => (await parseTransform())?.scale ?? 1)
+              .toBeGreaterThan(1);
+            const presetTransform = await parseTransform();
+            expect(presetTransform).not.toBeNull();
+            const assertFixtureRegionCentered = async () => {
+              const [crop, marker] = await Promise.all([
+                map.locator(".map-export-crop").boundingBox(),
+                map
+                  .locator('[data-fixture-region-center="europe"]')
+                  .boundingBox(),
+              ]);
+              expect(crop).not.toBeNull();
+              expect(marker).not.toBeNull();
+              expect(
+                Math.abs(
+                  marker.x + marker.width / 2 - (crop.x + crop.width / 2),
+                ),
+              ).toBeLessThanOrEqual(3);
+              expect(
+                Math.abs(
+                  marker.y + marker.height / 2 - (crop.y + crop.height / 2),
+                ),
+              ).toBeLessThanOrEqual(3);
+            };
+            await assertFixtureRegionCentered();
+            await map.locator(".map-view-buttons button").first().click();
+            await expect
+              .poll(async () => (await parseTransform())?.scale ?? 1)
+              .toBeGreaterThan(presetTransform.scale);
+            const zoomedTransform = await parseTransform();
+            expect(zoomedTransform).not.toBeNull();
+            expect(
+              Math.abs(
+                presetTransform.x / presetTransform.scale -
+                  zoomedTransform.x / zoomedTransform.scale,
+              ),
+            ).toBeLessThan(0.02);
+            expect(
+              Math.abs(
+                presetTransform.y / presetTransform.scale -
+                  zoomedTransform.y / zoomedTransform.scale,
+              ),
+            ).toBeLessThan(0.02);
+            await assertFixtureRegionCentered();
+
+            await map.locator(".map-layer-lakes input").uncheck();
+            await expect(map.locator(".map-legend-symbol-lake")).toHaveCount(0);
+            const downloadPromise = page.waitForEvent("download");
+            await map.locator(".map-export-actions button").click();
+            const download = await downloadPromise;
+            expect(download.suggestedFilename()).toBe("synthetic-map-2026.svg");
+            const stream = await download.createReadStream();
+            const chunks = [];
+            for await (const chunk of stream) chunks.push(chunk);
+            const exportedMap = Buffer.concat(chunks).toString("utf8");
+            const exportedLayers = await page.evaluate((source) => {
+              const document = new DOMParser().parseFromString(
+                source,
+                "image/svg+xml",
+              );
+              return {
+                lakeDisplay:
+                  document.querySelector("#lakes")?.style.display ?? null,
+                legendText:
+                  document.querySelector("#map-legend")?.textContent ?? "",
+                width: document.documentElement.getAttribute("width"),
+                height: document.documentElement.getAttribute("height"),
+                printPreset:
+                  document.documentElement.getAttribute("data-print-preset"),
+              };
+            }, exportedMap);
+            expect(exportedLayers.lakeDisplay).toBe("none");
+            expect(exportedLayers.legendText).not.toMatch(/lake/i);
+            expect(exportedLayers.width).toBe("1000");
+            expect(exportedLayers.height).toBe("700");
+            expect(exportedLayers.printPreset).toBeNull();
+
+            await map
+              .locator('[data-testid="map-print-preset"]')
+              .selectOption("90mm");
+            await expect(
+              map.locator('[data-testid="map-publication-preflight"]'),
+            ).toContainText("Use Essential label density");
+            const physicalDownloadPromise = page.waitForEvent("download");
+            await map.locator(".map-export-actions button").click();
+            const physicalDownload = await physicalDownloadPromise;
+            expect(physicalDownload.suggestedFilename()).toBe(
+              "synthetic-map-2026.svg",
+            );
+            const physicalStream = await physicalDownload.createReadStream();
+            const physicalChunks = [];
+            for await (const chunk of physicalStream)
+              physicalChunks.push(chunk);
+            const physicalExport =
+              Buffer.concat(physicalChunks).toString("utf8");
+            const physicalDimensions = await page.evaluate((source) => {
+              const document = new DOMParser().parseFromString(
+                source,
+                "image/svg+xml",
+              );
+              return {
+                width: document.documentElement.getAttribute("width"),
+                height: document.documentElement.getAttribute("height"),
+                printPreset:
+                  document.documentElement.getAttribute("data-print-preset"),
+                viewBox: document.documentElement
+                  .getAttribute("viewBox")
+                  ?.split(/\s+/)
+                  .map(Number),
+              };
+            }, physicalExport);
+            expect(physicalDimensions.width).toBe("90mm");
+            expect(physicalDimensions.height).toBe("63mm");
+            expect(physicalDimensions.printPreset).toBe("90mm");
+            expect(physicalDimensions.viewBox).toHaveLength(4);
+            expect(physicalDimensions.viewBox.every(Number.isFinite)).toBe(
+              true,
+            );
+            expect(physicalDimensions.viewBox[2]).toBeGreaterThan(0);
+            expect(physicalDimensions.viewBox[3]).toBeGreaterThan(0);
+          } finally {
+            if (
+              (await languageButton.locator(".active-option").innerText()) ===
+              "CZ"
+            )
+              await languageButton.click();
+          }
+        },
+      );
       await stage(
         "Text correction finishes while inactive; hidden/inert retention",
         async () => {

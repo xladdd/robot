@@ -9,7 +9,7 @@ Taktik Robot is a private, bilingual workspace for preparing textbook text, artw
 | [Text Extractor](app/_tools/text/text-extractor/info.en.md)            | Model-backed OCR of images or short PDFs, followed by editable text and optional instructed correction.                                                                                              |
 | [Index Creator](app/_tools/text/index-creator/info.en.md)              | Reads textbook PDFs and runs sparse-page OCR locally; AI supplies grammatical term forms. Exports a tab-separated index with printed page numbers.                                                   |
 | [Prompt Extractor](app/_tools/text/prompt-extractor/info.en.md)        | Renders manuscript PDF pages locally and sends page images for AI illustration-prompt analysis.                                                                                                      |
-| [Map Maker](app/_tools/image/map-generator/info.en.md)                 | Deterministic editable SVG maps from owned historical and present-day datasets, with layer and palette controls.                                                                                     |
+| [Map Maker](app/_tools/image/map-generator/info.en.md)                 | Editable SVG maps rendered deterministically from bundled datasets; OpenRouter interprets optional prompt edits but never supplies geographic polygons.                                              |
 | [Diagram Generator](app/_tools/image/diagram-generator/info.en.md)     | Model-backed biological diagrams with checked editable SVG output and verification reports.                                                                                                          |
 | [Graph Generator](app/_tools/image/graph-generator/info.en.md)         | Editable charts from a prompt and supplied data; CSV/Excel import is local.                                                                                                                          |
 | [Image Generator](app/_tools/image/image-generator/info.en.md)         | Queues up to 15 square images, with optional references, retries and generative upscaling. Prompt-document import is local; generation is server-backed.                                             |
@@ -72,7 +72,7 @@ Tools load on first visit and keep their mounted subtrees while switching. Inact
 
 ## Private services and deployment
 
-Each of the 12 AI-backed tools retains its existing dedicated server-only OpenRouter variable. Generated manifest metadata drives configuration; remote key names remain `DEV/<product-folder-slug>` and `DEPLOY/<product-folder-slug>`. DEV and DEPLOY use the same runtime variable names with different secret values.
+Each AI-backed tool retains its existing dedicated server-only OpenRouter variable. Generated manifest metadata drives configuration; remote key names remain `DEV/<product-folder-slug>` and `DEPLOY/<product-folder-slug>`. DEV and DEPLOY use the same runtime variable names with different secret values.
 
 | Ignored local file                 | Purpose                                                                     |
 | ---------------------------------- | --------------------------------------------------------------------------- |
@@ -80,7 +80,7 @@ Each of the 12 AI-backed tools retains its existing dedicated server-only OpenRo
 | `.env.openrouter-deploy.local`     | DEPLOY inference values, permission `0600`; not auto-loaded by Next.js.     |
 | `.env.openrouter-management.local` | Local-only management credential and provisioning defaults; never deployed. |
 
-OpenRouter provisioning/rename/verification commands, limit inheritance, orphan-key handling and all 12 preserved variable names are documented in [architecture.md](architecture.md). New secrets still need explicit DEV/DEPLOY provisioning, secure Vercel environment upload and a fresh redeploy. Generation never provisions or deploys automatically.
+OpenRouter provisioning/rename/verification commands, limit inheritance, orphan-key handling and all preserved variable names are documented in [architecture.md](architecture.md). New secrets still need explicit DEV/DEPLOY provisioning, secure Vercel environment upload and a fresh redeploy. Generation never provisions or deploys automatically.
 
 The existing Vercel project is `taktik-robot`, using DEPLOY values for **Production and Preview**. The duplicate `robot` project was deleted in the previous operation. The API-safe baseline `1ee73a6` is already committed; this documentation does **not** claim that the registry restructure has been deployed.
 

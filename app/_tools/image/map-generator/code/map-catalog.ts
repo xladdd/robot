@@ -1,6 +1,7 @@
 import type { MapSpec } from "./map";
 import { geoArea, geoCentroid } from "d3-geo";
 import timelineData from "./data/cshapes-timeline.json" with { type: "json" };
+import { snapGeometryToCoast } from "./coast-snap.ts";
 import { boundariesAt, type HistoricalBoundaryRecord, type HistoricalTimeline } from "./historical-boundaries.ts";
 
 export type CliopatriaRecord = { id: string; name: string; fromYear: number; toYear: number; wikidata: string; wikipedia: string; geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon };
@@ -142,14 +143,15 @@ export function applyCliopatriaBoundaryCatalog(year: number, spec: MapSpec, time
   spec.viewport = { west: -180, south: -58, east: 180, north: 82 };
   spec.categories = [{ id: "polity", label: year < 0 ? `Polities in ${Math.abs(year)} BCE` : `Polities in ${year} CE`, color: "grey" }];
   spec.regions = records.map((record) => {
-    const [labelLon, labelLat] = largestLandLabelPoint(record.geometry);
+    const geometry = snapGeometryToCoast(record.geometry);
+    const [labelLon, labelLat] = largestLandLabelPoint(geometry);
     return {
       dataId: record.id,
       label: record.name,
       category: "polity",
       isoNumeric: "",
       atlasName: "",
-      polygons: exteriorPolygons(record.geometry),
+      polygons: exteriorPolygons(geometry),
       labelLon,
       labelLat,
       labelVisible: rankedLabels.has(record.id),
@@ -159,7 +161,7 @@ export function applyCliopatriaBoundaryCatalog(year: number, spec: MapSpec, time
   spec.features = [];
   spec.labels = [];
   spec.sources = [{ id: "CLIOPATRIA", title: "Cliopatria — worldwide historical polities", url: "https://github.com/Seshat-Global-History-Databank/cliopatria" }];
-  spec.notes = ["Cliopatria data licensed CC BY 4.0.", "Geometry simplified and coordinates quantized for this interactive adaptation.", "Historical territorial extents are scholarly reconstructions and may be uncertain or disputed."];
+  spec.notes = ["Cliopatria data licensed CC BY 4.0.", "Near-coast boundaries are snapped onto the Natural Earth coastline for base-map alignment; coordinates are quantized to four decimals.", "Historical territorial extents are scholarly reconstructions and may be uncertain or disputed."];
   spec.showNorthArrow = false;
   spec.showScaleBar = false;
   spec.referenceSummary = "Timeline view generated locally from the Cliopatria dataset by Seshat Global History Databank.";

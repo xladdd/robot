@@ -1,14 +1,16 @@
 # Session handoff — Map Maker
 
-Last updated: 2026-08-14 (Europe/Prague)
+Last updated: 2026-10-14 (Europe/Prague)
 
 ## Current product direction
 
-The original AI-first figure generator has been split into separate sidebar apps: Map Maker, Diagram Generator, and Graph Generator. The old Bio Generator label was replaced by Diagram Generator. Map Maker is now primarily a deterministic, interactive world map rather than an LLM drawing SVG geography. It supports panning, zooming, a historical year timeline, selectable layers, optional country filling, ASE palettes, and cropped SVG export. AI should eventually interpret prompts into structured map edits (for example, verified country IDs and colors), but must not generate geographic polygons. Diagram and Graph Generator are standalone apps, so their obsolete one-button mode selectors were removed from the top of both toolbars.
+The original AI-first figure generator has been split into separate sidebar apps: Map Maker, Diagram Generator, and Graph Generator. The old Bio Generator label was replaced by Diagram Generator. Map Maker is primarily a deterministic, interactive world map, not an LLM drawing SVG geography. It supports crop-based panning and zooming, projections and layers, filling, label hiding, drawing, ASE palettes, and cropped SVG export. The prompt field is active: OpenRouter interprets a natural-language instruction into constrained fills and simple labels, while application code and bundled data continue to own all geometry and rendering. No model-generated polygons are accepted. Historical API/data support exists, but the visible year controls are intentionally locked to the current year until UI time travel is enabled.
+
+AI disclosure belongs beside or inside the prompt field, where the remote interpretation occurs. Do not show a top-level local-only badge: most rendering is local/deterministic, but that badge misrepresents the active OpenRouter prompt path. `MainInterface.tsx` still renders the old top `ProcessingBadge mode="local"`; remove or relocate it when implementation files are in scope.
 
 ## Important files
 
-- `app/Workspace.tsx` — map editor controller state, pan/zoom, timeline, palette handling, country filling, and WYSIWYG cropped export.
+- `app/_tools/image/map-generator/Tool.tsx` — map editor controller state, prompt handling, pan/zoom, timeline, palette handling, drawing, country filling, label hiding, and WYSIWYG cropped export.
 - `app/_tools/image/map-generator/MainInterface.tsx` — map editor markup and controls.
 - `app/globals.css` — map workspace, crop mask, label scaling, layer visibility, and controls.
 - `app/_tools/image/map-generator/code/map.ts` — deterministic map SVG renderer and named SVG hierarchy.
@@ -26,7 +28,7 @@ The original AI-first figure generator has been split into separate sidebar apps
 - 1886–2018: CShapes 2.0 under a separately obtained licence agreement.
 - Before 1886, including BCE: locally bundled Cliopatria/Seshat data.
 - There is no year zero. Valid input is `-3400..-1` and `1..2026`.
-- Changing years preserves the viewport.
+- The API supports changing years and preserves the viewport, but the current UI intentionally fixes the map to the present year.
 
 Licensing:
 
@@ -37,7 +39,9 @@ Licensing:
 
 The large local datasets are intentional:
 
-- `app/_tools/image/map-generator/code/data/cliopatria-timeline.json` (~27 MB), the single local Cliopatria dataset used directly by the timeline API.
+- `app/_tools/image/map-generator/code/data/cliopatria-timeline.json` (~66 MB), the single local Cliopatria dataset used directly by the timeline API.
+  - Re-imported 2026-10-13 from upstream `cliopatria_polities_only_v021.geojson` (sha256 `fc6f0d1e…`) at tolerance 0 — no geometric simplification, only 4-decimal coordinate quantization (was 0.18°, ~27 MB). Ancient polity geometry now carries full upstream vertex density (~2.7× more polygon points per year render; e.g. Roman Republic at 200 BCE went from 146 to 386 points). Per-year SVG size is unchanged (~4.7–5 MB).
+  - The stored data stays unsnapped. Coastline conflation runs at request time in `code/coast-snap.ts` (used by `applyCliopatriaBoundaryCatalog`): boundary vertices within 0.25° of the coast are snapped onto the world-atlas land-50m outline — the exact outline the renderer clips fills against — and coastal runs are replaced with the coastline path (walk factor 6, max 40°, walk points simplified at 0.01°). Genuinely internal borders are untouched. Roman Republic at 200 BCE: 62% of boundary length lies on the coastline (was ~5%); adapter adds ~15 ms warm per request and ~0.16 MB to the SVG.
 - `app/_tools/image/map-generator/code/data/cshapes-timeline.json`.
 - `app/_tools/image/map-generator/code/data/natural-earth-water.json`.
 - `app/_tools/image/map-generator/code/data/koppen-climate.json`.
@@ -50,9 +54,10 @@ The large local datasets are intentional:
 - Outside the crop is water blue beneath a dark translucent mask.
 - Trackpad/wheel and buttons zoom; drag pans; keyboard `+`/`-` zooms.
 - Maximum zoom is 40×, sufficient to inspect Vatican City.
-- Large numeric year input, graphic arrows, and draggable timeline.
-- Fill countries is an explicit mode and defaults off.
-- Prompt field sits above Download SVG but is not yet wired to AI edits.
+- The numeric year input, arrows, and timeline remain visible but are intentionally locked to the current year; historical API/data support is not yet exposed as UI time travel.
+- Fill countries, Hide labels, and Draw are explicit modes and default off.
+- The active prompt field calls the configured OpenRouter model for interpretation. OpenRouter receives the user's instruction, the current map year, the available territory names, and the fixed system instruction; no SVG or polygon geometry is sent. Returned fills are resolved against the available territory list, simple labels are validated, and application code applies and renders the edits. Model-generated polygons are never accepted.
+- The intended AI badge location is in or beside this prompt field. There should be no top-level local-only badge.
 - ASE import supports Apply and Shuffle; 75% and 50% shades supplement short palettes.
 - Warnings appear at the bottom of the panel; there is no map verification-report download.
 - Download SVG is orange.
@@ -62,12 +67,15 @@ Available layer switches:
 - Borders
 - Country names
 - Seas and oceans
+- Lakes
 - Rivers
 - Climate zones
 - Terrain regions
 - Mountain ranges
 - Cities and capitals
 - Disputed boundaries
+- Meridians and parallels, behind or in front of land
+- Lake and river names
 
 Climate is a broad five-group Köppen–Geiger layer for 1980–2016 normals:
 
@@ -77,7 +85,7 @@ Climate is a broad five-group Köppen–Geiger layer for 1980–2016 normals:
 - Cold — blue `#4f83cc`
 - Polar — purple `#8d67b1`
 
-The source grid is 0.5°. A subtle SVG Gaussian blur softens its block edges without changing classifications.
+The climate layer is derived from the official Beck et al. V1 0.083333° (~10 km) raster. The importer groups the 30 subtypes into five broad classes, majority-aggregates them to 0.166667° (~18 km), extracts smoothed categorical contours, removes sub-print isolated zones, and simplifies sub-pixel vertices. The SVG contains five editable compound paths with no Gaussian blur. Climate swatches appear in the on-map and exported legends when the layer is enabled; the toolbar retains only the temporal caveat.
 
 ## Geography overlays
 
@@ -92,6 +100,8 @@ The overlays default off because they represent present-day geography even when 
 
 Recent fixes:
 
+- Ancient political boundaries visually aligned with the base map: Cliopatria rings no longer stop short of coastlines or leave parallel double lines. Serve-time coastline conflation (`code/coast-snap.ts`) snaps near-coast boundary vertices onto the land-50m outline and replaces coastal runs with the coastline path; inland borders keep source geometry. Import-time conflation was rejected because identical coast walks duplicated across Cliopatria's year-slice rows (190 MB at walk tolerance 0.01°); request-time snapping keeps the bundled file at ~66 MB.
+
 - Terrain was invisible because it sat beneath opaque country fills; it now renders in thematic overlays above political geography.
 - Mountain ranges now include names.
 - City and mountain labels use the same zoom-aware sizing and halo as country names.
@@ -100,6 +110,23 @@ Recent fixes:
 - New Zealand previously appeared over Portugal because `geoCentroid` failed on an antimeridian multipolygon. Historical labels now use the centroid of the largest land polygon.
 - A temporary attempt to replace CShapes with Cliopatria for 1886–2018 produced unacceptably coarse/jagged maps. CShapes was restored after a separate licence agreement was obtained. Do not reintroduce the former commercial-use warning.
 - Do not cosmetically smooth historical political rings: this visibly distorts borders. Historical political fills are instead clipped to the cleaner Natural Earth land outline so coastlines and islands remain clean while internal historical borders retain their source geometry.
+- Lakes moved above political fills (now inside Thematic overlays, between Mountain ranges and Rivers): opaque country/polity fills used to cover lakes entirely, which read as "lakes are missing". Moving the layer keeps the exported lake paths in the `Lakes` group. Water toggling is split: the "seas and oceans" switch hides only the blue background (`hide-water` → `#seas-oceans`), and a separate "lakes" switch hides lake polygons (`hide-lakes` → `.natural-lakes`).
+- Cities layer is year-aware for ancient years: `spec.politicalYear` (set by the timeline API, validated in `validateMapSpec`) selects Pleiades settlements active at that year for years before 1000 (`code/data/pleiades-places.json`, 13,249 settlements, CC BY 4.0, imported via `scripts/import-pleiades-places.mjs`). Major ancient cities carry rank 3 (world zoom); all others rank 6 (regional zoom onward; world zoom hides non-rank-3 Pleiades dots via the `city-kind-pleiades` class). Natural Earth capitals remain for years ≥ 1000.
+- Mountain ranges render as deterministic, projection-aware vector relief: curved ridge lines and downslope hachures are clipped to each Natural Earth range polygon, with only a faint range tint/outline. Real summits come from Natural Earth’s public-domain 1:10m elevation-point dataset (`code/data/natural-earth-peaks.json`, reproducible via `scripts/import-natural-earth-peaks.mjs`) and render as ranked triangle markers with elevation labels. The treatment is editable cartographic relief, not DEM-derived hillshade.
+- Projections: `spec.projection` is now `schematic` (Mercator, unchanged default) | `robinson` | `eckert4` | `naturalEarth`, validated in `validateMapSpec` and accepted by the timeline API as a `projection` query parameter. All layers re-project server-side through `d3-geo`/`d3-geo-projection` (Robinson and Eckert IV come from the new `d3-geo-projection` dependency; types are declared locally in `code/d3-geo-projection.d.ts` because the package ships no typings). Nothing is post-distorted — every layer shares the same projection pipeline.
+- Graticule: a 10° meridian/parallel grid rendered twice in every SVG (`graticule-behind` over the water background, `graticule-front` above thematic overlays). The editor toggles it with the `graticule` layer switch and picks position with `graticuleFront` (`graticule-position-front` canvas class); the export shows exactly one copy via `setExportLayerVisible`. No re-render is needed to move it — only CSS decides which copy is visible. The graticule geometry is densified to 2° steps before projecting: `projection.clipExtent` disables d3's adaptive resampling, so un-densified lines render as angular 10° chords in the curved projections. Country borders in `.regions path` use `stroke-width: .4`.
+- Base map upgraded from world-atlas land/countries 1:50m to Natural Earth **1:10m** (land + Admin 0 countries, simplified at 0.01°, imported by `scripts/import-natural-earth-10m.mjs` from the official NE shapefiles via the `shapefile` package). Ring winding is normalized in the importer (planar shoelace plus a d3 `geoArea` spherical check); NE codes France and Norway with ISO_N3 `-99`, so the importer falls back to `ISO_N3_EH`. Coastline conflation (`coast-snap.ts`) now uses the same 10m land file, so fills and the base map share one coastline. SVGs grew: ~14.5 MB per ancient year render, ~9 MB modern (the land path is embedded three times: base land, clip path, coastline overlay).
+- Lake and river names: named NE 10m lakes (745) and rivers (1,367) render as `kind:"water"` labels with `data-map-label-water-feature` attributes — lakes at polygon centroids, rivers at the midpoint of their longest projected segment. They are gated by the `waterLabels` layer switch ("lake and river names", default off) and by NE rank (world zoom shows rank ≤ 3, regional ≤ 5, detail all), and join the existing collision layout engine. Lake labels additionally require the lakes layer, river labels the rivers layer (`layerVisible` in `code/label-layout.ts`).
+- Label hiding: the `HIDE LABELS` toggle (like Fill countries) lets the user click any `text[data-map-label-key]` to hide it; hiding sets `data-label-hidden="true"` plus inline display and is serialized into the map output like country fills. `layoutMapSvgLabels` skips user-hidden labels (they stay hidden through collision passes and export). Undo restores the most recently hidden key; Unhide all clears every hidden label. Both write back through the same DOM-serialize path as fill painting.
+- Draw mode: the `DRAW` toggle places markers (battle, city, peak, port, text-only) by clicking the map and draws routes (click waypoints, Finish route or click the next symbol). Items serialize into an `#editor-draw` group inside the SVG (with a `data-draw-items` JSON stack), survive year changes, and are dropped when the projection changes. Undo/Clear manage the stack. Fill countries also works in countries mode now (paths matched by `data-iso-numeric`/`data-map-unit` as well as `data-region-id`).
+- Viewport is now a fixed viewBox (`0 0 1000 700`) plus a composited CSS transform (`translate/scale`) on the SVG — dragging no longer re-rasterizes geometry. Label relayout debounces 250 ms after pan/zoom and shows a "Rendering…" chip. Water-feature labels (lake/river names) revealed by rank classes via `--map-water-feature-size`; revealed like cities by zoom-tier CSS.
+- The year controls default to 2026 and are locked (`TIME_TRAVEL_ENABLED = false` in MainInterface): the input is read-only grey, and clicking year arrows or the slider pops the "Time travel is not yet allowed." tooltip (`.map-time-tooltip`, same style as the sidebar coming-soon tooltip, 4 s auto-hide). The tooltip is portaled to `document.body` (`position: fixed`, z-index 41) with coordinates captured at click time from the year field and the `.figure-controls` panel — it renders fully outside the toolbar, 10 px left of the panel, because the panel's `overflow-y: auto` and `.map-module`'s `overflow: hidden` would otherwise clip it. Flip the constant to re-enable.
+- Region presets (select under Map projection) fit the viewport client-side by projecting the region bounds with the same d3 projection and setting zoom/pan.
+- Czech place names: `spec.labelLanguage` (timeline `lang=cs`) translates country labels (CLDR Czech territories) and capital city labels (Wikidata Czech labels, 192 of 200 capitals) via `code/data/czech-names.json` (importer `scripts/import-czech-names.mjs`). Ancient Pleiades, lake, and river names remain in their source language.
+- Toolbar panel order: year field (number + arrows) → year slider (the "HISTORICAL BOUNDARY TIMELINE · NEGATIVE = BCE" note was removed) → zoom in/out/reset (`.map-view-buttons`) → Map projection fieldset → prompt field → layers → fill/hide-labels/draw toggles. The prompt textarea spans the full fieldset width (`grid-template-columns: 1fr`) with a small content-sized Apply button below it. The label tools (Undo, Unhide all, hidden count) sit 6 px under the Hide labels switch (`margin-top: -12px` against the 18 px grid gap).
+- Prompt interpretation: `POST /api/maps/generate` calls the configured OpenRouter interpretation model using `prompts/map-prompt.md`. The model receives the user's instruction, `spec.date`, and the names in that year's `spec.regions`; it does not receive the SVG or polygon geometry. It returns constrained fills (territory names resolved server-side against the year's region list) and simple labels (validated lon/lat projected by application code). The client applies fills as palette paints and labels as draw-mode text items. It never accepts model-generated polygons. The manifest declares the dedicated OpenRouter environment variable.
+- Water data re-imported from the official NE shapefiles with winding normalization (`scripts/import-natural-earth-water.mjs`); the old data carried five spherically inverted lakes whose whole-map complement fills covered mountains and hid lakes. The Caspian Sea is not in NE 10m lakes — it renders as the single land-polygon hole (blue water) but has no lake label.
+- `d3-geo-projection` resolves to UMD under Turbopack; `code/extra-projections.ts` normalizes both module shapes for Robinson/Eckert IV.
 
 ## SVG export contract
 
@@ -116,9 +143,9 @@ Export aims to be WYSIWYG:
 Named SVG hierarchy (no `layer-` prefixes):
 
 - Seas and oceans
+- Graticule behind land
 - Base geography
   - Land
-  - Lakes
 - Political geography
   - Countries and borders
   - Disputed boundaries
@@ -126,7 +153,12 @@ Named SVG hierarchy (no `layer-` prefixes):
   - Terrain regions
   - Climate zones
   - Mountain ranges
+    - Mountain relief
+    - Mountain range labels
+    - Summit markers
+  - Lakes
   - Rivers
+- Graticule in front of land
 - Map features
 - Labels
   - Cities and capitals
@@ -150,7 +182,7 @@ Groups use both human-readable `data-name` values and stable IDs so Illustrator 
 ## Diagram and graph generators
 
 - Diagram Generator creates constrained biological SVG diagrams; Graph Generator creates source-bound bar or line charts.
-- Both apps have dedicated English and Czech info-drawer content. Map Maker also has its own updated drawer describing datasets, editing, export, and the currently inactive prompt field.
+- Both apps have dedicated English and Czech info-drawer content. Map Maker's bilingual drawer describes the locked current-year UI, active OpenRouter prompt interpretation, deterministic geometry/rendering, editing, export, and review requirements.
 - Both apps now use relevant localized loading phrases instead of the map-loading phrases.
 - The displayed generation estimate and countdown baseline are 30 seconds, not three minutes. The countdown stops at `0:00` rather than going negative.
 - Automated Checks appear at the bottom of the right-hand toolbar for Diagram and Graph Generator, not beneath the SVG preview.
@@ -162,14 +194,18 @@ Groups use both human-readable `data-name` values and stable IDs so Illustrator 
 
 ## Validation
 
-Last successful commands:
+Last successful commands (2026-10-14):
 
 ```sh
+npm run tools:check
+npm run lint
+npx tsc --noEmit --pretty false
 npm run test:figures
-npm run build
+npm run test:ui
+npm test
 ```
 
-Result: 18/18 tests passed and the production build completed successfully after the latest map, diagram, graph, and toolbar changes.
+Results: generation is current; lint has 0 errors (10 existing `<img>` advisories outside Map Maker); TypeScript passed; 59/59 figure tests passed; 46/46 desktop/narrow browser stages passed with no unexpected browser/network errors; and the production build plus all 420 canonical tests passed. A separate real-provider headless run passed 24/24 assertions, including two successful constrained AI edits. Evidence and the manual checklist are in `/Users/vladfrolov/dev/Temp/map-maker-qa-2026-10-14/`.
 
 To start live preview:
 
@@ -185,9 +221,38 @@ Next.js usually serves at `http://localhost:3000/`; it will select another port 
 2. Visually inspect terrain, mountain labels, and capital labels at world, regional, and detail zoom.
 3. Export with several layer combinations and verify hidden/visible state in Illustrator.
 4. Specifically verify that the zero-origin crop fix eliminated Illustrator’s left-shifted text.
-5. Tune label collision/placement if city and mountain names still overlap in dense regions. Current logic uses scalerank, not a full collision engine.
-6. Consider implementing a proper label-collision pass before adding more dense layers.
-7. Wire the prompt field to a constrained resolver that returns structured entity IDs and styling instructions; never accept model-generated polygons.
+5. Tune label collision/placement if city and mountain names still overlap in dense regions. The collision engine, density controls, and manual positioning are implemented, but actual-size editorial review is still required.
+6. Exercise prompt aliases and unresolved territories in both languages; normalization and explicit English/Czech/historical aliases are implemented, while the current live-provider run predates operation-by-operation approval.
+7. Verify the contextual `AI ENABLED` / `AI AKTIVNÍ` prompt badge in any future layout or localization changes; Map Maker intentionally has no detached top-level processing badge.
+
+## Continuation ledger — editorial production improvements
+
+Last checkpoint: 2026-10-15. Keep this section current after each bounded implementation slice.
+
+Completed and narrowly validated:
+
+- Climate layer upgraded from blurred 0.5° run rectangles to five unblurred editable contour paths. Import starts from the official Beck et al. V1 0.083333° raster, aggregates broad groups to 0.166667°, contour-smooths and removes sub-print fragments. Climate colours now appear in the live and exported map legends when enabled; the toolbar contains only the temporal caveat. `d3-contour` is an importer-only development dependency.
+- Physical export presets: original SVG plus 90 mm column, 135 mm half-page, and 180 mm full-page. Physical presets bake 7 pt labels, print-safe line weights, physical legend dimensions, and explicit SVG `width`/`height` in millimetres.
+- Political, Physical, Historical, Climate, and Blank layer presets.
+- Essential, Standard, and Detailed label density backed by the collision layout engine.
+- Publication preflight for physical size, source/date presence, minimum text and line assumptions, RGB colour usage, browser-verified Verdana availability, visible labels crossing the crop, label density, excessive thematic layers, and mixed-period overlays.
+- Export metadata controls for title, subtitle, source, projection note, and copyright. Defaults come from the map/projection but remain independently editable. Export includes machine-readable metadata and named `Publication metadata`, `Map title`, and `Map credits` SVG groups, with physical type sizes for print presets.
+- Manual label positioning: a dedicated drag mode writes offsets/selected variants into SVG label attributes; collision relayout and export honor them. Undo and reset are available. Positions survive same-projection year reloads and are intentionally cleared when projection changes.
+- AI operation review/history: prompt results are staged instead of applied immediately; editors can approve individual fills/labels or dismiss the preview. Applied and dismissed requests remain in a capped in-session history. Fill previews show resolved territory names while IDs remain authoritative.
+- Territory alias resolution normalizes case, diacritics, punctuation, ampersands, and leading English `the`, then uses explicit synonym groups for common English, Czech, and historical names. It deliberately avoids fuzzy matching between similarly named territories.
+- Bilingual tool documentation describes the production controls and AI review flow.
+- Physical relief and scale upgrade: old repeated range chevrons were replaced by curved vector ridge/hachure relief clipped to Natural Earth range polygons. A reproducible Natural Earth elevation-point importer adds 632 named summit points; triangle markers and elevation labels are rank-gated by editor zoom and exported under named `Mountain relief`, `Mountain range labels`, and `Summit markers` subgroups. The Physical preset reveals a projection-aware four-segment black/white graphic scale with boundary labels; the distance is calculated by projection inversion and spherical distance near the scale position rather than the former longitude/cosine estimate. Legacy broad terrain polygons are deliberately subdued because they are not an elevation model.
+- Validation for this slice: `npx tsc --noEmit --pretty false` passed; focused ESLint and all 36 Map Maker tests passed; `npm run tools:check` passed with no generated changes; full lint passed with 0 errors and the same 10 unrelated existing `<img>` advisories; the production build and all 429 canonical tests passed; `npm run test:ui` passed all 46 desktop/narrow stages with no unexpected browser/network errors; and `git diff --check` passed. Temporary regional/world PNG inspection caught and corrected excessive standalone summit density, straight comb-like hachures, and overly strong terrain/range fills. The final treatment remains intentionally stylized rather than claiming true hillshade.
+- Validation at the previous checkpoint: `npx tsc --noEmit --pretty false` passed; focused ESLint passed; all 36 Map Maker tests passed; `npm run tools:check` passed with no generated changes; full lint passed with 0 errors and the same 10 existing `<img>` advisories outside Map Maker; the production build and all 429 canonical tests passed; and `npm run test:ui` passed all 46 desktop/narrow stages with no unexpected browser/network errors (10 explicitly recorded font/CSP noise entries). A temporary Natural Earth projection PNG was visually inspected with the climate layer forced visible; contours had correct winding, geographic placement, and clean boundaries without blur.
+
+Next bounded slice:
+
+1. Perform the external Adobe/actual-size print gate below.
+
+External/manual completion gate:
+
+- Illustrator/InDesign/production-PDF/actual-size print round trip cannot be automated here. Use the exported physical presets, verify named layers and text alignment in Illustrator, place in InDesign, export with the production PDF preset, and print at 90/135/180 mm as appropriate. Record the result here.
+- Small-size label hierarchy remains the principal editorial review risk. Do not enable every overlay by default; assess Essential density at 90 mm at actual size.
 
 ## Worktree warning
 

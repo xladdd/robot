@@ -150,7 +150,7 @@ GREP Builder uses a persistent input/result pair. Layer Splitter uses one border
 
 Use when a task-specific structure cannot follow a standard archetype without making the workflow harder. Keep the shared title block, AI Indicator, viewport, control-panel, button, and responsive rules wherever those elements occur.
 
-Map Maker adapts the Visual Workbench – Single into a canvas editor. Its `330px` control panel scrolls internally and moves below the canvas on narrow screens. Solutions Importer remains a unique multi-file workflow.
+Map Maker adapts the Visual Workbench – Single into a canvas editor. Its inset `330px` control panel scrolls internally and moves below the canvas on narrow screens. It uses the shared toolbar-level AI Indicator, section-heading, field, checkbox, and mode-row tokens, but retains its compact year navigator and canvas-overlay geometry. Activating a locked year control shows the four-second tooltip **“Time travel is not yet allowed.”** Projection and region fields share a row when they fit and stack on narrow screens; layers use two columns when they fit and one column on narrow screens. Solutions Importer remains a unique multi-file workflow.
 
 ### Reference / Library
 
@@ -187,19 +187,19 @@ Script Buffet is the current library interface. Its flat horizontal filter strip
 
 ## Current AI Indicator classification
 
-| Tool               | AI Indicator      |
-| ------------------ | ----------------- |
-| Text Extractor     | AI ENABLED        |
-| Index Creator      | AI ENABLED        |
-| Diagram Generator  | AI ENABLED        |
-| Graph Generator    | AI ENABLED        |
-| Cover Generator    | AI ENABLED        |
-| Image Generator    | AI ENABLED        |
-| Layer Splitter     | AI ENABLED        |
-| GREP Builder       | AI ENABLED        |
-| Prompt Extractor   | AI ENABLED        |
-| Map Maker          | PROCESSED LOCALLY |
-| Cover Splitter     | PROCESSED LOCALLY |
-| Solutions Importer | PROCESSED LOCALLY |
-| Script Buffet      | PROCESSED LOCALLY |
-| Barcode Generator  | PROCESSED LOCALLY |
+| Tool               | AI Indicator                      |
+| ------------------ | --------------------------------- |
+| Text Extractor     | AI ENABLED                        |
+| Index Creator      | AI ENABLED                        |
+| Diagram Generator  | AI ENABLED                        |
+| Graph Generator    | AI ENABLED                        |
+| Cover Generator    | AI ENABLED                        |
+| Image Generator    | AI ENABLED                        |
+| Layer Splitter     | AI ENABLED                        |
+| GREP Builder       | AI ENABLED                        |
+| Prompt Extractor   | AI ENABLED                        |
+| Map Maker          | AI ENABLED (inside prompt editor) |
+| Cover Splitter     | PROCESSED LOCALLY                 |
+| Solutions Importer | PROCESSED LOCALLY                 |
+| Script Buffet      | PROCESSED LOCALLY                 |
+| Barcode Generator  | PROCESSED LOCALLY                 |

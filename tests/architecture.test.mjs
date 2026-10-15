@@ -431,7 +431,7 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
       "utf8",
     ),
     readFile(
-      new URL("app/_tools/image/map-generator/prompts/system.md", root),
+      new URL("app/_tools/image/map-generator/prompts/map-prompt.md", root),
       "utf8",
     ),
     readFile(
@@ -465,10 +465,13 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
     diagramServer,
     /diagram-generator\/prompts\/(?:create-brief|reconstruct-vector)\.md/,
   );
-  assert.match(mapServer, /status:\s*410/);
-  assert.match(mapServer, /local-only/);
-  assert.doesNotMatch(mapServer, /loadPrompt|requestOpenRouter/);
-  assert.match(mapPrompt, /longitude\/latitude coordinates/);
+  assert.match(mapServer, /map-generator\/prompts\/map-prompt\.md/);
+  assert.match(mapServer, /requestOpenRouter/);
+  assert.doesNotMatch(mapServer, /polygons|generate geometry/);
+  assert.match(
+    mapPrompt,
+    /never generate, invent, or describe geographic geometry/,
+  );
   assert.match(typesetterServer, /typesetter\/prompts\/classify\.md/);
   assert.match(typesetterPrompt, /Never rewrite, correct, translate/);
 });
@@ -514,7 +517,7 @@ test("ships Script Buffet and repeatable Design Manual PDF exports", async () =>
   assert.match(changelog, /^# Changelog/m);
 });
 
-test("uses one explicit processing badge across tool interfaces", async () => {
+test("uses explicit processing badges, including Map Maker's toolbar-level AI state", async () => {
   const chrome = await readFile(
     new URL("app/_components/ToolChrome.tsx", root),
     "utf8",
@@ -536,13 +539,13 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       "image/graph-generator",
       "image/image-generator",
       "image/cover-generator",
+      "image/map-generator",
       "image/layer-splitter",
       "design/grep-builder",
       "design/typesetter",
       "text/prompt-extractor",
     ],
     local: [
-      "image/map-generator",
       "design/cover-splitter",
       "design/solutions-importer",
       "design/script-buffet",
@@ -559,6 +562,22 @@ test("uses one explicit processing badge across tool interfaces", async () => {
       assert.match(source, new RegExp(`mode=["']${mode}["']`), app);
     }
   }
+
+  const mapInterface = await readFile(
+    new URL("app/_tools/image/map-generator/MainInterface.tsx", root),
+    "utf8",
+  );
+  const mapCopy = await readFile(
+    new URL("app/_tools/image/map-generator/copy.ts", root),
+    "utf8",
+  );
+  assert.match(
+    mapInterface,
+    /<ProcessingBadge mode="ai" language=\{language\} \/>/,
+  );
+  assert.doesNotMatch(mapInterface, /className="map-ai-indicator"/);
+  assert.match(mapCopy, /aiEnabled:\s*"AI ENABLED"/);
+  assert.match(mapCopy, /aiEnabled:\s*"AI AKTIVNÍ"/);
 });
 
 test("keeps one app-title scale and inline GREP results", async () => {
@@ -693,6 +712,8 @@ test("keeps the documented document and visual workspace families", async () => 
     /\.cover-module\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 335px/s,
   );
   assert.match(css, /\.editor-sidebar\s*\{[^}]*padding:\s*14px 18px 18px/s);
+  assert.match(css, /\.map-control-section\s*\{/);
+  assert.match(map, /className="map-control-section map-layers"/);
   assert.match(css, /\.visual-single-toolbar\.editor-sidebar/);
   assert.match(
     css,

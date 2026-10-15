@@ -29,7 +29,7 @@ export const toolDefinitions = [
     "category": "image",
     "folder": "image/map-generator",
     "available": true,
-    "hidden": true,
+    "hidden": false,
     "label": {
       "en": "Map Maker",
       "cs": "Tvůrce map"
@@ -209,6 +209,11 @@ export const openRouterApps = {
     "name": "Index Creator",
     "slug": "index-creator",
     "envName": "OPENROUTER_INDEX_CREATOR_API_KEY"
+  },
+  "map": {
+    "name": "Map Maker",
+    "slug": "map-generator",
+    "envName": "OPENROUTER_MAP_GENERATOR_API_KEY"
   },
   "bio": {
     "name": "Diagram Generator",

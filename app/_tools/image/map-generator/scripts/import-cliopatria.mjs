@@ -55,6 +55,9 @@ const records = source.features.filter((feature) => feature.geometry && feature.
   wikipedia: String(feature.properties.Wikipedia || ""),
   geometry: simplifyGeometry(feature.geometry),
 }));
+const adaptations = [];
+if (tolerance > 0) adaptations.push(`geometry simplified at ${tolerance}° tolerance`);
+adaptations.push("coordinates quantized to four decimals");
 const output = {
   version: 1,
   source: {
@@ -65,7 +68,7 @@ const output = {
     sha256: crypto.createHash("sha256").update(input).digest("hex"),
     importedAt: new Date().toISOString(),
     simplificationToleranceDegrees: tolerance,
-    adaptation: "Geometry simplified and coordinates quantized for interactive web rendering.",
+    adaptation: `Adaptations for interactive web rendering: ${adaptations.join("; ")}.`,
   },
   coverage: { fromYear: -3400, throughYear: 2024 },
   records,

@@ -36,13 +36,20 @@ export async function mockHiddenApi(route, state, json) {
   if (url.pathname === "/api/maps/timeline" && request.method() === "GET") {
     const year = url.searchParams.get("year");
     if (!/^-?\d+$/.test(year ?? "")) return false;
-    state.timelines.push(Number(year));
+    const lang = url.searchParams.get("lang") === "cs" ? "cs" : "en";
+    const projection = url.searchParams.get("projection") ?? "schematic";
+    state.timelines.push({ year: Number(year), lang, projection });
     await json(route, {
-      svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" data-fixture-map-year="${year}"><title>Synthetic map ${year}</title><g id="countries"><path data-region-id="fixture-region" d="M100 100H600V500H100Z" fill="#99bb88"/></g><g id="labels"/><g id="water-labels"/><g id="rivers"/></svg>`,
+      svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" data-fixture-map-year="${year}" data-fixture-map-lang="${lang}" data-fixture-map-projection="${projection}"><title>Synthetic map ${year}</title><g id="land" class="base-land"><path d="M0 0H1000V700H0Z" fill="#f4f0df"/></g><circle data-fixture-region-center="europe" cx="519.444" cy="212.166" r="4" fill="#d44"/><g id="countries-borders" class="regions"><path data-region-id="fixture-region" d="M100 100H600V500H100Z" fill="#99bb88"/></g><g id="lakes" class="natural-lakes"><path d="M450 300h100v60H450Z" fill="#eaf6fa"/></g><g id="labels"/><g id="water-labels"/><g id="rivers" class="natural-rivers"/></svg>`,
       report: "Synthetic deterministic timeline fixture",
       checks: [],
       model: "local/fixture",
-      spec: { title: `Synthetic Map ${year}`, date: year, sources: [] },
+      spec: {
+        title: `Synthetic Map ${year}`,
+        date: year,
+        sources: [],
+        categories: [],
+      },
     });
     return true;
   }
@@ -334,13 +341,18 @@ export async function runHiddenLifecycleChecks({
     async () => {
       await select("map");
       await expect(
-        slot("map").locator('svg[data-fixture-map-year="1914"]'),
+        slot("map").locator('svg[data-fixture-map-year="2026"]'),
       ).toHaveCount(1);
-      await slot("map").locator("input[type=number]").fill("1920");
-      await slot("map").locator("input[type=number]").press("Tab");
-      await expect(slot("map").locator(".map-timeline-status")).toHaveCount(0);
       await expect(
-        slot("map").locator('svg[data-fixture-map-year="1920"]'),
+        slot("map").locator(".map-year-field input"),
+      ).toHaveAttribute("aria-disabled", "true");
+      const requests = state.timelines.length;
+      await slot("map").locator(".map-year-field button").first().click({
+        force: true,
+      });
+      await expect(page.locator("body > .map-time-tooltip")).toHaveCount(1);
+      await expect(
+        slot("map").locator('svg[data-fixture-map-year="2026"]'),
       ).toHaveCount(1);
       await slot("map").locator(".map-fill-toggle").click();
       await expect(slot("map").locator(".map-fill-toggle")).toHaveAttribute(
@@ -350,15 +362,16 @@ export async function runHiddenLifecycleChecks({
       await slot("map").locator(".map-layer-labels input").uncheck();
       await slot("map").locator(".map-view-buttons button").first().click();
       const svg = slot("map").locator(".map-transform svg");
-      await expect(svg).not.toHaveAttribute("viewBox", "0 0 1000 700");
-      const viewBox = await svg.getAttribute("viewBox");
-      const requests = state.timelines.length;
+      await expect(svg).toHaveAttribute("viewBox", "0 0 1000 700");
+      await expect(svg).not.toHaveAttribute("style", /scale\(1(\.0)?\)/);
+      const transform = await svg.getAttribute("style");
+      const requestsWithZoom = state.timelines.length;
       await select("graph");
       await page.keyboard.press("+");
-      await expect(svg).toHaveAttribute("viewBox", viewBox);
+      await expect(svg).toHaveAttribute("style", transform);
       await select("map");
-      await expect(slot("map").locator("input[type=number]")).toHaveValue(
-        "1920",
+      await expect(slot("map").locator(".map-year-field input")).toHaveValue(
+        "2026",
       );
       await expect(slot("map").locator(".map-fill-toggle")).toHaveAttribute(
         "aria-pressed",
@@ -367,11 +380,12 @@ export async function runHiddenLifecycleChecks({
       await expect(
         slot("map").locator(".map-layer-labels input"),
       ).not.toBeChecked();
-      await expect(svg).toHaveAttribute("viewBox", viewBox);
-      expect(state.timelines.length).toBe(requests);
+      await expect(svg).toHaveAttribute("style", transform);
+      expect(state.timelines.length).toBe(requestsWithZoom);
       await page.locator('[data-fixture-select="map"]').focus();
       await page.keyboard.press("+");
-      await expect(svg).not.toHaveAttribute("viewBox", viewBox);
+      await expect(svg).not.toHaveAttribute("style", transform);
+      expect(state.timelines.length).toBe(requests);
     },
   );
 

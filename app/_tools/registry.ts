@@ -43,7 +43,7 @@ export const appRegistryEntries = [
     category: "image",
     folder: "image/map-generator",
     available: true,
-    hidden: true,
+    hidden: false,
   },
   {
     id: "bio",

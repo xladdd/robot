@@ -6,6 +6,9 @@ export default {
     "cs": "Tvůrce map"
   },
   "status": "alpha",
+  "openRouter": {
+    "envName": "OPENROUTER_MAP_GENERATOR_API_KEY"
+  },
   "routes": [
     {
       "path": "/api/maps/generate",

@@ -4,33 +4,34 @@ import type { ModelStageDefinition } from "../models";
 import type { toolDefinitions } from "./registry.data";
 import { modelDefinitions as models0 } from "../text/text-extractor/model-definitions";
 import { modelDefinitions as models1 } from "../text/index-creator/model-definitions";
-import { modelDefinitions as models2 } from "../image/diagram-generator/model-definitions";
-import { modelDefinitions as models3 } from "../image/graph-generator/model-definitions";
-import { modelDefinitions as models4 } from "../image/image-generator/model-definitions";
-import { modelDefinitions as models5 } from "../image/cover-generator/model-definitions";
-import { modelDefinitions as models6 } from "../image/concept-illustrator/model-definitions";
-import { modelDefinitions as models7 } from "../image/layer-splitter/model-definitions";
-import { modelDefinitions as models8 } from "../design/grep-builder/model-definitions";
-import { modelDefinitions as models9 } from "../design/style-trainer/model-definitions";
-import { modelDefinitions as models10 } from "../text/prompt-extractor/model-definitions";
-import { modelDefinitions as models11 } from "../design/typesetter/model-definitions";
+import { modelDefinitions as models2 } from "../image/map-generator/model-definitions";
+import { modelDefinitions as models3 } from "../image/diagram-generator/model-definitions";
+import { modelDefinitions as models4 } from "../image/graph-generator/model-definitions";
+import { modelDefinitions as models5 } from "../image/image-generator/model-definitions";
+import { modelDefinitions as models6 } from "../image/cover-generator/model-definitions";
+import { modelDefinitions as models7 } from "../image/concept-illustrator/model-definitions";
+import { modelDefinitions as models8 } from "../image/layer-splitter/model-definitions";
+import { modelDefinitions as models9 } from "../design/grep-builder/model-definitions";
+import { modelDefinitions as models10 } from "../design/style-trainer/model-definitions";
+import { modelDefinitions as models11 } from "../text/prompt-extractor/model-definitions";
+import { modelDefinitions as models12 } from "../design/typesetter/model-definitions";
 
 export const modelDefinitionsByFolder: Readonly<Record<(typeof toolDefinitions)[number]["folder"], readonly ModelStageDefinition[]>> = {
   "text/text-extractor": models0,
   "text/index-creator": models1,
-  "image/map-generator": [],
-  "image/diagram-generator": models2,
-  "image/graph-generator": models3,
-  "image/image-generator": models4,
-  "image/cover-generator": models5,
-  "image/concept-illustrator": models6,
-  "image/layer-splitter": models7,
-  "design/grep-builder": models8,
+  "image/map-generator": models2,
+  "image/diagram-generator": models3,
+  "image/graph-generator": models4,
+  "image/image-generator": models5,
+  "image/cover-generator": models6,
+  "image/concept-illustrator": models7,
+  "image/layer-splitter": models8,
+  "design/grep-builder": models9,
   "design/cover-splitter": [],
   "design/solutions-importer": [],
   "design/script-buffet": [],
   "design/barcode-generator": [],
-  "design/style-trainer": models9,
-  "text/prompt-extractor": models10,
-  "design/typesetter": models11,
+  "design/style-trainer": models10,
+  "text/prompt-extractor": models11,
+  "design/typesetter": models12,
 };
