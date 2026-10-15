@@ -73,7 +73,7 @@ export const imageGeneratorUi = {
     scene: "SCENE",
     scenePlaceholder: "Overall scene description…",
     stylePlaceholder: "Art direction, medium, rendering aesthetic…",
-    presets: "PRESETS",
+    presets: "STYLE PRESETS",
     presetsCustom: "Custom",
     stylePresetAtmosphericPhotomontage:
       "Atmospheric environmental photomontage",
@@ -205,7 +205,7 @@ export const imageGeneratorUi = {
     scene: "SCÉNA",
     scenePlaceholder: "Celkový popis scény…",
     stylePlaceholder: "Umělecká stylizace, médium, estetika…",
-    presets: "PŘEDNASTAVENÍ",
+    presets: "PŘEDNASTAVENÍ STYLŮ",
     presetsCustom: "Vlastní",
     stylePresetAtmosphericPhotomontage:
       "Atmosférická environmentální fotomontáž",

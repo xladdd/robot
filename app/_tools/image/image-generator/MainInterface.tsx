@@ -1161,6 +1161,11 @@ export function ImageGeneratorMainInterface({
               </option>
             ))}
           </select>
+          {mode === "advanced" && (
+            <small className="image-generator-style-source">
+              robot/app/_tools/image/image-generator/code/style-presets.ts
+            </small>
+          )}
         </section>
 
         <section className="cover-control image-generator-section image-generator-parameters-section">

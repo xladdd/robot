@@ -70,7 +70,7 @@ export const toolDefinitions = [
       "cs": "Generátor obrázků"
     },
     "featureFlags": {
-      "advancedMode": true
+      "advancedMode": false
     }
   },
   {

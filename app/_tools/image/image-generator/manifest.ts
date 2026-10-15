@@ -6,7 +6,7 @@ export default {
     cs: "Generátor obrázků",
   },
   featureFlags: {
-    advancedMode: true,
+    advancedMode: false,
   },
   openRouter: {
     envName: "OPENROUTER_IMAGE_GENERATOR_API_KEY",
