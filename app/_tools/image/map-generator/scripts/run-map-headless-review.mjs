@@ -236,6 +236,7 @@ try {
   await context.route("**/api/maps/generate", async (route) => {
     const prompt = route.request().postDataJSON()?.prompt ?? "";
     const scenario = scenarios.find((item) => item.prompt === prompt);
+    await new Promise((accept) => setTimeout(accept, 500));
     await route.fulfill({
       status: scenario ? 200 : 400,
       contentType: "application/json",
@@ -269,6 +270,9 @@ try {
 
   for (const scenario of scenarios) {
     const map = await selectMap();
+    const selectTab = async (tab) => {
+      await map.locator(`[data-map-tab="${tab}"]`).click();
+    };
     const initialPrintOpen = await map
       .locator(".map-print-controls")
       .getAttribute("open");
@@ -287,18 +291,30 @@ try {
       .locator(".map-purpose-grid .map-choice-button")
       .filter({ hasText: scenario.purpose })
       .click();
+    await selectTab("content");
     await map
       .locator(".map-density-grid .map-choice-button")
       .filter({ hasText: scenario.density })
       .click();
     for (const layer of scenario.enableLayers ?? []) {
+      await selectTab(
+        layer === "graticule" || layer === "graticuleFront" ? "map" : "content",
+      );
       const input = map.locator(`.map-layer-${layer} input`);
       if (!(await input.isChecked())) await input.check();
     }
 
+    await selectTab("edit");
     await map.locator(".map-prompt-field textarea").fill(scenario.prompt);
     await map.locator(".map-prompt-field > button").click();
+    await selectTab("map");
     await map.locator(".map-ai-preview").waitFor({ state: "visible" });
+    if (
+      (await map
+        .locator('[data-map-tab="edit"]')
+        .getAttribute("aria-selected")) !== "true"
+    )
+      throw new Error(`AI preview did not activate Edit for ${scenario.id}`);
     if (scenario.rejectLastOperation)
       await map.locator(".map-ai-preview input").last().uncheck();
     await map.locator(".map-ai-preview > div button").first().click();
@@ -374,6 +390,7 @@ try {
       await positionToggle.click();
     }
 
+    await selectTab("export");
     await map.locator(".map-print-controls summary").click();
     await map
       .locator(".map-export-metadata-fields input")

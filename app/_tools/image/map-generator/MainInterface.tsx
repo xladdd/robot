@@ -55,6 +55,8 @@ export type MapProjection =
   "schematic" | "robinson" | "eckert4" | "naturalEarth";
 
 type MapViewport = { zoom: number; pan: { x: number; y: number } };
+const MAP_CONTROL_TABS = ["map", "content", "edit", "export"] as const;
+type MapControlTab = (typeof MAP_CONTROL_TABS)[number];
 
 const mapRegions: Record<
   string,
@@ -274,6 +276,14 @@ export function MapMainInterface({
     },
   });
   const [isMapRendering, setIsMapRendering] = useState(false);
+  const [activeMapTab, setActiveMapTab] = useState<MapControlTab>("map");
+  const controlsRef = useRef<HTMLElement | null>(null);
+  const tabScrollRef = useRef<Record<MapControlTab, number>>({
+    map: 0,
+    content: 0,
+    edit: 0,
+    export: 0,
+  });
   const [timeTravelNotice, setTimeTravelNotice] = useState(false);
   const [timeTooltipPos, setTimeTooltipPos] = useState<{
     top: number;
@@ -320,6 +330,35 @@ export function MapMainInterface({
         maximumFractionDigits: 0,
       }),
   );
+  const activeContentLayerCount = [
+    ...mapGeographyLayers,
+    ...mapLabelLayers,
+  ].filter((layer) => mapLayers[layer]).length;
+  const editChangeCount =
+    hiddenMapLabelCount +
+    positionedMapLabelCount +
+    mapDrawCount +
+    mapAiHistory
+      .filter((entry) => entry.status === "applied")
+      .reduce((total, entry) => total + entry.approved, 0);
+  const exportWarningCount = mapPreflight.filter(
+    ({ level }) => level === "warning",
+  ).length;
+  const selectMapTab = (tab: MapControlTab) => {
+    const controls = controlsRef.current;
+    if (controls) tabScrollRef.current[activeMapTab] = controls.scrollTop;
+    setActiveMapTab(tab);
+    window.requestAnimationFrame(() => {
+      if (controlsRef.current)
+        controlsRef.current.scrollTop = tabScrollRef.current[tab];
+    });
+  };
+
+  useEffect(() => {
+    if (mapAiPreview) selectMapTab("edit");
+    // Switching tabs is intentionally tied only to a newly available preview.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapAiPreview]);
 
   useLayoutEffect(() => {
     labelOptionsRef.current = {
@@ -510,636 +549,748 @@ export function MapMainInterface({
   return (
     <div className="figure-module map-module">
       <div className="figure-workbench map-workbench">
-        <section className="figure-controls editor-sidebar">
+        <section ref={controlsRef} className="figure-controls editor-sidebar">
           <ProcessingBadge mode="ai" language={language} />
+          <div
+            className="map-control-tabs"
+            role="tablist"
+            aria-label={t.tabListLabel}
+          >
+            {(
+              [
+                ["map", t.tabs.map, null],
+                ["content", t.tabs.content, activeContentLayerCount],
+                ["edit", t.tabs.edit, editChangeCount],
+                ["export", t.tabs.export, exportWarningCount],
+              ] as const
+            ).map(([tab, label, count]) => (
+              <button
+                key={tab}
+                id={`map-control-tab-${tab}`}
+                type="button"
+                role="tab"
+                data-map-tab={tab}
+                aria-controls={`map-control-panel-${tab}`}
+                aria-selected={activeMapTab === tab}
+                tabIndex={activeMapTab === tab ? 0 : -1}
+                onClick={() => selectMapTab(tab)}
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                      event.key,
+                    )
+                  )
+                    return;
+                  event.preventDefault();
+                  const currentIndex = MAP_CONTROL_TABS.indexOf(tab);
+                  const nextIndex =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? MAP_CONTROL_TABS.length - 1
+                        : (currentIndex +
+                            (event.key === "ArrowRight" ? 1 : -1) +
+                            MAP_CONTROL_TABS.length) %
+                          MAP_CONTROL_TABS.length;
+                  const nextTab = MAP_CONTROL_TABS[nextIndex];
+                  selectMapTab(nextTab);
+                  window.requestAnimationFrame(() =>
+                    document
+                      .getElementById(`map-control-tab-${nextTab}`)
+                      ?.focus(),
+                  );
+                }}
+              >
+                <span>{label}</span>
+                {count !== null && count > 0 && <small>{count}</small>}
+              </button>
+            ))}
+          </div>
           <div className="map-editor-controls">
             <div
-              className={`map-year-field ${TIME_TRAVEL_ENABLED ? "" : "map-time-locked"}`}
-              ref={yearFieldRef}
+              id="map-control-panel-map"
+              className="map-tab-panel"
+              role="tabpanel"
+              data-map-tab-panel="map"
+              aria-labelledby="map-control-tab-map"
+              hidden={activeMapTab !== "map"}
             >
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    TIME_TRAVEL_ENABLED
-                      ? onTimelineStep(-1)
-                      : showTimeTravelNotice()
+              <div
+                className={`map-year-field ${TIME_TRAVEL_ENABLED ? "" : "map-time-locked"}`}
+                ref={yearFieldRef}
+              >
+                <div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      TIME_TRAVEL_ENABLED
+                        ? onTimelineStep(-1)
+                        : showTimeTravelNotice()
+                    }
+                    aria-disabled={!TIME_TRAVEL_ENABLED}
+                    aria-label={t.previousYear}
+                  >
+                    <i />
+                  </button>
+                  <input
+                    aria-label={t.mapYear}
+                    type="number"
+                    min="-3400"
+                    max="2026"
+                    value={TIME_TRAVEL_ENABLED ? timelineYearInput : "2026"}
+                    readOnly={!TIME_TRAVEL_ENABLED}
+                    aria-disabled={!TIME_TRAVEL_ENABLED}
+                    onChange={(event) =>
+                      TIME_TRAVEL_ENABLED
+                        ? onTimelineInput(event.target.value)
+                        : showTimeTravelNotice()
+                    }
+                    onBlur={TIME_TRAVEL_ENABLED ? onTimelineCommit : undefined}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      TIME_TRAVEL_ENABLED
+                        ? onTimelineStep(1)
+                        : showTimeTravelNotice()
+                    }
+                    aria-disabled={!TIME_TRAVEL_ENABLED}
+                    aria-label={t.nextYear}
+                  >
+                    <i />
+                  </button>
+                </div>
+                {timeTravelNotice &&
+                  timeTooltipPos !== null &&
+                  createPortal(
+                    <span
+                      className="map-time-tooltip"
+                      role="status"
+                      style={{
+                        top: timeTooltipPos.top,
+                        right: timeTooltipPos.right,
+                      }}
+                    >
+                      {t.timeTravelNotice}
+                    </span>,
+                    document.body,
+                  )}
+              </div>
+              <div
+                className={`map-year-slider ${TIME_TRAVEL_ENABLED ? "" : "map-time-locked"}`}
+                onPointerDownCapture={(event) => {
+                  if (!TIME_TRAVEL_ENABLED) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    showTimeTravelNotice();
                   }
-                  aria-disabled={!TIME_TRAVEL_ENABLED}
-                  aria-label={t.previousYear}
-                >
-                  <i />
-                </button>
+                }}
+              >
                 <input
-                  aria-label={t.mapYear}
-                  type="number"
+                  aria-label={t.historicalTimeline}
+                  type="range"
                   min="-3400"
                   max="2026"
-                  value={TIME_TRAVEL_ENABLED ? timelineYearInput : "2026"}
-                  readOnly={!TIME_TRAVEL_ENABLED}
-                  aria-disabled={!TIME_TRAVEL_ENABLED}
+                  value={timelineYear}
                   onChange={(event) =>
                     TIME_TRAVEL_ENABLED
-                      ? onTimelineInput(event.target.value)
+                      ? onTimelineSlider(Number(event.currentTarget.value))
                       : showTimeTravelNotice()
                   }
-                  onBlur={TIME_TRAVEL_ENABLED ? onTimelineCommit : undefined}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") event.currentTarget.blur();
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() =>
+                  onPointerUp={(event) =>
                     TIME_TRAVEL_ENABLED
-                      ? onTimelineStep(1)
-                      : showTimeTravelNotice()
-                  }
-                  aria-disabled={!TIME_TRAVEL_ENABLED}
-                  aria-label={t.nextYear}
-                >
-                  <i />
-                </button>
-              </div>
-              {timeTravelNotice &&
-                timeTooltipPos !== null &&
-                createPortal(
-                  <span
-                    className="map-time-tooltip"
-                    role="status"
-                    style={{
-                      top: timeTooltipPos.top,
-                      right: timeTooltipPos.right,
-                    }}
-                  >
-                    {t.timeTravelNotice}
-                  </span>,
-                  document.body,
-                )}
-            </div>
-            <div
-              className={`map-year-slider ${TIME_TRAVEL_ENABLED ? "" : "map-time-locked"}`}
-              onPointerDownCapture={(event) => {
-                if (!TIME_TRAVEL_ENABLED) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  showTimeTravelNotice();
-                }
-              }}
-            >
-              <input
-                aria-label={t.historicalTimeline}
-                type="range"
-                min="-3400"
-                max="2026"
-                value={timelineYear}
-                onChange={(event) =>
-                  TIME_TRAVEL_ENABLED
-                    ? onTimelineSlider(Number(event.currentTarget.value))
-                    : showTimeTravelNotice()
-                }
-                onPointerUp={(event) =>
-                  TIME_TRAVEL_ENABLED
-                    ? onTimelineSliderCommit(Number(event.currentTarget.value))
-                    : showTimeTravelNotice()
-                }
-              />
-              <div>
-                <span>3400 {t.bce}</span>
-                <span>1 {t.ce}</span>
-                <span>2026</span>
-              </div>
-            </div>
-            {isLoadingTimeline && (
-              <p className="map-timeline-status">
-                Loading{" "}
-                {timelineYear < 0
-                  ? `${Math.abs(timelineYear)} BCE`
-                  : timelineYear}
-                …
-              </p>
-            )}
-            {error && (
-              <p className="extraction-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <section className="map-control-section map-projection">
-              <h2>{t.projection}</h2>
-              <label>
-                <select
-                  aria-label={t.projection}
-                  value={mapProjection}
-                  onChange={(event) =>
-                    onChangeMapProjection(event.target.value as MapProjection)
-                  }
-                >
-                  {(Object.keys(t.projectionOptions) as MapProjection[]).map(
-                    (projection) => (
-                      <option key={projection} value={projection}>
-                        {t.projectionOptions[projection]}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-              <label>
-                <select
-                  aria-label={t.region}
-                  value=""
-                  onChange={(event) => {
-                    if (event.target.value) selectMapRegion(event.target.value);
-                    event.target.value = "";
-                  }}
-                >
-                  <option value="">{t.regionChoose}</option>
-                  {(
-                    Object.keys(t.regionOptions) as Array<
-                      keyof typeof t.regionOptions
-                    >
-                  ).map((region) => (
-                    <option key={region} value={region}>
-                      {t.regionOptions[region]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="map-layer-grid map-projection-options">
-                {(["graticule", "graticuleFront"] as const).map((layer) => (
-                  <label
-                    className={`map-layer-${layer} ${layer === "graticuleFront" && !mapLayers.graticule ? "map-layer-disabled" : ""}`}
-                    key={layer}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={mapLayers[layer]}
-                      disabled={
-                        layer === "graticuleFront" && !mapLayers.graticule
-                      }
-                      onChange={() => onToggleLayer(layer, !mapLayers[layer])}
-                    />
-                    {t.mapLayers[layer]}
-                  </label>
-                ))}
-              </div>
-            </section>
-            <section className="map-control-section map-purpose-controls">
-              <h2>{t.purpose}</h2>
-              <div className="map-purpose-grid">
-                {MAP_PURPOSES.map((purpose) => (
-                  <button
-                    key={purpose}
-                    type="button"
-                    className="map-choice-button"
-                    aria-pressed={mapPurpose === purpose}
-                    onClick={() => onApplyMapPurpose(purpose)}
-                  >
-                    {t.purposeOptions[purpose]}
-                  </button>
-                ))}
-              </div>
-              {mapPurpose === null && (
-                <p className="map-purpose-custom">{t.customPurpose}</p>
-              )}
-              <p className="map-layer-note">{t.purposeNote}</p>
-            </section>
-            <section
-              className="map-control-section map-layers"
-              aria-label={t.layers}
-            >
-              <div className="map-layer-columns">
-                <div className="map-layer-column">
-                  <h2>{t.layers}</h2>
-                  <div className="map-layer-grid">
-                    {mapGeographyLayers.map((layer) => (
-                      <label className={`map-layer-${layer}`} key={layer}>
-                        <input
-                          type="checkbox"
-                          checked={mapLayers[layer]}
-                          onChange={() =>
-                            onToggleLayer(layer, !mapLayers[layer])
-                          }
-                        />
-                        {t.mapLayers[layer]}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="map-layer-column map-label-column">
-                  <h2>{t.labelLayers}</h2>
-                  <div className="map-layer-grid">
-                    {mapLabelLayers.map((layer) => (
-                      <label className={`map-layer-${layer}`} key={layer}>
-                        <input
-                          type="checkbox"
-                          checked={mapLayers[layer]}
-                          onChange={() =>
-                            onToggleLayer(layer, !mapLayers[layer])
-                          }
-                        />
-                        {t.mapLayers[layer]}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="map-layer-density">
-                    <h3>{t.labelDensity}</h3>
-                    <div className="map-density-grid">
-                      {MAP_LABEL_DENSITIES.map((density) => (
-                        <button
-                          key={density}
-                          type="button"
-                          className="map-choice-button"
-                          aria-pressed={mapLabelDensity === density}
-                          onClick={() => onChangeMapLabelDensity(density)}
-                        >
-                          {t.labelDensityOptions[density]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="map-layer-note map-layer-priority-note">
-                {t.labelDensityNote}
-              </p>
-            </section>
-            {mapLayers.climate && (
-              <p className="map-layer-note">{t.climateNote}</p>
-            )}
-            <section className="map-control-section map-prompt-field">
-              <h2>{t.editMap}</h2>
-              <textarea
-                value={mapPromptText}
-                maxLength={600}
-                placeholder={t.mapPrompt}
-                onChange={(event) => onChangeMapPromptText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && (event.metaKey || event.ctrlKey))
-                    onApplyMapPrompt();
-                }}
-              />
-              <button
-                type="button"
-                disabled={isMapPromptRunning || !mapPromptText.trim()}
-                onClick={onApplyMapPrompt}
-              >
-                {isMapPromptRunning ? t.promptRunning : t.applyPrompt}
-              </button>
-              {mapPromptStatus && (
-                <p className="map-layer-note">{mapPromptStatus}</p>
-              )}
-              {mapAiPreview && (
-                <div className="map-ai-preview">
-                  <span>{t.promptPreview}</span>
-                  {mapAiPreview.operations.map(
-                    ({ operation, approved }, index) => (
-                      <label key={`${operation.type}-${index}`}>
-                        <input
-                          type="checkbox"
-                          checked={approved}
-                          onChange={() => onToggleMapAiOperation(index)}
-                        />
-                        <span>
-                          {operation.type === "fill"
-                            ? t.aiFillSummary(
-                                operation.targets,
-                                operation.color,
-                              )
-                            : t.aiLabelSummary(operation.text)}
-                        </span>
-                      </label>
-                    ),
-                  )}
-                  {mapAiPreview.unresolved.length > 0 && (
-                    <p className="map-layer-note">
-                      {t.promptUnresolved(mapAiPreview.unresolved.length)}{" "}
-                      {mapAiPreview.unresolved.join(", ")}
-                    </p>
-                  )}
-                  <div>
-                    <button
-                      type="button"
-                      disabled={
-                        !mapAiPreview.operations.some(
-                          ({ approved }) => approved,
+                      ? onTimelineSliderCommit(
+                          Number(event.currentTarget.value),
                         )
-                      }
-                      onClick={onApplyMapAiPreview}
-                    >
-                      {t.approveSelected}
-                    </button>
-                    <button type="button" onClick={onDismissMapAiPreview}>
-                      {t.dismissPreview}
-                    </button>
-                  </div>
+                      : showTimeTravelNotice()
+                  }
+                />
+                <div>
+                  <span>3400 {t.bce}</span>
+                  <span>1 {t.ce}</span>
+                  <span>2026</span>
                 </div>
+              </div>
+              {isLoadingTimeline && (
+                <p className="map-timeline-status">
+                  Loading{" "}
+                  {timelineYear < 0
+                    ? `${Math.abs(timelineYear)} BCE`
+                    : timelineYear}
+                  …
+                </p>
               )}
-              {mapAiHistory.length > 0 && (
-                <details className="map-ai-history">
-                  <summary>{t.promptHistory}</summary>
-                  {mapAiHistory.map((entry, index) => (
-                    <p key={`${entry.prompt}-${index}`}>
-                      <b>{entry.status === "applied" ? "✓" : "×"}</b>
-                      <span>{entry.prompt}</span>
-                      <small>
-                        {entry.status === "applied"
-                          ? t.historyApplied(entry.approved, entry.total)
-                          : t.historyDismissed}
-                      </small>
-                    </p>
-                  ))}
-                </details>
+              {error && (
+                <p className="extraction-error" role="alert">
+                  {error}
+                </p>
               )}
-            </section>
 
-            <button
-              type="button"
-              className={`map-fill-toggle ${mapFillMode ? "active" : ""}`}
-              aria-pressed={mapFillMode}
-              onClick={() => onMapFillMode((active) => !active)}
-            >
-              <i />
-              <span>
-                {t.fillCountries}
-                {mapFillMode ? `: ${t.on}` : ""}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`map-label-toggle ${mapLabelMode ? "active" : ""}`}
-              aria-pressed={mapLabelMode}
-              onClick={() => onMapLabelMode((active) => !active)}
-            >
-              <i />
-              <span>
-                {t.hideLabels}
-                {mapLabelMode ? `: ${t.on}` : ""}
-              </span>
-            </button>
-            {(mapLabelMode || hiddenMapLabelCount > 0) && (
-              <div className="map-label-tools">
-                <button
-                  type="button"
-                  disabled={hiddenMapLabelCount === 0}
-                  onClick={onUndoHiddenMapLabel}
-                >
-                  {t.undoHiddenLabel}
-                </button>
-                <button
-                  type="button"
-                  disabled={hiddenMapLabelCount === 0}
-                  onClick={onUnhideAllMapLabels}
-                >
-                  {t.unhideAllLabels}
-                </button>
-                {hiddenMapLabelCount > 0 && (
-                  <span className="map-label-count">{hiddenMapLabelCount}</span>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              className={`map-label-toggle map-label-position-toggle ${mapLabelPositionMode ? "active" : ""}`}
-              aria-pressed={mapLabelPositionMode}
-              onClick={() => onMapLabelPositionMode((active) => !active)}
-            >
-              <i />
-              <span>
-                {t.positionLabels}
-                {mapLabelPositionMode ? `: ${t.on}` : ""}
-              </span>
-            </button>
-            {(mapLabelPositionMode || positionedMapLabelCount > 0) && (
-              <div className="map-label-tools">
-                <button
-                  type="button"
-                  disabled={positionedMapLabelCount === 0}
-                  onClick={onUndoMapLabelPosition}
-                >
-                  {t.undoHiddenLabel}
-                </button>
-                <button
-                  type="button"
-                  disabled={positionedMapLabelCount === 0}
-                  onClick={onResetMapLabelPositions}
-                >
-                  {t.resetLabelPositions}
-                </button>
-                {positionedMapLabelCount > 0 && (
-                  <span className="map-label-count">
-                    {positionedMapLabelCount}
-                  </span>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              className={`map-label-toggle map-draw-toggle ${mapDrawMode ? "active" : ""}`}
-              aria-pressed={mapDrawMode}
-              onClick={() => onMapDrawMode((active) => !active)}
-            >
-              <i />
-              <span>
-                {t.drawMode}
-                {mapDrawMode ? `: ${t.on}` : ""}
-              </span>
-            </button>
-            {mapDrawMode && (
-              <div className="map-draw-tools">
-                <label className="map-draw-kind">
-                  <span>{t.drawKind}</span>
+              <section className="map-control-section map-projection">
+                <h2>{t.projection}</h2>
+                <label>
                   <select
-                    value={mapDrawKind}
+                    aria-label={t.projection}
+                    value={mapProjection}
                     onChange={(event) =>
-                      onChangeDrawKind(event.target.value as DrawKind)
+                      onChangeMapProjection(event.target.value as MapProjection)
                     }
                   >
-                    {(Object.keys(t.drawKinds) as DrawKind[]).map((kind) => (
-                      <option key={kind} value={kind}>
-                        {t.drawKinds[kind]}
+                    {(Object.keys(t.projectionOptions) as MapProjection[]).map(
+                      (projection) => (
+                        <option key={projection} value={projection}>
+                          {t.projectionOptions[projection]}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label>
+                  <select
+                    aria-label={t.region}
+                    value=""
+                    onChange={(event) => {
+                      if (event.target.value)
+                        selectMapRegion(event.target.value);
+                      event.target.value = "";
+                    }}
+                  >
+                    <option value="">{t.regionChoose}</option>
+                    {(
+                      Object.keys(t.regionOptions) as Array<
+                        keyof typeof t.regionOptions
+                      >
+                    ).map((region) => (
+                      <option key={region} value={region}>
+                        {t.regionOptions[region]}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label className="map-draw-label">
-                  <span>{t.drawLabel}</span>
-                  <input
-                    type="text"
-                    value={mapDrawLabel}
-                    maxLength={60}
-                    placeholder={t.drawLabelPlaceholder}
-                    onChange={(event) => onChangeDrawLabel(event.target.value)}
-                  />
-                </label>
-                <div className="map-label-tools map-draw-actions">
-                  {mapDrawKind === "route" && (
-                    <button
-                      type="button"
-                      disabled={mapDrawRoutePoints === 0}
-                      onClick={onFinishDrawRoute}
+                <div className="map-layer-grid map-projection-options">
+                  {(["graticule", "graticuleFront"] as const).map((layer) => (
+                    <label
+                      className={`map-layer-${layer} ${layer === "graticuleFront" && !mapLayers.graticule ? "map-layer-disabled" : ""}`}
+                      key={layer}
                     >
-                      {t.finishRoute}
+                      <input
+                        type="checkbox"
+                        checked={mapLayers[layer]}
+                        disabled={
+                          layer === "graticuleFront" && !mapLayers.graticule
+                        }
+                        onChange={() => onToggleLayer(layer, !mapLayers[layer])}
+                      />
+                      {t.mapLayers[layer]}
+                    </label>
+                  ))}
+                </div>
+              </section>
+              <section className="map-control-section map-purpose-controls">
+                <h2>{t.purpose}</h2>
+                <div className="map-purpose-grid">
+                  {MAP_PURPOSES.map((purpose) => (
+                    <button
+                      key={purpose}
+                      type="button"
+                      className="map-choice-button"
+                      aria-pressed={mapPurpose === purpose}
+                      onClick={() => onApplyMapPurpose(purpose)}
+                    >
+                      {t.purposeOptions[purpose]}
                     </button>
-                  )}
+                  ))}
+                </div>
+                {mapPurpose === null && (
+                  <p className="map-purpose-custom">{t.customPurpose}</p>
+                )}
+                <p className="map-layer-note">{t.purposeNote}</p>
+              </section>
+            </div>
+            <div
+              id="map-control-panel-content"
+              className="map-tab-panel"
+              role="tabpanel"
+              data-map-tab-panel="content"
+              aria-labelledby="map-control-tab-content"
+              hidden={activeMapTab !== "content"}
+            >
+              <section
+                className="map-control-section map-layers"
+                aria-label={t.layers}
+              >
+                <div className="map-layer-columns">
+                  <div className="map-layer-column">
+                    <h2>{t.layers}</h2>
+                    <div className="map-layer-grid">
+                      {mapGeographyLayers.map((layer) => (
+                        <label className={`map-layer-${layer}`} key={layer}>
+                          <input
+                            type="checkbox"
+                            checked={mapLayers[layer]}
+                            onChange={() =>
+                              onToggleLayer(layer, !mapLayers[layer])
+                            }
+                          />
+                          {t.mapLayers[layer]}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="map-layer-column map-label-column">
+                    <h2>{t.labelLayers}</h2>
+                    <div className="map-layer-grid">
+                      {mapLabelLayers.map((layer) => (
+                        <label className={`map-layer-${layer}`} key={layer}>
+                          <input
+                            type="checkbox"
+                            checked={mapLayers[layer]}
+                            onChange={() =>
+                              onToggleLayer(layer, !mapLayers[layer])
+                            }
+                          />
+                          {t.mapLayers[layer]}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="map-layer-density">
+                      <h3>{t.labelDensity}</h3>
+                      <div className="map-density-grid">
+                        {MAP_LABEL_DENSITIES.map((density) => (
+                          <button
+                            key={density}
+                            type="button"
+                            className="map-choice-button"
+                            aria-pressed={mapLabelDensity === density}
+                            onClick={() => onChangeMapLabelDensity(density)}
+                          >
+                            {t.labelDensityOptions[density]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="map-layer-note map-layer-priority-note">
+                  {t.labelDensityNote}
+                </p>
+              </section>
+              {mapLayers.climate && (
+                <p className="map-layer-note">{t.climateNote}</p>
+              )}
+            </div>
+            <div
+              id="map-control-panel-edit"
+              className="map-tab-panel"
+              role="tabpanel"
+              data-map-tab-panel="edit"
+              aria-labelledby="map-control-tab-edit"
+              hidden={activeMapTab !== "edit"}
+            >
+              <section className="map-control-section map-prompt-field">
+                <h2>{t.editMap}</h2>
+                <textarea
+                  value={mapPromptText}
+                  maxLength={600}
+                  placeholder={t.mapPrompt}
+                  onChange={(event) =>
+                    onChangeMapPromptText(event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      (event.metaKey || event.ctrlKey)
+                    )
+                      onApplyMapPrompt();
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isMapPromptRunning || !mapPromptText.trim()}
+                  onClick={onApplyMapPrompt}
+                >
+                  {isMapPromptRunning ? t.promptRunning : t.applyPrompt}
+                </button>
+                {mapPromptStatus && (
+                  <p className="map-layer-note">{mapPromptStatus}</p>
+                )}
+                {mapAiPreview && (
+                  <div className="map-ai-preview">
+                    <span>{t.promptPreview}</span>
+                    {mapAiPreview.operations.map(
+                      ({ operation, approved }, index) => (
+                        <label key={`${operation.type}-${index}`}>
+                          <input
+                            type="checkbox"
+                            checked={approved}
+                            onChange={() => onToggleMapAiOperation(index)}
+                          />
+                          <span>
+                            {operation.type === "fill"
+                              ? t.aiFillSummary(
+                                  operation.targets,
+                                  operation.color,
+                                )
+                              : t.aiLabelSummary(operation.text)}
+                          </span>
+                        </label>
+                      ),
+                    )}
+                    {mapAiPreview.unresolved.length > 0 && (
+                      <p className="map-layer-note">
+                        {t.promptUnresolved(mapAiPreview.unresolved.length)}{" "}
+                        {mapAiPreview.unresolved.join(", ")}
+                      </p>
+                    )}
+                    <div>
+                      <button
+                        type="button"
+                        disabled={
+                          !mapAiPreview.operations.some(
+                            ({ approved }) => approved,
+                          )
+                        }
+                        onClick={onApplyMapAiPreview}
+                      >
+                        {t.approveSelected}
+                      </button>
+                      <button type="button" onClick={onDismissMapAiPreview}>
+                        {t.dismissPreview}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {mapAiHistory.length > 0 && (
+                  <details className="map-ai-history">
+                    <summary>{t.promptHistory}</summary>
+                    {mapAiHistory.map((entry, index) => (
+                      <p key={`${entry.prompt}-${index}`}>
+                        <b>{entry.status === "applied" ? "✓" : "×"}</b>
+                        <span>{entry.prompt}</span>
+                        <small>
+                          {entry.status === "applied"
+                            ? t.historyApplied(entry.approved, entry.total)
+                            : t.historyDismissed}
+                        </small>
+                      </p>
+                    ))}
+                  </details>
+                )}
+              </section>
+
+              <button
+                type="button"
+                className={`map-fill-toggle ${mapFillMode ? "active" : ""}`}
+                aria-pressed={mapFillMode}
+                onClick={() => onMapFillMode((active) => !active)}
+              >
+                <i />
+                <span>
+                  {t.fillCountries}
+                  {mapFillMode ? `: ${t.on}` : ""}
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`map-label-toggle ${mapLabelMode ? "active" : ""}`}
+                aria-pressed={mapLabelMode}
+                onClick={() => onMapLabelMode((active) => !active)}
+              >
+                <i />
+                <span>
+                  {t.hideLabels}
+                  {mapLabelMode ? `: ${t.on}` : ""}
+                </span>
+              </button>
+              {(mapLabelMode || hiddenMapLabelCount > 0) && (
+                <div className="map-label-tools">
                   <button
                     type="button"
-                    disabled={mapDrawCount === 0}
-                    onClick={onUndoDrawItem}
+                    disabled={hiddenMapLabelCount === 0}
+                    onClick={onUndoHiddenMapLabel}
                   >
                     {t.undoHiddenLabel}
                   </button>
                   <button
                     type="button"
-                    disabled={mapDrawCount === 0}
-                    onClick={onClearDrawItems}
+                    disabled={hiddenMapLabelCount === 0}
+                    onClick={onUnhideAllMapLabels}
                   >
-                    {t.clearDrawItems}
+                    {t.unhideAllLabels}
                   </button>
+                  {hiddenMapLabelCount > 0 && (
+                    <span className="map-label-count">
+                      {hiddenMapLabelCount}
+                    </span>
+                  )}
                 </div>
-                <p className="map-layer-note">{t.drawNote}</p>
-              </div>
-            )}
-            <p>{t.mapInstructions}</p>
-            <div className="map-palette">
-              <span>{t.adobePalette}</span>
-              <input
-                ref={paletteInputRef}
-                type="file"
-                accept=".ase,application/octet-stream"
-                onChange={onPaletteInput}
-                hidden
-              />
-              {palette.length ? (
-                <>
-                  <div className="map-palette-swatches">
-                    {palette.map((swatch, index) => (
-                      <i
-                        key={`${swatch.name}-${index}`}
-                        style={{ background: swatch.hex }}
-                        title={swatch.name}
-                      />
-                    ))}
-                  </div>
-                  <div>
+              )}
+              <button
+                type="button"
+                className={`map-label-toggle map-label-position-toggle ${mapLabelPositionMode ? "active" : ""}`}
+                aria-pressed={mapLabelPositionMode}
+                onClick={() => onMapLabelPositionMode((active) => !active)}
+              >
+                <i />
+                <span>
+                  {t.positionLabels}
+                  {mapLabelPositionMode ? `: ${t.on}` : ""}
+                </span>
+              </button>
+              {(mapLabelPositionMode || positionedMapLabelCount > 0) && (
+                <div className="map-label-tools">
+                  <button
+                    type="button"
+                    disabled={positionedMapLabelCount === 0}
+                    onClick={onUndoMapLabelPosition}
+                  >
+                    {t.undoHiddenLabel}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={positionedMapLabelCount === 0}
+                    onClick={onResetMapLabelPositions}
+                  >
+                    {t.resetLabelPositions}
+                  </button>
+                  {positionedMapLabelCount > 0 && (
+                    <span className="map-label-count">
+                      {positionedMapLabelCount}
+                    </span>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                className={`map-label-toggle map-draw-toggle ${mapDrawMode ? "active" : ""}`}
+                aria-pressed={mapDrawMode}
+                onClick={() => onMapDrawMode((active) => !active)}
+              >
+                <i />
+                <span>
+                  {t.drawMode}
+                  {mapDrawMode ? `: ${t.on}` : ""}
+                </span>
+              </button>
+              {mapDrawMode && (
+                <div className="map-draw-tools">
+                  <label className="map-draw-kind">
+                    <span>{t.drawKind}</span>
+                    <select
+                      value={mapDrawKind}
+                      onChange={(event) =>
+                        onChangeDrawKind(event.target.value as DrawKind)
+                      }
+                    >
+                      {(Object.keys(t.drawKinds) as DrawKind[]).map((kind) => (
+                        <option key={kind} value={kind}>
+                          {t.drawKinds[kind]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="map-draw-label">
+                    <span>{t.drawLabel}</span>
+                    <input
+                      type="text"
+                      value={mapDrawLabel}
+                      maxLength={60}
+                      placeholder={t.drawLabelPlaceholder}
+                      onChange={(event) =>
+                        onChangeDrawLabel(event.target.value)
+                      }
+                    />
+                  </label>
+                  <div className="map-label-tools map-draw-actions">
+                    {mapDrawKind === "route" && (
+                      <button
+                        type="button"
+                        disabled={mapDrawRoutePoints === 0}
+                        onClick={onFinishDrawRoute}
+                      >
+                        {t.finishRoute}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => paletteInputRef.current?.click()}
+                      disabled={mapDrawCount === 0}
+                      onClick={onUndoDrawItem}
                     >
-                      {t.replacePalette}
+                      {t.undoHiddenLabel}
                     </button>
-                    <button type="button" onClick={() => onApplyPalette(false)}>
-                      {t.applyPalette}
-                    </button>
-                    <button type="button" onClick={() => onApplyPalette(true)}>
-                      {t.shufflePalette}
+                    <button
+                      type="button"
+                      disabled={mapDrawCount === 0}
+                      onClick={onClearDrawItems}
+                    >
+                      {t.clearDrawItems}
                     </button>
                   </div>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => paletteInputRef.current?.click()}
-                >
-                  {t.importPalette}
-                </button>
+                  <p className="map-layer-note">{t.drawNote}</p>
+                </div>
               )}
-            </div>
-            {output && (
-              <details className="map-control-section map-print-controls">
-                <summary>{t.printSettings}</summary>
-                <div className="map-print-controls-body">
-                  <h2>{t.printSize}</h2>
-                  <select
-                    data-testid="map-print-preset"
-                    aria-label={t.printSize}
-                    value={mapPrintPresetId}
-                    onChange={(event) =>
-                      onChangeMapPrintPreset(
-                        event.target.value as MapPrintPresetId,
-                      )
-                    }
-                  >
-                    {MAP_PRINT_PRESETS.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {t.printOptions[preset.id]}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="map-export-metadata-fields">
-                    {(
-                      [
-                        ["title", t.metadataFields.title, 120],
-                        ["subtitle", t.metadataFields.subtitle, 180],
-                        ["source", t.metadataFields.source, 300],
-                        [
-                          "projectionNote",
-                          t.metadataFields.projectionNote,
-                          180,
-                        ],
-                        ["copyright", t.metadataFields.copyright, 180],
-                      ] as const
-                    ).map(([field, label, maxLength]) => (
-                      <label key={field}>
-                        <span>{label}</span>
-                        <input
-                          type="text"
-                          value={mapExportMetadata[field]}
-                          maxLength={maxLength}
-                          onChange={(event) =>
-                            onChangeMapExportMetadata(field, event.target.value)
-                          }
+              <p>{t.mapInstructions}</p>
+              <div className="map-palette">
+                <span>{t.adobePalette}</span>
+                <input
+                  ref={paletteInputRef}
+                  type="file"
+                  accept=".ase,application/octet-stream"
+                  onChange={onPaletteInput}
+                  hidden
+                />
+                {palette.length ? (
+                  <>
+                    <div className="map-palette-swatches">
+                      {palette.map((swatch, index) => (
+                        <i
+                          key={`${swatch.name}-${index}`}
+                          style={{ background: swatch.hex }}
+                          title={swatch.name}
                         />
-                      </label>
-                    ))}
-                  </div>
-                  <div
-                    className="map-publication-preflight"
-                    data-testid="map-publication-preflight"
+                      ))}
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => paletteInputRef.current?.click()}
+                      >
+                        {t.replacePalette}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onApplyPalette(false)}
+                      >
+                        {t.applyPalette}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onApplyPalette(true)}
+                      >
+                        {t.shufflePalette}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => paletteInputRef.current?.click()}
                   >
-                    <span>
-                      {t.publicationPreflight}:{" "}
-                      {mapPreflight.some(({ level }) => level === "warning")
-                        ? t.preflightReview
-                        : t.preflightReady}
-                    </span>
-                    {mapPreflight.map((check) => (
-                      <p className={check.level} key={check.id}>
-                        <b>{check.level === "pass" ? "✓" : "!"}</b>
-                        {check.level === "pass"
-                          ? check.id === "text-size"
-                            ? `7 pt ≥ ${check.threshold} pt`
-                            : check.id === "stroke-width"
-                              ? `0.1 mm ≥ ${check.threshold} mm`
-                              : t.preflightReady
-                          : t.preflightMessages[check.id]}
+                    {t.importPalette}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div
+              id="map-control-panel-export"
+              className="map-tab-panel"
+              role="tabpanel"
+              data-map-tab-panel="export"
+              aria-labelledby="map-control-tab-export"
+              hidden={activeMapTab !== "export"}
+            >
+              {output && (
+                <details className="map-control-section map-print-controls">
+                  <summary>{t.printSettings}</summary>
+                  <div className="map-print-controls-body">
+                    <h2>{t.printSize}</h2>
+                    <select
+                      data-testid="map-print-preset"
+                      aria-label={t.printSize}
+                      value={mapPrintPresetId}
+                      onChange={(event) =>
+                        onChangeMapPrintPreset(
+                          event.target.value as MapPrintPresetId,
+                        )
+                      }
+                    >
+                      {MAP_PRINT_PRESETS.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {t.printOptions[preset.id]}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="map-export-metadata-fields">
+                      {(
+                        [
+                          ["title", t.metadataFields.title, 120],
+                          ["subtitle", t.metadataFields.subtitle, 180],
+                          ["source", t.metadataFields.source, 300],
+                          [
+                            "projectionNote",
+                            t.metadataFields.projectionNote,
+                            180,
+                          ],
+                          ["copyright", t.metadataFields.copyright, 180],
+                        ] as const
+                      ).map(([field, label, maxLength]) => (
+                        <label key={field}>
+                          <span>{label}</span>
+                          <input
+                            type="text"
+                            value={mapExportMetadata[field]}
+                            maxLength={maxLength}
+                            onChange={(event) =>
+                              onChangeMapExportMetadata(
+                                field,
+                                event.target.value,
+                              )
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <div
+                      className="map-publication-preflight"
+                      data-testid="map-publication-preflight"
+                    >
+                      <span>
+                        {t.publicationPreflight}:{" "}
+                        {mapPreflight.some(({ level }) => level === "warning")
+                          ? t.preflightReview
+                          : t.preflightReady}
+                      </span>
+                      {mapPreflight.map((check) => (
+                        <p className={check.level} key={check.id}>
+                          <b>{check.level === "pass" ? "✓" : "!"}</b>
+                          {check.level === "pass"
+                            ? check.id === "text-size"
+                              ? `7 pt ≥ ${check.threshold} pt`
+                              : check.id === "stroke-width"
+                                ? `0.1 mm ≥ ${check.threshold} mm`
+                                : t.preflightReady
+                            : t.preflightMessages[check.id]}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              )}
+              {output?.checks.some(({ level }) => level === "warning") && (
+                <div className="map-panel-warnings">
+                  <span>{t.warnings}</span>
+                  {output.checks
+                    .filter(({ level }) => level === "warning")
+                    .map((check, index) => (
+                      <p key={`${check.message}-${index}`}>
+                        <b>!</b>
+                        {check.message}
                       </p>
                     ))}
-                  </div>
                 </div>
-              </details>
-            )}
-            {output?.checks.some(({ level }) => level === "warning") && (
-              <div className="map-panel-warnings">
-                <span>{t.warnings}</span>
-                {output.checks
-                  .filter(({ level }) => level === "warning")
-                  .map((check, index) => (
-                    <p key={`${check.message}-${index}`}>
-                      <b>!</b>
-                      {check.message}
-                    </p>
-                  ))}
-              </div>
-            )}
-            {output && (
-              <div className="map-export-actions">
-                <button type="button" onClick={onDownloadCroppedMap}>
-                  {t.downloadSvg}
-                  <span aria-hidden="true">↓</span>
-                </button>
-              </div>
-            )}
+              )}
+              {output && (
+                <div className="map-export-actions">
+                  <button type="button" onClick={onDownloadCroppedMap}>
+                    {t.downloadSvg}
+                    <span aria-hidden="true">↓</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
         <div className="figure-preview-column">

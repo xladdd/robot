@@ -410,6 +410,28 @@ export async function runWorkspaceBrowserTests({
             await expect(
               map.locator(".map-prompt-field .map-ai-indicator"),
             ).toHaveCount(0);
+            const mapTabs = map.locator('[role="tablist"] [role="tab"]');
+            await expect(mapTabs).toHaveCount(4);
+            await expect(map.locator('[data-map-tab="map"]')).toHaveAttribute(
+              "aria-selected",
+              "true",
+            );
+            await expect(
+              map.locator("[data-map-tab-panel]:visible"),
+            ).toHaveCount(1);
+            await expect(
+              map.locator('[data-map-tab-panel="map"]'),
+            ).toBeVisible();
+            await map.locator('[data-map-tab="map"]').focus();
+            await page.keyboard.press("ArrowRight");
+            await expect(
+              map.locator('[data-map-tab="content"]'),
+            ).toHaveAttribute("aria-selected", "true");
+            await page.keyboard.press("Home");
+            await expect(map.locator('[data-map-tab="map"]')).toHaveAttribute(
+              "aria-selected",
+              "true",
+            );
             const politicalPreset = map
               .locator(".map-purpose-grid .map-choice-button")
               .filter({ hasText: "Political" });
@@ -511,6 +533,7 @@ export async function runWorkspaceBrowserTests({
             await expect
               .poll(() => hiddenState.timelines.length)
               .toBe(beforePurpose + 1);
+            await map.locator('[data-map-tab="content"]').click();
             for (const layer of [
               "water",
               "lakes",
@@ -529,6 +552,7 @@ export async function runWorkspaceBrowserTests({
             await expect(map.locator(".map-editor-canvas")).toHaveClass(
               /hide-rivers/,
             );
+            await map.locator('[data-map-tab="map"]').click();
             await expect(map.locator(".map-purpose-custom")).toBeVisible();
             await politicalPreset.click();
             await expect(map.locator(".map-editor-canvas")).not.toHaveClass(
@@ -538,6 +562,7 @@ export async function runWorkspaceBrowserTests({
               "aria-pressed",
               "true",
             );
+            await map.locator('[data-map-tab="content"]').click();
             await detailedDensity.click();
             await expect(detailedDensity).toHaveAttribute(
               "aria-pressed",
@@ -587,6 +612,10 @@ export async function runWorkspaceBrowserTests({
               ).toBeLessThanOrEqual(geometry.controls.top + 1);
             }
 
+            await map.locator('[data-map-tab="edit"]').click();
+            await expect(
+              map.locator("[data-map-tab-panel]:visible"),
+            ).toHaveCount(1);
             await map.locator(".map-label-position-toggle").click();
             const positionToggleBox = await map
               .locator(".map-label-position-toggle")
@@ -688,6 +717,7 @@ export async function runWorkspaceBrowserTests({
                   }
                 : null;
             };
+            await map.locator('[data-map-tab="map"]').click();
             await map
               .locator(".map-projection select")
               .nth(1)
@@ -738,8 +768,21 @@ export async function runWorkspaceBrowserTests({
             ).toBeLessThan(0.02);
             await assertFixtureRegionCentered();
 
+            await map.locator('[data-map-tab="content"]').click();
+            await expect(detailedDensity).toHaveAttribute(
+              "aria-pressed",
+              "true",
+            );
             await map.locator(".map-layer-lakes input").uncheck();
             await expect(map.locator(".map-legend-symbol-lake")).toHaveCount(0);
+            await map.locator('[data-map-tab="export"]').click();
+            await expect
+              .poll(() =>
+                map
+                  .locator(".map-export-actions button")
+                  .evaluate((button) => getComputedStyle(button).fontWeight),
+              )
+              .toBe("400");
             const downloadPromise = page.waitForEvent("download");
             await map.locator(".map-export-actions button").click();
             const download = await downloadPromise;
@@ -771,6 +814,13 @@ export async function runWorkspaceBrowserTests({
             expect(exportedLayers.printPreset).toBeNull();
 
             await map.locator(".map-print-controls summary").click();
+            await expect
+              .poll(() =>
+                map
+                  .locator(".map-print-controls-body > h2")
+                  .evaluate((heading) => getComputedStyle(heading).fontSize),
+              )
+              .toBe("8px");
             await map
               .locator('[data-testid="map-print-preset"]')
               .selectOption("90mm");

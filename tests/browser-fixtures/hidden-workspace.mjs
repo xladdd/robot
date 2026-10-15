@@ -221,7 +221,7 @@ export async function runHiddenLifecycleChecks({
     await expect(slot(id)).toHaveAttribute("data-tool-active", "true");
     await expect(
       slot(id)
-        .locator(id === "map" ? "input[type=number]" : "h1")
+        .locator(id === "map" ? '[data-map-tab][aria-selected="true"]' : "h1")
         .first(),
     ).toBeVisible();
     await expect(slot(id).locator(".tool-loading")).toHaveCount(0);
@@ -354,6 +354,7 @@ export async function runHiddenLifecycleChecks({
       await expect(
         slot("map").locator('svg[data-fixture-map-year="2026"]'),
       ).toHaveCount(1);
+      await slot("map").locator('[data-map-tab="edit"]').click();
       await slot("map").locator(".map-fill-toggle").click();
       await expect(slot("map").locator(".map-fill-toggle")).toHaveAttribute(
         "aria-pressed",
@@ -363,6 +364,7 @@ export async function runHiddenLifecycleChecks({
       await expect(
         slot("map").locator('path[data-region-id="fixture-region"]'),
       ).toHaveAttribute("style", "fill:#ff661a");
+      await slot("map").locator('[data-map-tab="content"]').click();
       await slot("map").locator(".map-layer-labels input").uncheck();
       await slot("map").locator(".map-view-buttons button").first().click();
       const svg = slot("map").locator(".map-transform svg");

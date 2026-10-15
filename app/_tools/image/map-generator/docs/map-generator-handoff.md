@@ -1,12 +1,12 @@
 # Session handoff — Map Maker
 
-Last updated: 2026-10-14 (Europe/Prague)
+Last updated: 2026-10-15 (Europe/Prague)
 
 ## Current product direction
 
 The original AI-first figure generator has been split into separate sidebar apps: Map Maker, Diagram Generator, and Graph Generator. The old Bio Generator label was replaced by Diagram Generator. Map Maker is primarily a deterministic, interactive world map, not an LLM drawing SVG geography. It supports crop-based panning and zooming, projections and layers, filling, label hiding, drawing, ASE palettes, and cropped SVG export. The prompt field is active: OpenRouter interprets a natural-language instruction into constrained fills and simple labels, while application code and bundled data continue to own all geometry and rendering. No model-generated polygons are accepted. Historical API/data support exists, but the visible year controls are intentionally locked to the current year until UI time travel is enabled.
 
-AI disclosure belongs beside or inside the prompt field, where the remote interpretation occurs. Do not show a top-level local-only badge: most rendering is local/deterministic, but that badge misrepresents the active OpenRouter prompt path. `MainInterface.tsx` still renders the old top `ProcessingBadge mode="local"`; remove or relocate it when implementation files are in scope.
+The toolbar identifies the optional OpenRouter-assisted edit workflow with an AI-enabled badge. Geography and SVG rendering remain deterministic and local; only prompt interpretation is remote.
 
 ## Important files
 
@@ -50,6 +50,7 @@ The large local datasets are intentional:
 ## Current map UI behavior
 
 - The entire app viewport is the map; controls float on the right.
+- The toolbar is split into sticky Map, Content, Edit, and Export tabs. All panels remain mounted while hidden, retain their form/edit state and independent scroll positions, and expose active-layer/edit/warning counts. An arriving AI preview activates Edit. The tablist supports click plus Arrow Left/Right, Home, and End keyboard navigation.
 - The orange 10:7 crop viewport never overlaps the panel.
 - Outside the crop is water blue beneath a dark translucent mask.
 - Trackpad/wheel and buttons zoom; drag pans; keyboard `+`/`-` zooms.
@@ -57,7 +58,7 @@ The large local datasets are intentional:
 - The numeric year input, arrows, and timeline remain visible but are intentionally locked to the current year; historical API/data support is not yet exposed as UI time travel.
 - Fill countries, Hide labels, and Draw are explicit modes and default off.
 - The active prompt field calls the configured OpenRouter model for interpretation. OpenRouter receives the user's instruction, the current map year, the available territory names, and the fixed system instruction; no SVG or polygon geometry is sent. Returned fills are resolved against the available territory list, simple labels are validated, and application code applies and renders the edits. Model-generated polygons are never accepted.
-- The intended AI badge location is in or beside this prompt field. There should be no top-level local-only badge.
+
 - ASE import supports Apply and Shuffle; 75% and 50% shades supplement short palettes.
 - Warnings appear at the bottom of the panel; there is no map verification-report download.
 - Download SVG is orange.
