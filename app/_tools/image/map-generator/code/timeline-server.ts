@@ -84,8 +84,8 @@ export function buildTimelineSpec(
       `Political map of the world in ${year}`,
       spec,
     );
-  // Keep the projection-aware scale in the SVG; the editor exposes it for
-  // physical maps (terrain + mountains) and hides it for other presets.
+  // Keep the projection-aware scale available as a standard map ornament in
+  // every editor preset and standalone export.
   spec.showScaleBar = true;
   const checks: Array<{ level: "pass" | "warning"; message: string }> = [
     {

@@ -12,6 +12,22 @@
     "publicPath": "/data/cliopatria-timeline.json"
   },
   {
+    "source": "app/_tools/image/map-generator/public/natural-earth-relief-eckert4.jpg",
+    "publicPath": "/data/natural-earth-relief-eckert4.jpg"
+  },
+  {
+    "source": "app/_tools/image/map-generator/public/natural-earth-relief-naturalEarth.jpg",
+    "publicPath": "/data/natural-earth-relief-naturalEarth.jpg"
+  },
+  {
+    "source": "app/_tools/image/map-generator/public/natural-earth-relief-robinson.jpg",
+    "publicPath": "/data/natural-earth-relief-robinson.jpg"
+  },
+  {
+    "source": "app/_tools/image/map-generator/public/natural-earth-relief-schematic.jpg",
+    "publicPath": "/data/natural-earth-relief-schematic.jpg"
+  },
+  {
     "source": "app/_tools/design-manual/public",
     "publicPath": "/design-manual/downloads"
   },

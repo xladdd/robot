@@ -42,6 +42,7 @@ export const mapUi = {
     bce: "BCE",
     ce: "CE",
     layers: "LAYERS",
+    labelLayers: "LABELS",
     purpose: "MAP PURPOSE",
     purposeOptions: {
       political: "Political",
@@ -61,6 +62,7 @@ export const mapUi = {
     },
     labelDensityNote:
       "Layer switches and manually hidden labels always take priority.",
+    printSettings: "PRINT & PUBLICATION SETTINGS",
     printSize: "PRINT SIZE",
     printOptions: {
       original: "Original SVG — 1000 × 700 px",
@@ -107,8 +109,7 @@ export const mapUi = {
       eckert4: "Eckert IV",
       naturalEarth: "Natural Earth",
     },
-    graticuleNote:
-      "The meridian and parallel grid can be drawn behind or in front of the land.",
+
     region: "region",
     regionChoose: "Choose a region…",
     regionOptions: {
@@ -132,15 +133,13 @@ export const mapUi = {
       mountains: "mountain ranges",
       cities: "cities and capitals",
       disputed: "disputed boundaries",
-      graticule: "meridians and parallels",
-      graticuleFront: "grid in front of land",
+      graticule: "meridians & parallels",
+      graticuleFront: "grid above land",
       waterLabels: "lake and river names",
     },
     climateNote:
       "Köppen–Geiger zones represent 1980–2016 climate normals, independently of the selected political year.",
     climateLabels: ["Tropical", "Arid", "Temperate", "Cold", "Polar"],
-    presentLayersNote:
-      "Optional terrain, mountain, river, lake, disputed-boundary, and climate overlays may describe present-day or reference-period conditions rather than the political year.",
     fillCountries: "FILL COUNTRIES",
     hideLabels: "HIDE LABELS",
     positionLabels: "POSITION LABELS",
@@ -222,6 +221,7 @@ export const mapUi = {
     bce: "PŘ. N. L.",
     ce: "N. L.",
     layers: "VRSTVY",
+    labelLayers: "POPISKY",
     purpose: "ÚČEL MAPY",
     purposeOptions: {
       political: "Politická",
@@ -241,6 +241,7 @@ export const mapUi = {
     },
     labelDensityNote:
       "Přepínače vrstev a ručně skryté popisky mají vždy přednost.",
+    printSettings: "NASTAVENÍ TISKU A PUBLIKACE",
     printSize: "VELIKOST PRO TISK",
     printOptions: {
       original: "Původní SVG — 1000 × 700 px",
@@ -285,8 +286,7 @@ export const mapUi = {
       eckert4: "Eckertovo IV",
       naturalEarth: "Natural Earth",
     },
-    graticuleNote:
-      "Mřížku poledníků a rovnoběžek lze kreslit za souší nebo před ní.",
+
     region: "region",
     regionChoose: "Vyberte region…",
     regionOptions: {
@@ -311,14 +311,12 @@ export const mapUi = {
       cities: "města a hlavní města",
       disputed: "sporné hranice",
       graticule: "poledníky a rovnoběžky",
-      graticuleFront: "mřížka před souší",
+      graticuleFront: "mřížka nad souší",
       waterLabels: "názvy jezer a řek",
     },
     climateNote:
       "Pásma Köppenovy–Geigerovy klasifikace představují klimatické normály z let 1980–2016 bez ohledu na zvolený politický rok.",
     climateLabels: ["Tropické", "Suché", "Mírné", "Chladné", "Polární"],
-    presentLayersNote:
-      "Volitelné vrstvy reliéfu, pohoří, řek, jezer, sporných hranic a klimatu mohou popisovat současnost nebo referenční období, nikoli politický rok.",
     fillCountries: "VYBARVIT STÁTY",
     hideLabels: "SKRÝT POPISY",
     positionLabels: "PŘESUNOUT POPISY",

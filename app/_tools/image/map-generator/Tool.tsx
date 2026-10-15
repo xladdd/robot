@@ -975,10 +975,14 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
       mapLabelMode || mapLabelPositionMode
         ? (event.target as Element).closest?.("text[data-map-label-key]")
         : null;
+    const regionSelector =
+      "path[data-region-id], path[data-iso-numeric], path[data-map-unit]";
+    const directPath = (event.target as Element).closest?.(regionSelector);
     const path = mapFillMode
-      ? (event.target as Element).closest?.(
-          "path[data-region-id], path[data-iso-numeric], path[data-map-unit]",
-        )
+      ? (directPath ??
+        document
+          .elementsFromPoint(event.clientX, event.clientY)
+          .find((element) => element.matches(regionSelector)))
       : null;
     const viewport = mapViewportRef.current;
     mapDragRef.current = {
@@ -1170,7 +1174,7 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function downloadCroppedMap() {
+  async function downloadCroppedMap() {
     if (!active) return;
     if (!mapOutput) return;
     const displayedSvg =
@@ -1204,6 +1208,27 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
       "image/svg+xml",
     );
     const root = parsed.documentElement;
+    const reliefImage = root.querySelector<SVGImageElement>(
+      ".shaded-relief-image",
+    );
+    const reliefHref = reliefImage?.getAttribute("href");
+    if (reliefImage && reliefHref)
+      try {
+        const reliefBlob = await fetch(reliefHref).then((response) => {
+          if (!response.ok)
+            throw new Error(`Relief image returned ${response.status}`);
+          return response.blob();
+        });
+        const reliefDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.addEventListener("load", () => resolve(String(reader.result)));
+          reader.addEventListener("error", () => reject(reader.error));
+          reader.readAsDataURL(reliefBlob);
+        });
+        reliefImage.setAttribute("href", reliefDataUrl);
+      } catch {
+        // Keep the stable public URL if embedding fails; the SVG remains usable.
+      }
     const setExportLayerVisible = (id: string, visible: boolean) => {
       const element = root.querySelector<SVGElement>(`#${id}`);
       if (!element) return;
@@ -1213,10 +1238,7 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
     setExportLayerVisible("climate-zones", mapLayers.climate);
     setExportLayerVisible("terrain", mapLayers.terrain);
     setExportLayerVisible("mountains", mapLayers.mountains);
-    setExportLayerVisible(
-      "graphic-scale",
-      mapLayers.terrain && mapLayers.mountains,
-    );
+    setExportLayerVisible("graphic-scale", true);
 
     setExportLayerVisible("cities", mapLayers.cities);
     setExportLayerVisible("disputed-boundaries", mapLayers.disputed);
@@ -1246,17 +1268,19 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
       ["#rivers path", 0.3, 0.12],
       ["#lakes path", 0.3, 0.12],
       ["#disputed-boundaries path", 0.55, 0.18],
-      ["#graticule-behind path, #graticule-front path", 0.2, 0.1],
-      [".natural-mountains .range-shape", 0.35, 0.12],
-      [".mountain-relief .relief-ridge", 0.65, 0.14],
-      [".mountain-relief .relief-shadow", 0.6, 0.14],
-      [".summit-marker .summit-symbol", 1.1, 0.3],
+      ["#graticule-behind path, #graticule-front path", 0.26, 0.1],
+      [".summit-marker .summit-symbol", 0.45, 0.18],
       [".scale .scale-outline", 0.6, 0.15],
       [".natural-cities circle", 0.6, 0.12],
     ];
     for (const [selector, screenWidth, printWidthMm] of exportStrokeWidths)
       for (const element of root.querySelectorAll<SVGElement>(selector))
         element.style.strokeWidth = `${printUnits ? printUnits.mm(printWidthMm) : screenWidth / mapZoom}px`;
+    const exportUnit = viewBox.width / 1000;
+    for (const symbol of root.querySelectorAll<SVGElement>(
+      ".summit-marker .summit-symbol",
+    ))
+      symbol.setAttribute("transform", `scale(${exportUnit})`);
     root.querySelector("#map-information")?.remove();
     const legacyCountryFontSize = (6 + mapZoom * 0.7) / mapZoom;
     const countryFontSize = printUnits
@@ -1331,6 +1355,28 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
     );
     for (const element of movableChildren) contentLayer.appendChild(element);
     root.appendChild(contentLayer);
+    const graphicScale =
+      contentLayer.querySelector<SVGGElement>("#graphic-scale");
+    if (graphicScale) {
+      const scaleInset = 16 * exportUnit;
+      graphicScale.setAttribute(
+        "transform",
+        `translate(${(viewBox.x + scaleInset).toFixed(2)} ${(viewBox.y + viewBox.height - 18 * exportUnit).toFixed(2)}) scale(${exportUnit})`,
+      );
+      const segmentKilometres = Number(
+        graphicScale.getAttribute("data-segment-km") || 0,
+      );
+      const labels = graphicScale.querySelectorAll<SVGTextElement>(
+        "text:not(.scale-unit)",
+      );
+      labels.forEach((label, index) => {
+        label.textContent = (
+          segmentKilometres *
+          index *
+          exportUnit
+        ).toLocaleString("en", { maximumFractionDigits: 0 });
+      });
+    }
     // Legend, bottom-right inside the crop, sized relative to the crop so it
     // stays legible at every zoom. Coordinates live in canvas space, so the
     // content translate shifts them into the exported viewBox.
@@ -1354,7 +1400,7 @@ export default function Tool({ language, active, onDiagnostics }: ToolProps) {
     if (mapLayers.lakes)
       legendEntries.push({ label: mapT.legendLake, kind: "lake" });
     if (legendEntries.length) {
-      const unit = viewBox.width / 1000;
+      const unit = exportUnit;
       const legendWidth = printUnits ? printUnits.mm(34) : 170 * unit;
       const rowHeight = printUnits ? printUnits.mm(4.5) : 13 * unit;
       const fontSize = printUnits ? printUnits.pt(7) : 7.5 * unit;

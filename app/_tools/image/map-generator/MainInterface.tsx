@@ -20,7 +20,6 @@ import { layoutMapSvgLabels } from "./code/label-layout";
 import {
   MAP_CLIMATE_COLORS,
   MAP_LABEL_DENSITIES,
-  MAP_LAYER_KEYS,
   MAP_PRINT_PRESETS,
   MAP_PURPOSES,
   type MapExportMetadata,
@@ -70,6 +69,23 @@ const mapRegions: Record<
   americas: { west: -170, south: -58, east: -30, north: 70 },
   oceania: { west: 105, south: -48, east: 180, north: 0 },
 };
+
+const mapGeographyLayers = [
+  "boundaries",
+  "water",
+  "rivers",
+  "lakes",
+  "terrain",
+  "climate",
+  "disputed",
+] as const satisfies readonly (keyof MapLayers)[];
+
+const mapLabelLayers = [
+  "labels",
+  "mountains",
+  "cities",
+  "waterLabels",
+] as const satisfies readonly (keyof MapLayers)[];
 
 // Temporarily locked to the current year: year controls stay visible but grey
 // out and explain themselves instead of navigating the timeline.
@@ -291,6 +307,19 @@ export function MapMainInterface({
     [],
   );
   const svgMarkup = output?.svg ?? "";
+  const scaleSegmentKilometres = Number(
+    svgMarkup.match(/data-segment-km="([\d.]+)"/)?.[1] ?? 0,
+  );
+  const scaleSegmentCount = Number(
+    svgMarkup.match(/data-segment-count="(\d+)"/)?.[1] ?? 0,
+  );
+  const previewScaleLabels = Array.from(
+    { length: scaleSegmentCount + 1 },
+    (_, index) =>
+      ((scaleSegmentKilometres * index) / mapZoom).toLocaleString(language, {
+        maximumFractionDigits: 0,
+      }),
+  );
 
   useLayoutEffect(() => {
     labelOptionsRef.current = {
@@ -595,33 +624,10 @@ export function MapMainInterface({
                 {error}
               </p>
             )}
-            <div className="map-view-buttons">
-              <button
-                type="button"
-                onClick={() => onMapZoom((value) => Math.min(40, value * 1.5))}
-              >
-                {t.zoomIn}
-              </button>
-              <button
-                type="button"
-                onClick={() => onMapZoom((value) => Math.max(0.5, value / 1.5))}
-              >
-                {t.zoomOut}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onMapZoom(1);
-                  onMapPan({ x: 0, y: 0 });
-                }}
-              >
-                {t.resetView}
-              </button>
-            </div>
+
             <section className="map-control-section map-projection">
               <h2>{t.projection}</h2>
               <label>
-                <span>{t.projection}</span>
                 <select
                   aria-label={t.projection}
                   value={mapProjection}
@@ -639,8 +645,8 @@ export function MapMainInterface({
                 </select>
               </label>
               <label>
-                <span className="map-projection-region">{t.region}</span>
                 <select
+                  aria-label={t.region}
                   value=""
                   onChange={(event) => {
                     if (event.target.value) selectMapRegion(event.target.value);
@@ -659,9 +665,24 @@ export function MapMainInterface({
                   ))}
                 </select>
               </label>
-              {mapLayers.graticule && (
-                <p className="map-layer-note">{t.graticuleNote}</p>
-              )}
+              <div className="map-layer-grid map-projection-options">
+                {(["graticule", "graticuleFront"] as const).map((layer) => (
+                  <label
+                    className={`map-layer-${layer} ${layer === "graticuleFront" && !mapLayers.graticule ? "map-layer-disabled" : ""}`}
+                    key={layer}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={mapLayers[layer]}
+                      disabled={
+                        layer === "graticuleFront" && !mapLayers.graticule
+                      }
+                      onChange={() => onToggleLayer(layer, !mapLayers[layer])}
+                    />
+                    {t.mapLayers[layer]}
+                  </label>
+                ))}
+              </div>
             </section>
             <section className="map-control-section map-purpose-controls">
               <h2>{t.purpose}</h2>
@@ -682,22 +703,70 @@ export function MapMainInterface({
                 <p className="map-purpose-custom">{t.customPurpose}</p>
               )}
               <p className="map-layer-note">{t.purposeNote}</p>
-              <h2>{t.labelDensity}</h2>
-              <div className="map-density-grid">
-                {MAP_LABEL_DENSITIES.map((density) => (
-                  <button
-                    key={density}
-                    type="button"
-                    className="map-choice-button"
-                    aria-pressed={mapLabelDensity === density}
-                    onClick={() => onChangeMapLabelDensity(density)}
-                  >
-                    {t.labelDensityOptions[density]}
-                  </button>
-                ))}
-              </div>
-              <p className="map-layer-note">{t.labelDensityNote}</p>
             </section>
+            <section
+              className="map-control-section map-layers"
+              aria-label={t.layers}
+            >
+              <div className="map-layer-columns">
+                <div className="map-layer-column">
+                  <h2>{t.layers}</h2>
+                  <div className="map-layer-grid">
+                    {mapGeographyLayers.map((layer) => (
+                      <label className={`map-layer-${layer}`} key={layer}>
+                        <input
+                          type="checkbox"
+                          checked={mapLayers[layer]}
+                          onChange={() =>
+                            onToggleLayer(layer, !mapLayers[layer])
+                          }
+                        />
+                        {t.mapLayers[layer]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="map-layer-column map-label-column">
+                  <h2>{t.labelLayers}</h2>
+                  <div className="map-layer-grid">
+                    {mapLabelLayers.map((layer) => (
+                      <label className={`map-layer-${layer}`} key={layer}>
+                        <input
+                          type="checkbox"
+                          checked={mapLayers[layer]}
+                          onChange={() =>
+                            onToggleLayer(layer, !mapLayers[layer])
+                          }
+                        />
+                        {t.mapLayers[layer]}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="map-layer-density">
+                    <h3>{t.labelDensity}</h3>
+                    <div className="map-density-grid">
+                      {MAP_LABEL_DENSITIES.map((density) => (
+                        <button
+                          key={density}
+                          type="button"
+                          className="map-choice-button"
+                          aria-pressed={mapLabelDensity === density}
+                          onClick={() => onChangeMapLabelDensity(density)}
+                        >
+                          {t.labelDensityOptions[density]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="map-layer-note map-layer-priority-note">
+                {t.labelDensityNote}
+              </p>
+            </section>
+            {mapLayers.climate && (
+              <p className="map-layer-note">{t.climateNote}</p>
+            )}
             <section className="map-control-section map-prompt-field">
               <h2>{t.editMap}</h2>
               <textarea
@@ -783,30 +852,7 @@ export function MapMainInterface({
                 </details>
               )}
             </section>
-            <section className="map-control-section map-layers">
-              <h2>{t.layers}</h2>
-              <div className="map-layer-grid">
-                {MAP_LAYER_KEYS.map((layer) => (
-                  <label className={`map-layer-${layer}`} key={layer}>
-                    <input
-                      type="checkbox"
-                      checked={mapLayers[layer]}
-                      onChange={() => onToggleLayer(layer, !mapLayers[layer])}
-                    />
-                    {t.mapLayers[layer]}
-                  </label>
-                ))}
-              </div>
-            </section>
-            {mapLayers.climate && (
-              <p className="map-layer-note">{t.climateNote}</p>
-            )}
-            {(mapLayers.terrain ||
-              mapLayers.mountains ||
-              mapLayers.cities ||
-              mapLayers.disputed) && (
-              <p className="map-layer-note">{t.presentLayersNote}</p>
-            )}
+
             <button
               type="button"
               className={`map-fill-toggle ${mapFillMode ? "active" : ""}`}
@@ -926,7 +972,7 @@ export function MapMainInterface({
                     onChange={(event) => onChangeDrawLabel(event.target.value)}
                   />
                 </label>
-                <div className="map-label-tools">
+                <div className="map-label-tools map-draw-actions">
                   {mapDrawKind === "route" && (
                     <button
                       type="button"
@@ -1000,71 +1046,78 @@ export function MapMainInterface({
               )}
             </div>
             {output && (
-              <section className="map-control-section map-print-controls">
-                <h2>{t.printSize}</h2>
-                <select
-                  data-testid="map-print-preset"
-                  aria-label={t.printSize}
-                  value={mapPrintPresetId}
-                  onChange={(event) =>
-                    onChangeMapPrintPreset(
-                      event.target.value as MapPrintPresetId,
-                    )
-                  }
-                >
-                  {MAP_PRINT_PRESETS.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {t.printOptions[preset.id]}
-                    </option>
-                  ))}
-                </select>
-                <div className="map-export-metadata-fields">
-                  {(
-                    [
-                      ["title", t.metadataFields.title, 120],
-                      ["subtitle", t.metadataFields.subtitle, 180],
-                      ["source", t.metadataFields.source, 300],
-                      ["projectionNote", t.metadataFields.projectionNote, 180],
-                      ["copyright", t.metadataFields.copyright, 180],
-                    ] as const
-                  ).map(([field, label, maxLength]) => (
-                    <label key={field}>
-                      <span>{label}</span>
-                      <input
-                        type="text"
-                        value={mapExportMetadata[field]}
-                        maxLength={maxLength}
-                        onChange={(event) =>
-                          onChangeMapExportMetadata(field, event.target.value)
-                        }
-                      />
-                    </label>
-                  ))}
+              <details className="map-control-section map-print-controls">
+                <summary>{t.printSettings}</summary>
+                <div className="map-print-controls-body">
+                  <h2>{t.printSize}</h2>
+                  <select
+                    data-testid="map-print-preset"
+                    aria-label={t.printSize}
+                    value={mapPrintPresetId}
+                    onChange={(event) =>
+                      onChangeMapPrintPreset(
+                        event.target.value as MapPrintPresetId,
+                      )
+                    }
+                  >
+                    {MAP_PRINT_PRESETS.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {t.printOptions[preset.id]}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="map-export-metadata-fields">
+                    {(
+                      [
+                        ["title", t.metadataFields.title, 120],
+                        ["subtitle", t.metadataFields.subtitle, 180],
+                        ["source", t.metadataFields.source, 300],
+                        [
+                          "projectionNote",
+                          t.metadataFields.projectionNote,
+                          180,
+                        ],
+                        ["copyright", t.metadataFields.copyright, 180],
+                      ] as const
+                    ).map(([field, label, maxLength]) => (
+                      <label key={field}>
+                        <span>{label}</span>
+                        <input
+                          type="text"
+                          value={mapExportMetadata[field]}
+                          maxLength={maxLength}
+                          onChange={(event) =>
+                            onChangeMapExportMetadata(field, event.target.value)
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <div
+                    className="map-publication-preflight"
+                    data-testid="map-publication-preflight"
+                  >
+                    <span>
+                      {t.publicationPreflight}:{" "}
+                      {mapPreflight.some(({ level }) => level === "warning")
+                        ? t.preflightReview
+                        : t.preflightReady}
+                    </span>
+                    {mapPreflight.map((check) => (
+                      <p className={check.level} key={check.id}>
+                        <b>{check.level === "pass" ? "✓" : "!"}</b>
+                        {check.level === "pass"
+                          ? check.id === "text-size"
+                            ? `7 pt ≥ ${check.threshold} pt`
+                            : check.id === "stroke-width"
+                              ? `0.1 mm ≥ ${check.threshold} mm`
+                              : t.preflightReady
+                          : t.preflightMessages[check.id]}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-                <div
-                  className="map-publication-preflight"
-                  data-testid="map-publication-preflight"
-                >
-                  <span>
-                    {t.publicationPreflight}:{" "}
-                    {mapPreflight.some(({ level }) => level === "warning")
-                      ? t.preflightReview
-                      : t.preflightReady}
-                  </span>
-                  {mapPreflight.map((check) => (
-                    <p className={check.level} key={check.id}>
-                      <b>{check.level === "pass" ? "✓" : "!"}</b>
-                      {check.level === "pass"
-                        ? check.id === "text-size"
-                          ? `7 pt ≥ ${check.threshold} pt`
-                          : check.id === "stroke-width"
-                            ? `0.1 mm ≥ ${check.threshold} mm`
-                            : t.preflightReady
-                        : t.preflightMessages[check.id]}
-                    </p>
-                  ))}
-                </div>
-              </section>
+              </details>
             )}
             {output?.checks.some(({ level }) => level === "warning") && (
               <div className="map-panel-warnings">
@@ -1083,7 +1136,7 @@ export function MapMainInterface({
               <div className="map-export-actions">
                 <button type="button" onClick={onDownloadCroppedMap}>
                   {t.downloadSvg}
-                  <b>↓</b>
+                  <span aria-hidden="true">↓</span>
                 </button>
               </div>
             )}
@@ -1097,7 +1150,7 @@ export function MapMainInterface({
             </div>
             <div
               ref={mapCanvasRef}
-              className={`figure-paper map-editor-canvas hide-information ${mapLayers.boundaries ? "" : "hide-boundaries"} ${mapLayers.labels ? "" : "hide-labels"} ${mapLayers.water ? "" : "hide-water"} ${mapLayers.lakes ? "" : "hide-lakes"} ${mapLayers.climate ? "" : "hide-climate"} ${mapLayers.terrain ? "" : "hide-terrain"} ${mapLayers.mountains ? "" : "hide-mountains"} ${mapLayers.terrain && mapLayers.mountains ? "" : "hide-scale"} ${mapLayers.cities ? "" : "hide-cities"} ${mapLayers.disputed ? "" : "hide-disputed"} ${mapLayers.graticule ? "" : "hide-graticule"} ${mapLayers.graticuleFront ? "graticule-position-front" : ""} ${mapLabelMode ? "label-hide-mode" : ""} ${mapLabelPositionMode ? "label-position-mode" : ""}`}
+              className={`figure-paper map-editor-canvas hide-information ${mapLayers.boundaries ? "" : "hide-boundaries"} ${mapLayers.labels ? "" : "hide-labels"} ${mapLayers.water ? "" : "hide-water"} ${mapLayers.lakes ? "" : "hide-lakes"} ${mapLayers.rivers ? "" : "hide-rivers"} ${mapLayers.climate ? "" : "hide-climate"} ${mapLayers.terrain ? "" : "hide-terrain"} ${mapLayers.mountains ? "" : "hide-mountains"} ${mapLayers.cities ? "" : "hide-cities"} ${mapLayers.disputed ? "" : "hide-disputed"} ${mapLayers.graticule ? "" : "hide-graticule"} ${mapLayers.graticuleFront ? "graticule-position-front" : ""} ${mapLabelMode ? "label-hide-mode" : ""} ${mapLabelPositionMode ? "label-position-mode" : ""}`}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -1126,11 +1179,66 @@ export function MapMainInterface({
                         "--map-river-width": `${0.3 / mapZoom}px`,
                         "--map-lake-width": `${0.3 / mapZoom}px`,
                         "--map-disputed-width": `${0.55 / mapZoom}px`,
-                        "--map-graticule-width": `${0.2 / mapZoom}px`,
+                        "--map-graticule-width": `${0.26 / mapZoom}px`,
+                        "--map-peak-scale": String(1 / mapZoom),
                       } as CSSProperties
                     }
                   />
-                  <i className="map-export-crop" aria-hidden="true">
+                  <i className="map-export-crop">
+                    <span
+                      className="map-view-buttons map-preview-controls"
+                      onPointerDown={(event) => event.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        aria-label={t.zoomIn}
+                        title={t.zoomIn}
+                        onClick={() =>
+                          onMapZoom((value) => Math.min(40, value * 1.5))
+                        }
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t.zoomOut}
+                        title={t.zoomOut}
+                        onClick={() =>
+                          onMapZoom((value) => Math.max(0.5, value / 1.5))
+                        }
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t.resetView}
+                        title={t.resetView}
+                        onClick={() => {
+                          onMapZoom(1);
+                          onMapPan({ x: 0, y: 0 });
+                        }}
+                      >
+                        ↺
+                      </button>
+                    </span>
+                    {scaleSegmentCount > 0 && (
+                      <span className="map-preview-scale">
+                        <span className="map-preview-scale-labels">
+                          {previewScaleLabels.map((label, index) => (
+                            <i key={`${label}-${index}`}>{label}</i>
+                          ))}
+                        </span>
+                        <span className="map-preview-scale-bar">
+                          {Array.from(
+                            { length: scaleSegmentCount },
+                            (_, index) => (
+                              <i key={index} />
+                            ),
+                          )}
+                        </span>
+                        <b>km</b>
+                      </span>
+                    )}
                     {output && (
                       <span className="map-legend">
                         <b>{t.legendTitle}</b>

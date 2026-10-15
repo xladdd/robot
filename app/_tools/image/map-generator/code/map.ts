@@ -519,7 +519,9 @@ export function createMapScaleBar(projection: GeoProjection) {
     )
       continue;
     const distance = geoDistance(west, east) * EARTH_RADIUS_KM;
-    if (Number.isFinite(distance) && distance > 0) {
+    // Some pseudocylindrical projections clamp inverse coordinates just
+    // outside their valid outline, producing an almost-zero false distance.
+    if (Number.isFinite(distance) && distance >= 10) {
       maximumKilometres = distance;
       break;
     }
@@ -604,7 +606,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     spec.viewport.east - spec.viewport.west >= 350
       ? { type: "Sphere" as const }
       : viewportGeometry;
-  const baseProjection =
+  const createProjection = () =>
     spec.projection === "robinson"
       ? geoRobinson()
       : spec.projection === "eckert4"
@@ -612,7 +614,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         : spec.projection === "naturalEarth"
           ? geoNaturalEarth1()
           : geoMercator();
-  const projection = baseProjection
+  const projection = createProjection()
     .fitExtent(
       [
         [canvas.x, canvas.y],
@@ -759,10 +761,10 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     (_, index) =>
       `<text x="${(scaleBar.width * index) / scaleBar.segmentCount}" y="-5" text-anchor="middle">${formatScaleNumber(scaleBar.segmentKilometres * index)}</text>`,
   ).join("");
-  const scaleMarkup = `<g id="graphic-scale" class="scale" data-name="Graphic scale" transform="translate(${950 - scaleBar.width} 660)">${scaleSegments}<rect class="scale-outline" width="${scaleBar.width}" height="9"/>${scaleLabels}<text class="scale-unit" x="${scaleBar.width + 8}" y="8">km</text></g>`;
+  const scaleMarkup = `<g id="graphic-scale" class="scale" data-name="Graphic scale" data-segment-km="${scaleBar.segmentKilometres}" data-segment-count="${scaleBar.segmentCount}" data-scale-width="${scaleBar.width}" transform="translate(50 660)">${scaleSegments}<rect class="scale-outline" width="${scaleBar.width}" height="9"/>${scaleLabels}<text class="scale-unit" x="${scaleBar.width + 8}" y="8">km</text></g>`;
   const ornaments = `${spec.showNorthArrow ? `<g class="north" transform="translate(952 54)"><path d="M0,24 L10,0 L20,24 L10,18 Z" fill="#1a1a1a"/><text x="10" y="-7" text-anchor="middle">N</text></g>` : ""}${spec.showScaleBar ? scaleMarkup : ""}`;
   const sharedStyle = `text{font-family:Verdana,Geneva,sans-serif;fill:#1a1a1a}.map-label{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.label-short{display:none}.free-label,.feature-label{font-size:7px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.8px}.free-label.water{font-size:7.5px;fill:#256a86;font-style:italic}.base-land path{fill:#eeeeec;stroke:#777;stroke-width:.35;stroke-linejoin:round}.regions path{stroke:#1a1a1a;stroke-width:.4;stroke-linejoin:round}.feature.area{stroke:#1a1a1a;stroke-width:1;fill-opacity:.42}.feature.line,.feature.route{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.feature.river{stroke-width:2}.feature.mountain{stroke-dasharray:2 4;stroke-width:5}.feature.route{stroke-width:4}.coast-overlay path{fill:none;stroke:#555;stroke-width:.35}.north text,.scale text{font-size:7px;font-weight:400}.scale text{paint-order:stroke;stroke:#fff;stroke-width:2px;stroke-linejoin:round}.scale-segment-dark{fill:#1a1a1a}.scale-segment-light{fill:#fff}.scale-outline{fill:none;stroke:#1a1a1a;stroke-width:.6}.scale-unit{dominant-baseline:auto}svg:not(.map-layer-visibility-managed) .climate-zones,svg:not(.map-layer-visibility-managed) .natural-terrain,svg:not(.map-layer-visibility-managed) .natural-mountains,svg:not(.map-layer-visibility-managed) .natural-cities,svg:not(.map-layer-visibility-managed) .disputed-boundaries,svg:not(.map-layer-visibility-managed) .graticule,svg:not(.map-layer-visibility-managed) .water-feature-labels{display:none}`;
-  const geographyStyle = `.graticule path{fill:none;stroke:#9cb6c2;stroke-width:.2;stroke-opacity:.65}.natural-lakes text,.natural-rivers text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round;fill:#256a86;font-style:italic}.natural-terrain path{stroke:none;fill-opacity:.1}.terrain-desert{fill:#e3b85f}.terrain-plateau{fill:#ad8b64}.terrain-plain{fill:#9fc98d}.terrain-basin{fill:#8db5a1}.natural-mountains .range-shape{fill:#b77b72;fill-opacity:.025;stroke:#76554a;stroke-opacity:.18;stroke-width:.35}.mountain-relief path{fill:none;stroke-linecap:round;stroke-linejoin:round}.mountain-relief .relief-ridge{stroke:#8e5f58;stroke-opacity:.68;stroke-width:.65}.mountain-relief .relief-shadow{stroke:#9b6768;stroke-opacity:.46;stroke-width:.6}.summit-marker{display:none}.summit-rank-1,.summit-rank-2{display:inline}.summit-marker .summit-symbol{fill:#76554a;stroke:#fff;stroke-width:1.1;stroke-linejoin:round;paint-order:stroke fill}.natural-mountains text,.natural-cities text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.natural-mountains text{fill:#654936;font-style:italic}.disputed-boundaries path{fill:none;stroke:#d35a40;stroke-width:.55;stroke-dasharray:3 2}.natural-cities circle{fill:#1a1a1a;stroke:#fff;stroke-width:.6}`;
+  const geographyStyle = `.graticule path{fill:none;stroke:#8faab7;stroke-width:.26;stroke-opacity:.74}.natural-lakes text,.natural-rivers text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round;fill:#256a86;font-style:italic}.natural-terrain .shaded-relief-image{opacity:.82}.summit-marker{display:none}.summit-rank-1,.summit-rank-2{display:inline}.summit-marker .summit-symbol{fill:#4b403a;stroke:#fff;stroke-width:.45;stroke-linejoin:round;paint-order:stroke fill}.natural-mountains text,.natural-cities text{font-size:6px;font-weight:400;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round}.natural-mountains text{fill:#4b403a;font-style:italic}.disputed-boundaries path{fill:none;stroke:#d35a40;stroke-width:.55;stroke-dasharray:3 2}.natural-cities circle{fill:#1a1a1a;stroke:#fff;stroke-width:.6}`;
   const physicalStyle = `.natural-lakes path{fill:#eaf6fa;stroke:#69a9c0;stroke-width:.3}.natural-rivers path{fill:none;stroke:#69a9c0;stroke-width:.3;stroke-linecap:round;stroke-linejoin:round}.climate-zones{opacity:.58;pointer-events:none}.climate-zones path{stroke:none;fill-rule:evenodd}`;
   const rivers = naturalEarthWater.rivers
     .map(
@@ -855,151 +857,28 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     "natural-rivers",
   );
   const climateLayer = `<g id="climate-zones" data-name="Climate zones (Köppen–Geiger, 1980–2016)" class="climate-zones" aria-label="Köppen–Geiger climate zones, 1980–2016">${climateZones}</g>`;
-  const terrain = naturalEarthGeography.terrain
-    .map(
-      ({ geometry, kind, name }) =>
-        `<path d="${path(geometry as GeoJSON.Geometry) || ""}" class="terrain-${kind.toLowerCase()}" data-name="${escapeXml(name)}"/>`,
-    )
-    .join("");
-  const mountainClipDefinitions: string[] = [];
-  const mountainRelief = (
-    mapGeometry: GeoJSON.Geometry,
-    rank: number,
-    mountainIndex: number,
-    shape: string,
-  ) => {
-    const polygons =
-      mapGeometry.type === "Polygon"
-        ? [mapGeometry.coordinates]
-        : (mapGeometry as GeoJSON.MultiPolygon).coordinates;
-    const vertices: Array<[number, number]> = [];
-    for (const polygon of polygons)
-      for (const ring of polygon)
-        for (const coordinate of ring) {
-          const position = projection([coordinate[0], coordinate[1]]);
-          if (position) vertices.push(position);
-        }
-    if (vertices.length < 4) return "";
-
-    const centerX = vertices.reduce((sum, [x]) => sum + x, 0) / vertices.length;
-    const centerY =
-      vertices.reduce((sum, [, y]) => sum + y, 0) / vertices.length;
-    let sumXX = 0;
-    let sumXY = 0;
-    let sumYY = 0;
-    for (const [x, y] of vertices) {
-      const dx = x - centerX;
-      const dy = y - centerY;
-      sumXX += dx * dx;
-      sumXY += dx * dy;
-      sumYY += dy * dy;
-    }
-    const angle = 0.5 * Math.atan2(2 * sumXY, sumXX - sumYY);
-    const alongX = Math.cos(angle);
-    const alongY = Math.sin(angle);
-    const acrossX = -alongY;
-    const acrossY = alongX;
-    const transformed = vertices.map(([x, y]) => ({
-      along: alongX * (x - centerX) + alongY * (y - centerY),
-      across: acrossX * (x - centerX) + acrossY * (y - centerY),
-    }));
-    const minimumAlong = Math.min(...transformed.map(({ along }) => along));
-    const maximumAlong = Math.max(...transformed.map(({ along }) => along));
-    const minimumAcross = Math.min(...transformed.map(({ across }) => across));
-    const maximumAcross = Math.max(...transformed.map(({ across }) => across));
-    const extent = maximumAlong - minimumAlong;
-    const crossExtent = maximumAcross - minimumAcross;
-    if (extent < 2 || crossExtent < 1) return "";
-
-    const clipId = `mountain-range-clip-${mountainIndex}`;
-    mountainClipDefinitions.push(
-      `<clipPath id="${clipId}"><path d="${shape}"/></clipPath>`,
-    );
-    const inset = Math.min(extent * 0.08, 5);
-    const ridgeStart = minimumAlong + inset;
-    const ridgeEnd = maximumAlong - inset;
-    const ridgePoint = (along: number, across = 0) => [
-      centerX + alongX * along + acrossX * across,
-      centerY + alongY * along + acrossY * across,
-    ];
-    const ridgeWave = (ratio: number) =>
-      Math.sin(ratio * Math.PI * 2 + mountainIndex * 0.73) *
-      Math.min(crossExtent * 0.12, 3.2) *
-      Math.sin(Math.PI * ratio);
-    const ridgeSamples = Array.from({ length: 7 }, (_, index) => {
-      const ratio = index / 6;
-      return ridgePoint(
-        ridgeStart + ratio * (ridgeEnd - ridgeStart),
-        ridgeWave(ratio),
-      );
-    });
-    const ridgePath = ridgeSamples
-      .map(([x, y], index) =>
-        index === 0
-          ? `M${x.toFixed(2)},${y.toFixed(2)}`
-          : `L${x.toFixed(2)},${y.toFixed(2)}`,
-      )
-      .join(" ");
-    const ridge = `<path class="relief-ridge" d="${ridgePath}"/>`;
-    const strokeCount = Math.min(
-      rank <= 2 ? 34 : 24,
-      Math.max(4, Math.round(extent / (rank <= 2 ? 4 : 5.5))),
-    );
-    const hachures: string[] = [];
-    for (let index = 0; index < strokeCount; index += 1) {
-      const ratio = (index + 0.5) / strokeCount;
-      const along = ridgeStart + ratio * (ridgeEnd - ridgeStart);
-      const deterministicWave = Math.sin(
-        (mountainIndex + 1) * 1.618 + index * 2.414,
-      );
-      const ridgeOffset =
-        ridgeWave(ratio) +
-        deterministicWave * Math.min(crossExtent * 0.045, 1.1);
-      const taper = Math.sin(Math.PI * ratio);
-      const length = Math.max(1.8, Math.min(13, crossExtent * 0.48 * taper));
-      const [ridgeX, ridgeY] = ridgePoint(along, ridgeOffset);
-      const [shadowX, shadowY] = ridgePoint(along, ridgeOffset + length);
-      const curveAlong = deterministicWave * Math.min(length * 0.24, 2.2);
-      const [shadowControlX, shadowControlY] = ridgePoint(
-        along + curveAlong,
-        ridgeOffset + length * 0.5,
-      );
-      hachures.push(
-        `<path class="relief-shadow" d="M${ridgeX.toFixed(2)},${ridgeY.toFixed(2)} Q${shadowControlX.toFixed(2)},${shadowControlY.toFixed(2)} ${shadowX.toFixed(2)},${shadowY.toFixed(2)}"/>`,
-      );
-    }
-    return `<g class="mountain-relief" clip-path="url(#${clipId})">${ridge}${hachures.join("")}</g>`;
-  };
-  const mountainParts = naturalEarthGeography.mountains.map(
-    ({ geometry, name, rank }, mountainIndex) => {
-      const mapGeometry = geometry as GeoJSON.Geometry;
-      const shape = path(mapGeometry) || "";
-      const [x, y] = path.centroid(mapGeometry);
-      if (!shape) return { relief: "", label: "" };
-      const label =
-        name && Number.isFinite(x) && Number.isFinite(y)
-          ? `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}">${mapLabel(
-              {
-                key: `mountain-${mountainIndex}`,
-                label: name,
-                kind: "mountain",
-                rootX: x,
-                rootY: y,
-                className: "mountain-label",
-                anchor: "middle",
-                rank,
-                prominence: path.area(mapGeometry),
-              },
-            )}</g>`
-          : "";
-      return {
-        relief: `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}"><path class="range-shape" d="${shape}"/>${mountainRelief(mapGeometry, rank, mountainIndex, shape)}</g>`,
-        label,
-      };
-    },
+  const reliefProjection = createProjection().fitExtent(
+    [
+      [canvas.x, canvas.y],
+      [canvas.x + canvas.width, canvas.y + canvas.height],
+    ],
+    { type: "Sphere" },
   );
-  const mountainRanges = mountainParts.map(({ relief }) => relief).join("");
-  const mountainLabels = mountainParts.map(({ label }) => label).join("");
+  const reliefScale = projection.scale() / reliefProjection.scale();
+  const [projectionX, projectionY] = projection.translate();
+  const [reliefProjectionX, reliefProjectionY] = reliefProjection.translate();
+  const reliefX = projectionX - reliefProjectionX * reliefScale;
+  const reliefY = projectionY - reliefProjectionY * reliefScale;
+  const reliefImage = `<image class="shaded-relief-image" data-name="Natural Earth shaded relief" href="/data/natural-earth-relief-${spec.projection}.jpg?v=10m-6000" x="${reliefX.toFixed(3)}" y="${reliefY.toFixed(3)}" width="${(canvas.width * reliefScale).toFixed(3)}" height="${(canvas.height * reliefScale).toFixed(3)}" preserveAspectRatio="none" clip-path="url(#relief-land-clip)"/>`;
+  const mountainLabels = naturalEarthGeography.mountains
+    .map(({ geometry, name, rank }, mountainIndex) => {
+      const mapGeometry = geometry as GeoJSON.Geometry;
+      const [x, y] = path.centroid(mapGeometry);
+      return name && Number.isFinite(x) && Number.isFinite(y)
+        ? `<g class="mountain-rank-${rank}" data-name="${escapeXml(name)}">${mapLabel({ key: `mountain-${mountainIndex}`, label: name, kind: "mountain", rootX: x, rootY: y, className: "mountain-label", anchor: "middle", rank, prominence: path.area(mapGeometry) })}</g>`
+        : "";
+    })
+    .join("");
   const summitMarkers = (
     naturalEarthPeaks.peaks as Array<{
       name: string;
@@ -1013,16 +892,16 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       const position = projection(geometry.coordinates);
       if (!position) return "";
       const [x, y] = position;
-      const size = rank <= 2 ? 4.2 : rank <= 4 ? 3.5 : 2.8;
+      const size = rank <= 2 ? 1.9 : rank <= 4 ? 1.55 : 1.25;
       const symbolPath = `M0,${(-size).toFixed(1)} L${(size * 0.86).toFixed(1)},${(size * 0.55).toFixed(1)} L${(-size * 0.86).toFixed(1)},${(size * 0.55).toFixed(1)} Z`;
       const label = mapLabel({
         key: `summit-${peakIndex}`,
         label: `${name} · ${elevation.toLocaleString("en")} m`,
         kind: "mountain",
-        rootX: x + size + 2,
-        rootY: y - 1,
-        x: size + 2,
-        y: -1,
+        rootX: x + size + 1.5,
+        rootY: y - 0.5,
+        x: size + 1.5,
+        y: -0.5,
         className: "summit-label",
         rank,
         prominence: elevation,
@@ -1030,7 +909,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
       return `<g class="summit-marker summit-rank-${rank}" data-rank="${rank}" data-min-zoom="${minZoom}" data-name="${escapeXml(name)}" transform="translate(${x.toFixed(2)} ${y.toFixed(2)})"><path class="summit-symbol" d="${symbolPath}"/>${label}</g>`;
     })
     .join("");
-  const mountains = `${layer("mountain-relief", "Mountain relief", mountainRanges)}${layer("mountain-range-labels", "Mountain range labels", mountainLabels)}${layer("summit-markers", "Summit markers", summitMarkers)}`;
+  const mountains = `${layer("mountain-range-labels", "Mountain range labels", mountainLabels)}${layer("summit-markers", "Summit markers", summitMarkers)}`;
   const disputed = naturalEarthGeography.disputed
     .map(
       ({ geometry, name }) =>
@@ -1078,8 +957,8 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
         .join("");
   const terrainLayer = layer(
     "terrain",
-    "Terrain regions",
-    terrain,
+    "Shaded relief",
+    reliefImage,
     "natural-terrain",
   );
   const mountainLayer = layer(
@@ -1201,7 +1080,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     });
     const shortLabels = labelParts.map(({ short }) => short).join("");
     const fullLabels = labelParts.map(({ full }) => full).join("");
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Country boundaries from Natural Earth. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}${mountainClipDefinitions.join("")}</defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, shapes, shortLabels, fullLabels)}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Country boundaries from Natural Earth. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}<clipPath id="relief-land-clip">${baseLand}</clipPath></defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, shapes, shortLabels, fullLabels)}</svg>`;
   }
   const landPath =
     path(naturalEarthLand10m.geometry as GeoJSON.MultiPolygon) || "";
@@ -1273,7 +1152,7 @@ export function renderMapSvg(spec: MapSpec, swatches: RenderSwatch[] = []) {
     .map(({ fullLabel }) => fullLabel)
     .join("");
   const clippedRegions = `<g clip-path="url(#historical-land-clip)">${regions}</g>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Historical political geometry clipped to Natural Earth coastlines. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}${mountainClipDefinitions.join("")}<clipPath id="historical-land-clip"><path d="${landPath}"/></clipPath></defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, clippedRegions, shortRegionLabels, fullRegionLabels)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" role="img" aria-label="${escapeXml(spec.title)}" aria-describedby="map-desc"><desc id="map-desc">${escapeXml(`${spec.subtitle} ${spec.place}, ${spec.date}. Historical political geometry clipped to Natural Earth coastlines. Optional climate zones use Beck et al. 2018 normals for 1980–2016.`)}</desc><defs>${arrows}<clipPath id="relief-land-clip"><path d="${landPath}"/></clipPath><clipPath id="historical-land-clip"><path d="${landPath}"/></clipPath></defs><style>${sharedStyle}${geographyStyle}${physicalStyle}</style>${composeLayers(baseLand, clippedRegions, shortRegionLabels, fullRegionLabels)}</svg>`;
 }
 
 export function createMapReport(

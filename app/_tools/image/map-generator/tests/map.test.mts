@@ -971,19 +971,27 @@ test("renders Pleiades ancient cities for ancient years only", () => {
   assert.match(modernSvg, />Prague</);
 });
 
-test("draws clipped vector relief and ranked Natural Earth summit markers", () => {
+test("renders projected shaded relief and compact Natural Earth summit markers", () => {
   const { spec } = validateMapSpec(structuredClone(map));
   spec.viewport = { west: -180, south: -58, east: 180, north: 82 };
   const svg = renderMapSvg(spec);
-  assert.match(svg, /id="mountain-relief" data-name="Mountain relief"/);
+  assert.match(svg, /id="terrain" data-name="Shaded relief"/);
+  assert.match(
+    svg,
+    /class="shaded-relief-image"[^>]+natural-earth-relief-schematic\.jpg/,
+  );
+  assert.match(svg, /clip-path="url\(#relief-land-clip\)"/);
+  assert.doesNotMatch(svg, /d="<path/);
   assert.match(svg, /id="summit-markers" data-name="Summit markers"/);
-  assert.ok((svg.match(/class="relief-shadow"/g) || []).length > 300);
   assert.ok((svg.match(/class="summit-marker /g) || []).length > 600);
   assert.match(svg, /data-name="HIMALAYAS"/);
   assert.match(svg, /data-name="Mount Everest"/);
   assert.match(svg, /Mount Everest · 8,848 m/);
-  assert.match(svg, /\.natural-mountains \.range-shape\{fill:#b77b72/);
-  assert.doesNotMatch(svg, /peak-glyph|glyph-face|glyph-shade/);
+  assert.match(svg, /class="summit-symbol" d="M0,-1\.9/);
+  assert.doesNotMatch(
+    svg,
+    /relief-ridge|relief-shadow|range-shape|mountain-relief/,
+  );
 });
 
 test("renders lakes above political fills so lake fills stay visible", () => {
@@ -1045,7 +1053,19 @@ test("renders Robinson, Eckert IV and Natural Earth projections with graticule l
   ] as const) {
     const spec = structuredClone(map);
     spec.projection = projection;
+    spec.showScaleBar = true;
     const svg = renderMapSvg(spec);
+    assert.match(
+      svg,
+      /\.graticule path\{fill:none;stroke:#8faab7;stroke-width:\.26;stroke-opacity:\.74\}/,
+    );
+    const scaleKilometres = Number(
+      svg.match(/data-segment-km="([\de.+-]+)"/)?.[1] ?? 0,
+    );
+    assert.ok(
+      scaleKilometres >= 1,
+      `${projection} scale must use a useful non-zero distance`,
+    );
     assert.ok(
       svg.indexOf('id="graticule-behind"') < svg.indexOf('id="base-geography"'),
       "behind graticule must precede base geography",

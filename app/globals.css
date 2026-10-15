@@ -3749,16 +3749,16 @@ button {
 }
 .map-view-buttons {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 30px);
+    gap: 5px;
 }
 .map-view-buttons button {
-    min-height: 38px;
+    width: 30px;
+    height: 30px;
     border: 1px solid var(--ink);
+    border-radius: 0;
     background: var(--panel);
     color: var(--ink);
-}
-.map-view-buttons button + button {
-    border-left: 0;
 }
 .map-editor-controls p {
     margin: 0;
@@ -3931,7 +3931,7 @@ button {
     background: transparent !important;
     border: 0 !important;
     clip-path: polygon(50% 0, 100% 100%, 0 100%);
-    background: #8b6a52 !important;
+    background: #4b403a !important;
 }
 .map-export-crop .map-legend-symbol-river {
     height: 0 !important;
@@ -3966,6 +3966,81 @@ button {
 }
 .map-editor-canvas .scale {
     display: none;
+}
+.map-preview-controls {
+    position: absolute;
+    z-index: 4;
+    top: 14px;
+    right: 14px;
+    font-style: normal;
+    pointer-events: auto;
+}
+.map-preview-controls button {
+    display: grid;
+    min-height: 30px;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+    font: 400 18px/1 var(--font-sans);
+}
+.map-preview-controls button:last-child {
+    font-size: 16px;
+}
+.map-preview-controls button:hover {
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.map-preview-controls button:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+}
+.map-preview-scale {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 3;
+    display: grid;
+    width: min(180px, 32%);
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 9px;
+    column-gap: 7px;
+    color: #1a1a1a;
+    font: 400 7px/1 var(--font-sans);
+    font-style: normal;
+    filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff);
+    pointer-events: none;
+}
+.map-preview-scale-labels {
+    display: flex;
+    grid-column: 1;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.map-preview-scale-labels i {
+    font-style: normal;
+    transform: translateX(-50%);
+}
+.map-preview-scale-labels i:last-child {
+    transform: translateX(50%);
+}
+.map-preview-scale-bar {
+    display: flex;
+    grid-column: 1;
+    overflow: hidden;
+    border: 1px solid #1a1a1a;
+}
+.map-preview-scale-bar i {
+    flex: 1;
+    background: #1a1a1a;
+}
+.map-preview-scale-bar i:nth-child(even) {
+    background: #fff;
+}
+.map-preview-scale > b {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    font-size: 7px;
 }
 .map-module .map-export-crop {
     box-shadow: 0 0 0 100vmax #eaf6fa;
@@ -6198,7 +6273,7 @@ button {
     stroke-width: var(--map-water-halo-size, 1.82px) !important;
 }
 .map-export-actions button {
-    font-size: 9px;
+    font: 400 9px/1.2 var(--font-sans);
 }
 .map-module .map-export-actions {
     grid-template-columns: 1fr;
@@ -6618,10 +6693,8 @@ button {
     vector-effect: non-scaling-stroke;
 }
 .map-module .map-editor-canvas.hide-water #seas-oceans,
-.map-module .map-editor-canvas.hide-lakes .natural-lakes {
-    display: none;
-}
-.map-module:has(.map-layer-rivers input:not(:checked)) .natural-rivers {
+.map-module .map-editor-canvas.hide-lakes .natural-lakes,
+.map-module .map-editor-canvas.hide-rivers .natural-rivers {
     display: none;
 }
 .map-module .map-editor-canvas.hide-climate .climate-zones {
@@ -6668,12 +6741,13 @@ button {
 }
 .map-label-tools {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 6px;
-    margin-top: -12px;
+    margin-top: -6px;
 }
 .map-label-tools button {
     flex: 1;
+    min-height: 32px;
     padding: 5px 7px;
     border: 1px solid var(--line);
     background: transparent;
@@ -6690,12 +6764,17 @@ button {
     cursor: default;
 }
 .map-label-tools .map-label-count {
-    min-width: 16px;
-    padding: 2px 5px;
+    display: grid;
+    box-sizing: border-box;
+    width: 34px;
+    min-width: 34px;
+    min-height: 32px;
+    place-items: center;
+    padding: 5px;
     border: 1px solid var(--line);
+    color: var(--muted);
     font-size: 8px;
     text-align: center;
-    color: var(--muted);
 }
 .map-prompt-field textarea {
     width: 100%;
@@ -6783,6 +6862,9 @@ button {
     gap: 6px;
     margin-top: 6px;
 }
+.map-draw-tools .map-draw-actions {
+    margin-top: 2px;
+}
 .map-draw-tools .map-draw-kind,
 .map-draw-tools .map-draw-label {
     display: grid;
@@ -6863,6 +6945,11 @@ button {
 }
 .map-module .natural-mountains .summit-marker {
     display: none;
+}
+.map-module .natural-mountains .summit-symbol {
+    transform: scale(var(--map-peak-scale, 1));
+    transform-origin: 0 0;
+    vector-effect: non-scaling-stroke;
 }
 .map-module
     .map-zoom-world
@@ -10624,6 +10711,9 @@ button {
 }
 
 /* Map Maker keeps its overlay geometry but adopts the shared control language. */
+.map-module button {
+    font-weight: 400;
+}
 .map-module .figure-controls {
     padding: 14px 18px 18px;
 }
@@ -10648,9 +10738,8 @@ button {
 .map-editor-controls .map-year-field input {
     font-size: 28px;
 }
-.map-view-buttons button {
-    min-height: 32px;
-    font: 9px/1.2 var(--font-sans);
+.map-preview-controls button {
+    min-height: 30px;
 }
 .map-control-section {
     display: grid;
@@ -10672,7 +10761,8 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .map-projection > h2,
-.map-projection > .map-layer-note {
+.map-projection > .map-layer-note,
+.map-projection > .map-projection-options {
     grid-column: 1 / -1;
 }
 .map-projection label,
@@ -10723,10 +10813,41 @@ button {
     background: var(--orange);
     color: var(--on-accent);
 }
+.map-layer-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+.map-layer-column {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    gap: 9px;
+}
+
+.map-layer-column > h2,
+.map-layer-density > h3 {
+    margin: 0;
+    color: var(--teal);
+    font: 400 8px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
 .map-layer-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px 12px;
+}
+.map-layer-column .map-layer-grid {
+    grid-template-columns: 1fr;
+}
+.map-projection-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding-top: 2px;
+}
+.map-projection-options .map-layer-disabled {
+    opacity: 0.45;
 }
 .map-layer-grid label {
     display: flex;
@@ -10766,8 +10887,24 @@ button {
     min-height: 32px;
     font: 9px/1.2 var(--font-sans);
 }
-.map-purpose-controls > h2:not(:first-child) {
-    margin-top: 4px;
+.map-layer-density {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+}
+.map-layer-density .map-density-grid {
+    grid-template-columns: 1fr;
+}
+.map-layer-density .map-choice-button + .map-choice-button {
+    margin-top: -1px;
+    margin-left: 0;
+}
+.map-layer-priority-note {
+    margin-top: 2px !important;
+}
+.map-prompt-field {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
 }
 .map-purpose-grid,
 .map-density-grid {
@@ -10820,7 +10957,39 @@ button {
     color: var(--orange) !important;
     font-weight: 700;
 }
-.map-print-controls > select {
+.map-print-controls {
+    padding: 0 !important;
+}
+.map-print-controls > summary {
+    position: relative;
+    padding: 12px 28px 12px 0;
+    color: var(--teal);
+    cursor: pointer;
+    font: 400 9px/1.3 var(--font-sans);
+    letter-spacing: 0.08em;
+    list-style: none;
+}
+.map-print-controls > summary::-webkit-details-marker {
+    display: none;
+}
+.map-print-controls > summary::after {
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    content: "+";
+    color: var(--ink);
+    font-size: 14px;
+    transform: translateY(-50%);
+}
+.map-print-controls[open] > summary::after {
+    content: "−";
+}
+.map-print-controls-body {
+    display: grid;
+    gap: 10px;
+    padding: 0 0 12px;
+}
+.map-print-controls-body > select {
     box-sizing: border-box;
     width: 100%;
     height: 32px;
@@ -10832,7 +11001,7 @@ button {
     color: var(--ink);
     font: 10px/1.5 var(--font-sans);
 }
-.map-print-controls > select:focus-visible {
+.map-print-controls-body > select:focus-visible {
     outline: 1px solid var(--teal);
     outline-offset: 2px;
 }
@@ -10984,8 +11153,10 @@ button {
     .image-generator-chips {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .map-projection,
-    .map-layer-grid {
+    .map-projection {
         grid-template-columns: 1fr;
+    }
+    .map-projection-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

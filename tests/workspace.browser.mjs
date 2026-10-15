@@ -419,6 +419,74 @@ export async function runWorkspaceBrowserTests({
             const detailedDensity = map
               .locator(".map-density-grid .map-choice-button")
               .filter({ hasText: "Detailed" });
+            await expect(
+              map.locator(".map-projection > label > span"),
+            ).toHaveCount(0);
+            await expect(
+              map.locator(
+                ".map-projection-options :is(.map-layer-graticule, .map-layer-graticuleFront)",
+              ),
+            ).toHaveCount(2);
+            await expect(map.locator(".map-layer-columns")).toHaveCount(1);
+            await expect(map.locator(".map-layer-column")).toHaveCount(2);
+            await expect(
+              map.locator(".map-layers > .map-layer-priority-note"),
+            ).toHaveCount(1);
+            await expect(
+              map.getByText(
+                "Optional terrain, mountain, river, lake, disputed-boundary, and climate overlays",
+                { exact: false },
+              ),
+            ).toHaveCount(0);
+            const reorganizedStyles = await map.evaluate((root) => {
+              const projectionOptions = root.querySelector(
+                ".map-projection-options",
+              );
+              const secondColumn = root.querySelector(
+                ".map-layer-column + .map-layer-column",
+              );
+              const density = root.querySelector(".map-layer-density");
+              const prompt = root.querySelector(".map-prompt-field");
+              return {
+                projectionColumns: projectionOptions
+                  ? getComputedStyle(projectionOptions)
+                      .gridTemplateColumns.split(" ")
+                      .filter(Boolean).length
+                  : 0,
+                columnBorder: secondColumn
+                  ? getComputedStyle(secondColumn).borderLeftWidth
+                  : "missing",
+                densityBorder: density
+                  ? getComputedStyle(density).borderTopWidth
+                  : "missing",
+                promptBorder: prompt
+                  ? getComputedStyle(prompt).borderBottomWidth
+                  : "missing",
+              };
+            });
+            expect(reorganizedStyles).toEqual({
+              projectionColumns: 2,
+              columnBorder: "0px",
+              densityBorder: "0px",
+              promptBorder: "1px",
+            });
+            await expect(
+              map.locator(".map-export-crop > .map-preview-controls button"),
+            ).toHaveText(["+", "−", "↺"]);
+            await expect
+              .poll(() =>
+                map.evaluate((root) => {
+                  const layers = root.querySelector(".map-layers");
+                  const prompt = root.querySelector(".map-prompt-field");
+                  return Boolean(
+                    layers &&
+                    prompt &&
+                    layers.compareDocumentPosition(prompt) &
+                      Node.DOCUMENT_POSITION_FOLLOWING,
+                  );
+                }),
+              )
+              .toBe(true);
             await expect(politicalPreset).toHaveAttribute(
               "aria-pressed",
               "true",
@@ -428,6 +496,9 @@ export async function runWorkspaceBrowserTests({
                 .locator(".map-density-grid .map-choice-button")
                 .filter({ hasText: "Standard" }),
             ).toHaveAttribute("aria-pressed", "true");
+            await expect(
+              map.locator(".map-print-controls"),
+            ).not.toHaveAttribute("open", "");
             await expect(
               map.locator('[data-testid="map-print-preset"]'),
             ).toHaveValue("original");
@@ -455,8 +526,14 @@ export async function runWorkspaceBrowserTests({
               map.locator(".map-layer-boundaries input"),
             ).not.toBeChecked();
             await map.locator(".map-layer-rivers input").uncheck();
+            await expect(map.locator(".map-editor-canvas")).toHaveClass(
+              /hide-rivers/,
+            );
             await expect(map.locator(".map-purpose-custom")).toBeVisible();
             await politicalPreset.click();
+            await expect(map.locator(".map-editor-canvas")).not.toHaveClass(
+              /hide-rivers/,
+            );
             await expect(politicalPreset).toHaveAttribute(
               "aria-pressed",
               "true",
@@ -510,7 +587,33 @@ export async function runWorkspaceBrowserTests({
               ).toBeLessThanOrEqual(geometry.controls.top + 1);
             }
 
+            await map.locator(".map-label-position-toggle").click();
+            const positionToggleBox = await map
+              .locator(".map-label-position-toggle")
+              .boundingBox();
+            const positionToolsBox = await map
+              .locator(".map-label-position-toggle + .map-label-tools")
+              .boundingBox();
+            expect(positionToggleBox).not.toBeNull();
+            expect(positionToolsBox).not.toBeNull();
+            expect(
+              positionToolsBox.y -
+                (positionToggleBox.y + positionToggleBox.height),
+            ).toBeGreaterThanOrEqual(5);
+            await map.locator(".map-label-position-toggle").click();
+
             await map.locator(".map-draw-toggle").click();
+            const drawLabelBox = await map
+              .locator(".map-draw-label input")
+              .boundingBox();
+            const drawActionsBox = await map
+              .locator(".map-draw-actions")
+              .boundingBox();
+            expect(drawLabelBox).not.toBeNull();
+            expect(drawActionsBox).not.toBeNull();
+            expect(drawActionsBox.y).toBeGreaterThanOrEqual(
+              drawLabelBox.y + drawLabelBox.height + 5,
+            );
             const canvas = map.locator(".map-editor-canvas");
             await canvas.evaluate((node) =>
               node.scrollIntoView({ block: "start", inline: "nearest" }),
@@ -667,6 +770,7 @@ export async function runWorkspaceBrowserTests({
             expect(exportedLayers.height).toBe("700");
             expect(exportedLayers.printPreset).toBeNull();
 
+            await map.locator(".map-print-controls summary").click();
             await map
               .locator('[data-testid="map-print-preset"]')
               .selectOption("90mm");

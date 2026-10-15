@@ -40,7 +40,7 @@ export async function mockHiddenApi(route, state, json) {
     const projection = url.searchParams.get("projection") ?? "schematic";
     state.timelines.push({ year: Number(year), lang, projection });
     await json(route, {
-      svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" data-fixture-map-year="${year}" data-fixture-map-lang="${lang}" data-fixture-map-projection="${projection}"><title>Synthetic map ${year}</title><g id="land" class="base-land"><path d="M0 0H1000V700H0Z" fill="#f4f0df"/></g><circle data-fixture-region-center="europe" cx="519.444" cy="212.166" r="4" fill="#d44"/><g id="countries-borders" class="regions"><path data-region-id="fixture-region" d="M100 100H600V500H100Z" fill="#99bb88"/></g><g id="lakes" class="natural-lakes"><path d="M450 300h100v60H450Z" fill="#eaf6fa"/></g><g id="labels"/><g id="water-labels"/><g id="rivers" class="natural-rivers"/></svg>`,
+      svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" data-fixture-map-year="${year}" data-fixture-map-lang="${lang}" data-fixture-map-projection="${projection}"><title>Synthetic map ${year}</title><g id="land" class="base-land"><path d="M0 0H1000V700H0Z" fill="#f4f0df"/></g><circle data-fixture-region-center="europe" cx="519.444" cy="212.166" r="4" fill="#d44"/><g id="countries-borders" class="regions"><path data-region-id="fixture-region" d="M100 100H600V500H100Z" fill="#99bb88"/></g><rect data-fixture-map-overlay="true" x="220" y="220" width="80" height="80" fill="rgba(0,0,0,.01)"/><g id="lakes" class="natural-lakes"><path d="M450 300h100v60H450Z" fill="#eaf6fa"/></g><g id="labels"/><g id="water-labels"/><g id="rivers" class="natural-rivers"/></svg>`,
       report: "Synthetic deterministic timeline fixture",
       checks: [],
       model: "local/fixture",
@@ -359,6 +359,10 @@ export async function runHiddenLifecycleChecks({
         "aria-pressed",
         "true",
       );
+      await slot("map").locator('[data-fixture-map-overlay="true"]').click();
+      await expect(
+        slot("map").locator('path[data-region-id="fixture-region"]'),
+      ).toHaveAttribute("style", "fill:#ff661a");
       await slot("map").locator(".map-layer-labels input").uncheck();
       await slot("map").locator(".map-view-buttons button").first().click();
       const svg = slot("map").locator(".map-transform svg");

@@ -581,11 +581,14 @@ export function layoutMapSvgLabels(
         "data-label-state",
         placement?.hidden ? "collision-suppressed" : "alternate-variant",
       );
-    } else if (variant === "short") {
+    } else {
+      // Explicit visibility avoids leaving selected city, mountain, or water
+      // labels hidden by their conservative pre-layout SVG/CSS defaults.
       element.style.display = "inline";
-      element.setAttribute("data-label-state", "abbreviated");
-    } else if (placement.overlaps) {
-      element.setAttribute("data-label-state", "minimum-overlap");
+      if (variant === "short")
+        element.setAttribute("data-label-state", "abbreviated");
+      else if (placement.overlaps)
+        element.setAttribute("data-label-state", "minimum-overlap");
     }
   }
 
