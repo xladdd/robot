@@ -477,19 +477,28 @@ test("keeps OpenRouter instructions in app-owned Markdown files", async () => {
 });
 
 test("ships Script Buffet and repeatable Design Manual PDF exports", async () => {
-  const [tool, buffet, packageJson, exporter, changelog] = await Promise.all([
-    readFile(new URL("app/_tools/design/script-buffet/Tool.tsx", root), "utf8"),
-    readFile(
-      new URL("app/_tools/design/script-buffet/MainInterface.tsx", root),
-      "utf8",
-    ),
-    readFile(new URL("package.json", root), "utf8"),
-    readFile(
-      new URL("app/_tools/design-manual/scripts/export-pdf.mjs", root),
-      "utf8",
-    ),
-    readFile(new URL("app/_tools/design-manual/changelog.md", root), "utf8"),
-  ]);
+  const [tool, buffet, catalogSource, packageJson, exporter, changelog] =
+    await Promise.all([
+      readFile(
+        new URL("app/_tools/design/script-buffet/Tool.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/design/script-buffet/MainInterface.tsx", root),
+        "utf8",
+      ),
+      readFile(
+        new URL("app/_tools/design/script-buffet/scripts.json", root),
+        "utf8",
+      ),
+      readFile(new URL("package.json", root), "utf8"),
+      readFile(
+        new URL("app/_tools/design-manual/scripts/export-pdf.mjs", root),
+        "utf8",
+      ),
+      readFile(new URL("app/_tools/design-manual/changelog.md", root), "utf8"),
+    ]);
+  const catalog = JSON.parse(catalogSource);
 
   assert.match(
     tool,
@@ -498,18 +507,61 @@ test("ships Script Buffet and repeatable Design Manual PDF exports", async () =>
   assert.match(tool, /function Tool\(props: ToolProps\)/);
   assert.match(tool, /<ScriptBuffetMainInterface\s+\{\.\.\.props\}\s*\/>/);
   assert.match(buffet, /className="buffet-grid"/);
-  assert.match(buffet, /indesign|illustrator|photoshop/);
-  assert.match(buffet, /Make Silhouette Fill/);
-  assert.match(buffet, /Opacity Set/);
-  assert.match(buffet, /Split Text Frames into Characters/);
+  assert.match(buffet, /import scriptData from ["']\.\/scripts\.json["']/);
+  assert.match(buffet, /script-buffet\/scripts/);
+  assert.match(buffet, /script-buffet\/images/);
   assert.doesNotMatch(buffet, /Solutions Importer: (Simple|Advanced)/);
-  await Promise.all(
+  assert.equal(catalog.length, 9);
+  assert.deepEqual(
+    catalog.map((entry) => entry.name),
     [
-      "Make Silhouette Fill.jsx",
-      "Opacity Set.jsx",
-      "Split Text Frames into Characters.jsx",
-    ].map((name) =>
-      access(new URL(`app/_tools/design/script-buffet/public/${name}`, root)),
+      "Make Silhouette Fill",
+      "Opacity Set",
+      "Split Text Frames into Characters",
+      "Toggle Lock",
+      "Make Silhouette Fill",
+      "Move Artboard Items to New Layers",
+      "Check PPI",
+      "Bulk Remove Background",
+      "Bulk Resize Images",
+    ],
+  );
+  assert.equal(new Set(catalog.map((entry) => entry.id)).size, catalog.length);
+
+  for (const entry of catalog) {
+    assert.equal(typeof entry.enabled, "boolean");
+    assert.deepEqual(Object.keys(entry.applications), [
+      "indesign",
+      "illustrator",
+      "photoshop",
+    ]);
+    for (const enabled of Object.values(entry.applications)) {
+      assert.equal(typeof enabled, "boolean");
+    }
+    if (entry.enabled) {
+      assert.ok(Object.values(entry.applications).some(Boolean));
+    }
+    await access(
+      new URL(
+        `app/_tools/design/script-buffet/public/scripts/${entry.scriptFile}`,
+        root,
+      ),
+    );
+    if (entry.previewFile) {
+      assert.ok(entry.previewAlt?.en);
+      assert.ok(entry.previewAlt?.cs);
+      await access(
+        new URL(
+          `app/_tools/design/script-buffet/public/images/${entry.previewFile}`,
+          root,
+        ),
+      );
+    }
+  }
+  await access(
+    new URL(
+      "app/_tools/design/script-buffet/public/images/preview-placeholder.svg",
+      root,
     ),
   );
   assert.match(packageJson, /manual:pdf/);
@@ -714,6 +766,7 @@ test("keeps the documented document and visual workspace families", async () => 
   assert.match(css, /\.editor-sidebar\s*\{[^}]*padding:\s*14px 18px 18px/s);
   assert.match(css, /\.map-control-section\s*\{/);
   assert.match(map, /className="map-control-section map-layers"/);
+  assert.doesNotMatch(image, /image-generator-style-source/);
   assert.match(css, /\.visual-single-toolbar\.editor-sidebar/);
   assert.match(
     css,

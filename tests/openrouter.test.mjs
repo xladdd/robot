@@ -91,6 +91,23 @@ test("routes legacy OpenRouter handlers through the shared tracked transport", a
   }
 });
 
+test("keeps Image Generator key and account balances distinct", async () => {
+  const source = await readFile(
+    new URL("app/_tools/image/image-generator/code/server.ts", root),
+    "utf8",
+  );
+
+  assert.match(source, /const credit = keyCredit;/);
+  assert.match(
+    source,
+    /const accountCredit =\s*managementTotalCredits !== null &&\s*managementTotalUsage !== null/,
+  );
+  assert.doesNotMatch(
+    source,
+    /appKeyAccountCredit|fetchOpenRouter<RawCredits>/,
+  );
+});
+
 async function ownedServerSources(directory) {
   const sources = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {

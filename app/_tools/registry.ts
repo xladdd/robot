@@ -112,7 +112,7 @@ export const appRegistryEntries = [
     id: "scriptBuffet",
     category: "design",
     folder: "design/script-buffet",
-    available: false,
+    available: true,
     hidden: false,
   },
   {

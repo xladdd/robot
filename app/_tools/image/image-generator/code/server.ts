@@ -32,6 +32,14 @@ const generationPrompt = loadPrompt(
 );
 const upscalePrompt = loadPrompt("image/image-generator/prompts/upscale.md");
 
+// A requested model is honoured only when it looks like an OpenRouter model
+// id; anything else falls back to the stage default.
+function validModelId(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return /^[\w][\w.-]*\/[\w][\w.:-]*$/.test(trimmed) ? trimmed : null;
+}
+
 // The storybook styles are shared with the Advanced mode preset dropdown; in
 // Default mode they act as full medium instructions.
 function storybookMediumInstruction(id: string) {
@@ -73,10 +81,6 @@ type RawCatalogModel = {
   pricing?: { image?: unknown; image_output?: unknown };
 };
 
-type RawCredits = {
-  data?: { total_credits?: unknown; total_usage?: unknown };
-};
-
 type RawKeyInfo = {
   data?: { limit?: unknown; limit_remaining?: unknown; usage?: unknown };
 };
@@ -91,14 +95,11 @@ export async function GET(request: Request) {
       );
 
     const managementKey = process.env.OPENROUTER_MANAGEMENT_API_KEY?.trim();
-    const [modelsRequest, creditsRequest, keyRequest, accountCreditsRequest] =
+    const [modelsRequest, keyRequest, accountCreditsRequest] =
       await Promise.all([
         fetchOpenRouterPublicImageModels<{ data?: RawCatalogModel[] }>({
           signal: request.signal,
         }),
-        fetchOpenRouter<RawCredits>(openRouter, "credits", {
-          signal: request.signal,
-        }).catch(() => null),
         fetchOpenRouter<RawKeyInfo>(openRouter, "key", {
           signal: request.signal,
         }).catch(() => null),
@@ -120,9 +121,7 @@ export async function GET(request: Request) {
           typeof entry?.id === "string" &&
           entry.id.toLowerCase().includes("flux") &&
           Array.isArray(entry.architecture?.output_modalities) &&
-          (entry.architecture.output_modalities as unknown[]).includes(
-            "image",
-          ),
+          (entry.architecture.output_modalities as unknown[]).includes("image"),
       )
       .map((entry) => {
         // pricing.image is the flat per-image rate; per-token image models
@@ -155,37 +154,23 @@ export async function GET(request: Request) {
       })
       .sort((a, b) => a.id.localeCompare(b.id));
 
-    const credits = creditsRequest?.result.data;
-    const totalCredits =
-      typeof credits?.total_credits === "number" ? credits.total_credits : null;
-    const totalUsage =
-      typeof credits?.total_usage === "number" ? credits.total_usage : null;
-    const appKeyAccountCredit =
-      totalCredits !== null && totalUsage !== null
-        ? Math.max(0, totalCredits - totalUsage)
-        : null;
-
-    // /credits requires a management key; inference keys fall back to the
-    // remaining credit the key itself reports via /key.
+    // The dedicated inference key reports only its own cap and usage. Keep
+    // that value separate from the full account balance below.
     const keyInfo = keyRequest?.result.data;
     const limitRemaining =
       typeof keyInfo?.limit_remaining === "number"
         ? keyInfo.limit_remaining
         : null;
-    const keyLimit =
-      typeof keyInfo?.limit === "number" ? keyInfo.limit : null;
-    const keyUsage =
-      typeof keyInfo?.usage === "number" ? keyInfo.usage : null;
+    const keyLimit = typeof keyInfo?.limit === "number" ? keyInfo.limit : null;
+    const keyUsage = typeof keyInfo?.usage === "number" ? keyInfo.usage : null;
     const keyCredit =
       limitRemaining !== null
         ? Math.max(0, limitRemaining)
         : keyLimit !== null && keyUsage !== null
           ? Math.max(0, keyLimit - keyUsage)
           : null;
-    const credit = appKeyAccountCredit ?? keyCredit;
-    // The per-key cap is only meaningful when the displayed credit is the
-    // key's own remaining credit; an account-level credit has no cap context.
-    const creditLimit = appKeyAccountCredit !== null ? null : keyLimit;
+    const credit = keyCredit;
+    const creditLimit = keyLimit;
 
     // The full account balance is only visible to a management key; when one
     // is configured, read it so the UI can show it next to the per-key credit.
@@ -199,10 +184,9 @@ export async function GET(request: Request) {
         ? managementCredits.total_usage
         : null;
     const accountCredit =
-      appKeyAccountCredit ??
-      (managementTotalCredits !== null && managementTotalUsage !== null
+      managementTotalCredits !== null && managementTotalUsage !== null
         ? Math.max(0, managementTotalCredits - managementTotalUsage)
-        : null);
+        : null;
 
     return NextResponse.json(
       { models, credit, creditLimit, accountCredit },
@@ -266,8 +250,7 @@ export async function POST(request: Request) {
           { error: "This image is already at the maximum 2K upscale size." },
           { status: 400 },
         );
-      model =
-        resolveModel(modelStages['upscale']);
+      model = resolveModel(modelStages["upscale"]);
       completePrompt = fillPrompt(upscalePrompt, { prompt });
       inputReferences = [body.image];
       operation = "upscale-image";
@@ -282,11 +265,8 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       if (body.mode === "advanced") {
-        const requestedModel =
-          typeof body.model === "string" ? body.model.trim() : "";
-        model = /^[\w][\w.-]*\/[\w][\w.:-]*$/.test(requestedModel)
-          ? requestedModel
-          : resolveModel(modelStages['fidelity']);
+        model =
+          validModelId(body.model) ?? resolveModel(modelStages["fidelity"]);
         try {
           JSON.parse(prompt);
         } catch {
@@ -309,9 +289,11 @@ export async function POST(request: Request) {
             ? body.medium
             : "match";
         const highFidelity = body.quality !== "fast";
-        model = highFidelity
-          ? resolveModel(modelStages['fidelity'])
-          : resolveModel(modelStages['fast']);
+        model =
+          validModelId(body.model) ??
+          (highFidelity
+            ? resolveModel(modelStages["fidelity"])
+            : resolveModel(modelStages["fast"]));
         completePrompt = fillPrompt(generationPrompt, {
           referenceInstruction: references.length
             ? `Use the ${references.length} supplied reference image${references.length === 1 ? "" : "s"} as visual guidance. Preserve relevant style and requested subject traits without copying watermarks, logos, or incidental text.`

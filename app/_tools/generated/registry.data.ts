@@ -70,7 +70,7 @@ export const toolDefinitions = [
       "cs": "Generátor obrázků"
     },
     "featureFlags": {
-      "advancedMode": false
+      "advancedMode": true
     }
   },
   {
@@ -144,7 +144,7 @@ export const toolDefinitions = [
     "id": "scriptBuffet",
     "category": "design",
     "folder": "design/script-buffet",
-    "available": false,
+    "available": true,
     "hidden": false,
     "label": {
       "en": "Script Buffet",

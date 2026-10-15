@@ -30,17 +30,23 @@ import { cutoutDataUrl } from "./code/cutout";
 import { createZip, type ZipEntry } from "./code/zip";
 
 type ImageReference = { name: string; data: string };
-type ImageMedium =
-  | "match"
-  | "photo"
-  | "illustration"
-  | "3d"
-  | "storybook-object"
-  | "storybook-character";
-type ImageQuality = "fast" | "fidelity";
+type ImageMedium = "match" | "storybook-object" | "storybook-character";
 type ImageResolution = "512" | "1K" | "2K";
 type QueueConcurrency = 1 | 2 | 3;
 type GeneratorMode = "default" | "advanced";
+type AdvancedParameterId =
+  | "scene"
+  | "subjects"
+  | "seed"
+  | "lighting"
+  | "mood"
+  | "background"
+  | "composition"
+  | "colorPalette"
+  | "cameraAngle"
+  | "cameraLens"
+  | "cameraDepthOfField";
+type AdvancedTextField = Exclude<keyof AdvancedImageFields, "subjects">;
 type FluxModelOption = {
   id: string;
   name: string;
@@ -80,7 +86,6 @@ type ImageRequest = {
   prompt: string;
   references?: string[];
   medium?: ImageMedium;
-  quality?: ImageQuality;
   image?: string;
   sourceResolution?: ImageResolution;
   model?: string;
@@ -106,6 +111,12 @@ function parseSeed(value: string) {
 
 function formatUsd(value: number) {
   return `$${value.toFixed(4).replace(/\.?0+$/, "")}`;
+}
+
+function previewValue(value: string, empty: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return empty;
+  return trimmed.length > 24 ? `${trimmed.slice(0, 24)}…` : trimmed;
 }
 
 function prepareReferenceImage(file: File) {
@@ -193,14 +204,11 @@ export function ImageGeneratorMainInterface({
   const t = imageGeneratorUi[language];
   const [prompt, setPrompt] = useState("");
   const [references, setReferences] = useState<ImageReference[]>([]);
-  const [medium, setMedium] = useState<ImageMedium>("match");
-  const [quality, setQuality] = useState<ImageQuality>("fidelity");
   const [concurrency, setConcurrency] = useState<QueueConcurrency>(1);
   const [jobs, setJobs] = useState<QueueJob[]>([]);
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [zoomedId, setZoomedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<GeneratorMode>("default");
   const [advancedFields, setAdvancedFields] = useState<AdvancedImageFields>(
     emptyAdvancedImageFields,
   );
@@ -214,12 +222,17 @@ export function ImageGeneratorMainInterface({
   const [model, setModel] = useState("");
   const [seed, setSeed] = useState("");
   const [stylePreset, setStylePreset] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [openParameter, setOpenParameter] =
+    useState<AdvancedParameterId | null>(null);
+  const [compareModel, setCompareModel] = useState("");
   const [removeBackground, setRemoveBackground] = useState(false);
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   const activeControllersRef = useRef(new Set<AbortController>());
   const queueRunRef = useRef(0);
+  // The registry flag is the only mode switch: advanced reveals the model
+  // picker, structured prompt parameters, and the credits table.
+  const mode: GeneratorMode = advancedModeEnabled ? "advanced" : "default";
   const stylePresetLabels: Record<string, string> = {
     "atmospheric environmental photomontage":
       t.stylePresetAtmosphericPhotomontage,
@@ -244,7 +257,7 @@ export function ImageGeneratorMainInterface({
   );
 
   useEffect(() => {
-    if (mode !== "advanced") return;
+    if (!advancedModeEnabled) return;
     setCatalogLoading(true);
     void (async () => {
       try {
@@ -277,7 +290,7 @@ export function ImageGeneratorMainInterface({
         setCatalogLoading(false);
       }
     })();
-  }, [mode, catalogRefresh, language, t.catalogError]);
+  }, [catalogRefresh, language, t.catalogError]);
 
   useEffect(() => {
     if (model || !models.length) return;
@@ -293,12 +306,155 @@ export function ImageGeneratorMainInterface({
     [prompt],
   );
   const queuedPrompts = useMemo(() => splitImagePrompts(prompt), [prompt]);
-  const advancedJson = useMemo(
-    () => buildAdvancedImagePrompt(advancedFields),
-    [advancedFields],
+  // Storybook presets double as full medium instructions on the server; every
+  // other preset only appends its style text to the prompt line.
+  const medium: ImageMedium =
+    stylePreset === "storybook-object" || stylePreset === "storybook-character"
+      ? stylePreset
+      : "match";
+  // Any structured parameter turns each prompt line into a structured FLUX
+  // JSON prompt; the style field alone stays on the plain line-based path.
+  const structuredFieldsFilled = Boolean(
+    advancedFields.scene.trim() ||
+    advancedFields.subjects.some(
+      (subject) =>
+        subject.description.trim() ||
+        subject.position.trim() ||
+        subject.action.trim(),
+    ) ||
+    advancedFields.lighting.trim() ||
+    advancedFields.mood.trim() ||
+    advancedFields.background.trim() ||
+    advancedFields.composition.trim() ||
+    advancedFields.colorPalette.trim() ||
+    advancedFields.cameraAngle.trim() ||
+    advancedFields.cameraLens.trim() ||
+    advancedFields.cameraDepthOfField.trim(),
   );
-  const advancedReady = advancedJson !== "{}";
   const selectedModel = models.find((entry) => entry.id === model);
+  const compareModelActive = models.some((entry) => entry.id === compareModel);
+  const comparisonCount = mode === "advanced" && compareModelActive ? 2 : 1;
+
+  const detailParameters: {
+    id: AdvancedParameterId;
+    field: AdvancedTextField;
+    inputId: string;
+    label: string;
+    tag: string;
+    help: string;
+    placeholder: string;
+  }[] = [
+    {
+      id: "lighting",
+      field: "lighting",
+      inputId: "image-generator-lighting",
+      label: t.lighting,
+      tag: "lighting",
+      help: t.paramHelpLighting,
+      placeholder: t.lightingPlaceholder,
+    },
+    {
+      id: "mood",
+      field: "mood",
+      inputId: "image-generator-mood",
+      label: t.mood,
+      tag: "mood",
+      help: t.paramHelpMood,
+      placeholder: t.moodPlaceholder,
+    },
+    {
+      id: "background",
+      field: "background",
+      inputId: "image-generator-background",
+      label: t.background,
+      tag: "background",
+      help: t.paramHelpBackground,
+      placeholder: t.backgroundPlaceholder,
+    },
+    {
+      id: "composition",
+      field: "composition",
+      inputId: "image-generator-composition",
+      label: t.composition,
+      tag: "composition",
+      help: t.paramHelpComposition,
+      placeholder: t.compositionPlaceholder,
+    },
+    {
+      id: "colorPalette",
+      field: "colorPalette",
+      inputId: "image-generator-color-palette",
+      label: t.colorPalette,
+      tag: "color_palette",
+      help: t.paramHelpColorPalette,
+      placeholder: t.colorPalettePlaceholder,
+    },
+    {
+      id: "cameraAngle",
+      field: "cameraAngle",
+      inputId: "image-generator-camera-angle",
+      label: t.cameraAngle,
+      tag: "camera.angle",
+      help: t.paramHelpCameraAngle,
+      placeholder: t.cameraAnglePlaceholder,
+    },
+    {
+      id: "cameraLens",
+      field: "cameraLens",
+      inputId: "image-generator-camera-lens",
+      label: t.cameraLens,
+      tag: "camera.lens",
+      help: t.paramHelpCameraLens,
+      placeholder: t.cameraLensPlaceholder,
+    },
+    {
+      id: "cameraDepthOfField",
+      field: "cameraDepthOfField",
+      inputId: "image-generator-camera-depth",
+      label: t.cameraDepthOfField,
+      tag: "camera.depth_of_field",
+      help: t.paramHelpCameraDepthOfField,
+      placeholder: t.cameraDepthOfFieldPlaceholder,
+    },
+  ];
+  const parameterChips: {
+    id: AdvancedParameterId;
+    label: string;
+    tag: string;
+    help: string;
+    value: string;
+  }[] = [
+    {
+      id: "scene",
+      label: t.scene,
+      tag: "scene",
+      help: t.paramHelpScene,
+      value: previewValue(advancedFields.scene, t.creditUnavailable),
+    },
+    {
+      id: "subjects",
+      label: t.subjects,
+      tag: "subjects",
+      help: t.paramHelpSubjects,
+      value: String(advancedFields.subjects.length),
+    },
+    {
+      id: "seed",
+      label: t.seed,
+      tag: "seed",
+      help: t.paramHelpSeed,
+      value: seed.trim() || t.seedRandom,
+    },
+    ...detailParameters.map((parameter) => ({
+      id: parameter.id,
+      label: parameter.label,
+      tag: parameter.tag,
+      help: parameter.help,
+      value: previewValue(advancedFields[parameter.field], t.creditUnavailable),
+    })),
+  ];
+  const activeParameter =
+    parameterChips.find((chip) => chip.id === openParameter) ?? null;
   const completedJobs = jobs.filter(
     (job): job is QueueJob & { image: GeneratedImage } =>
       job.status === "complete" && Boolean(job.image),
@@ -399,25 +555,32 @@ export function ImageGeneratorMainInterface({
     }));
   }
 
+  function enableComparison() {
+    if (isGenerating) return;
+    const alternative = models.find((entry) => entry.id !== model);
+    if (alternative) setCompareModel(alternative.id);
+  }
+
   function jobRequest(job: QueueJob): ImageRequest {
-    if (job.mode === "advanced" && job.model)
+    if (job.mode === "advanced")
       return {
         mode: "advanced",
         prompt: job.prompt,
-        model: job.model,
-        seed: job.seed,
+        ...(job.model ? { model: job.model } : {}),
+        ...(job.seed !== undefined ? { seed: job.seed } : {}),
       };
-    // Storybook styles pin their seed the same way Advanced mode does; other
-    // media leave the seed unset so the server picks a random one.
-    const storybookSeed = imageStylePresets.find(
-      (entry) => entry.id === medium,
-    )?.seed;
+    // Storybook presets are sent as the medium, so the server already prepends
+    // the preset text; any other style text is appended to the prompt line.
+    const styleText = advancedFields.style.trim();
     return {
-      prompt: job.prompt,
+      prompt:
+        medium === "match" && styleText
+          ? `${job.prompt}\n\n${styleText}`
+          : job.prompt,
       references: references.map((reference) => reference.data),
       medium,
-      quality,
-      seed: storybookSeed,
+      ...(job.model ? { model: job.model } : {}),
+      ...(job.seed !== undefined ? { seed: job.seed } : {}),
     };
   }
 
@@ -495,60 +658,44 @@ export function ImageGeneratorMainInterface({
       stopGeneration();
       return;
     }
-    if (mode === "advanced") {
-      if (!advancedReady) {
-        setError(t.advancedRequired);
-        return;
-      }
-      if (!model) {
-        setError(t.modelRequired);
-        return;
-      }
-      const requestedSeed = parseSeed(seed);
-      if (Number.isNaN(requestedSeed)) {
-        setError(t.seedInvalid);
-        return;
-      }
-      const runId = queueRunRef.current + 1;
-      queueRunRef.current = runId;
-      const job: QueueJob = {
-        id: `advanced-${runId}`,
-        prompt: advancedJson,
-        status: "queued",
-        mode: "advanced",
-        model,
-        ...(requestedSeed !== null ? { seed: requestedSeed } : {}),
-      };
-      setJobs((current) => [...current, job]);
-      setError("");
-      setIsGenerating(true);
-      await requestImage(
-        job,
-        {
-          mode: "advanced",
-          prompt: advancedJson,
-          model,
-          seed: job.seed,
-        },
-        "generating",
-        runId,
-      );
-      if (queueRunRef.current === runId) setIsGenerating(false);
-      setCatalogRefresh((count) => count + 1);
-      return;
-    }
     if (!queuedPrompts.length) {
       setError(t.promptRequired);
+      return;
+    }
+    const requestedSeed = parseSeed(seed);
+    if (Number.isNaN(requestedSeed)) {
+      setError(t.seedInvalid);
+      return;
+    }
+    if (mode === "advanced" && models.length && !model) {
+      setError(t.modelRequired);
       return;
     }
 
     const runId = queueRunRef.current + 1;
     queueRunRef.current = runId;
-    const nextJobs = queuedPrompts.map((item, index) => ({
-      id: `${Date.now()}-${index}`,
-      prompt: item,
-      status: "queued" as const,
-    }));
+    // Comparison generates every prompt line once per selected model.
+    const targetModels: (string | undefined)[] =
+      mode === "advanced"
+        ? compareModelActive
+          ? [model, compareModel]
+          : [model]
+        : [undefined];
+    const nextJobs: QueueJob[] = [];
+    queuedPrompts.forEach((line, lineIndex) => {
+      targetModels.forEach((targetModel, modelIndex) => {
+        nextJobs.push({
+          id: `${Date.now()}-${lineIndex}-${modelIndex}`,
+          prompt: structuredFieldsFilled
+            ? buildAdvancedImagePrompt({ ...advancedFields, prompt: line })
+            : line,
+          status: "queued",
+          ...(structuredFieldsFilled ? { mode: "advanced" as const } : {}),
+          ...(targetModel ? { model: targetModel } : {}),
+          ...(requestedSeed !== null ? { seed: requestedSeed } : {}),
+        });
+      });
+    });
     setJobs((current) => [...current, ...nextJobs]);
     setError(allPromptCount > MAX_IMAGE_QUEUE ? t.limit : "");
     setIsGenerating(true);
@@ -567,6 +714,7 @@ export function ImageGeneratorMainInterface({
     );
 
     if (queueRunRef.current === runId) setIsGenerating(false);
+    setCatalogRefresh((count) => count + 1);
   }
 
   async function retryJob(job: QueueJob) {
@@ -658,9 +806,12 @@ export function ImageGeneratorMainInterface({
   }
 
   const generateLabel =
-    mode === "advanced" || queuedPrompts.length === 1
+    queuedPrompts.length * comparisonCount === 1
       ? t.generateOne
-      : t.generateMany.replace("{count}", String(queuedPrompts.length));
+      : t.generateMany.replace(
+          "{count}",
+          String(queuedPrompts.length * comparisonCount),
+        );
 
   useEffect(() => {
     if (!active || !onDiagnostics) return;
@@ -677,17 +828,7 @@ export function ImageGeneratorMainInterface({
         hasInput:
           Boolean(prompt.trim()) ||
           references.length > 0 ||
-          (mode === "advanced" &&
-            Boolean(
-              advancedFields.scene.trim() ||
-              advancedFields.prompt.trim() ||
-              advancedFields.subjects.some(
-                (subject) =>
-                  subject.description.trim() ||
-                  subject.position.trim() ||
-                  subject.action.trim(),
-              ),
-            )),
+          structuredFieldsFilled,
         fileType: null,
         fileSize: null,
         referenceCount: references.length,
@@ -701,8 +842,7 @@ export function ImageGeneratorMainInterface({
     jobs,
     prompt,
     references.length,
-    mode,
-    advancedFields,
+    structuredFieldsFilled,
     error,
     catalogError,
   ]);
@@ -813,529 +953,419 @@ export function ImageGeneratorMainInterface({
           hidden
         />
 
-        {advancedModeEnabled && (
-          <section className="cover-control cover-overlay-control image-generator-mode-control">
-            <label>{t.mode}</label>
-            <div
-              className="cover-overlay-options"
-              role="group"
-              aria-label={t.mode}
+        {mode === "advanced" && (
+          <section className="cover-control cover-render-controls image-generator-section image-generator-model-section">
+            <label htmlFor="image-generator-model">{t.model}</label>
+            <select
+              id="image-generator-model"
+              value={model}
+              onChange={(event) => {
+                const nextModel = event.target.value;
+                setModel(nextModel);
+                setCompareModel((current) =>
+                  current === nextModel ? "" : current,
+                );
+              }}
+              disabled={isGenerating || !models.length}
             >
+              {models.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+              {!models.length && (
+                <option value="">
+                  {catalogLoading ? t.modelLoading : t.catalogError}
+                </option>
+              )}
+            </select>
+
+            {compareModelActive ? (
+              <div className="image-generator-compare-row">
+                <select
+                  id="image-generator-compare-model"
+                  value={compareModel}
+                  onChange={(event) => setCompareModel(event.target.value)}
+                  disabled={isGenerating}
+                  aria-label={t.compareModel}
+                >
+                  {models
+                    .filter((entry) => entry.id !== model)
+                    .map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="image-generator-compare-remove"
+                  onClick={() => setCompareModel("")}
+                  disabled={isGenerating}
+                  aria-label={t.removeComparison}
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
-                className={mode === "default" ? "active" : ""}
-                aria-pressed={mode === "default"}
-                onClick={() => setMode("default")}
-                disabled={isGenerating}
+                className="image-generator-add-button"
+                onClick={enableComparison}
+                disabled={
+                  isGenerating || !models.some((entry) => entry.id !== model)
+                }
               >
-                {t.modeDefault}
+                + {t.compareModel}
               </button>
-              <button
-                type="button"
-                className={mode === "advanced" ? "active" : ""}
-                aria-pressed={mode === "advanced"}
-                onClick={() => setMode("advanced")}
-                disabled={isGenerating}
-              >
-                {t.modeAdvanced}
-              </button>
-            </div>
-            <small>{t.modeHelp}</small>
+            )}
+            {catalogError && (
+              <p className="image-generator-limit" role="status">
+                {catalogError}
+              </p>
+            )}
           </section>
         )}
 
-        {mode === "default" ? (
-          <>
-            <section className="cover-control image-generator-prompt-control">
-              <label htmlFor="image-generator-prompt">
-                {t.prompt}
-                <b>
-                  {Math.min(allPromptCount, MAX_IMAGE_QUEUE)} /{" "}
-                  {MAX_IMAGE_QUEUE} · {t.promptCount}
-                </b>
-              </label>
-              <textarea
-                id="image-generator-prompt"
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                placeholder={t.promptPlaceholder}
-                rows={9}
-                disabled={isGenerating}
-              />
-              <button
-                className="image-generator-import"
-                onClick={() => documentInputRef.current?.click()}
-                disabled={isGenerating}
-              >
-                {t.importFile}
-              </button>
-              <small>{t.importHelp}</small>
-              {allPromptCount > MAX_IMAGE_QUEUE && (
-                <p className="image-generator-limit" role="status">
-                  {t.limit}
-                </p>
-              )}
-            </section>
+        <section className="cover-control image-generator-prompt-control">
+          <label htmlFor="image-generator-prompt">
+            {t.prompt}
+            <b>
+              {Math.min(allPromptCount, MAX_IMAGE_QUEUE)} / {MAX_IMAGE_QUEUE} ·{" "}
+              {t.promptCount}
+            </b>
+          </label>
+          <textarea
+            id="image-generator-prompt"
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder={t.promptPlaceholder}
+            rows={9}
+            disabled={isGenerating}
+          />
+          <button
+            className="image-generator-import"
+            onClick={() => documentInputRef.current?.click()}
+            disabled={isGenerating}
+          >
+            {t.importFile}
+          </button>
+          <small>{t.importHelp}</small>
+          {allPromptCount > MAX_IMAGE_QUEUE && (
+            <p className="image-generator-limit" role="status">
+              {t.limit}
+            </p>
+          )}
+        </section>
 
-            <section className="cover-control cover-reference-control">
-              <label>
-                {t.references}{" "}
-                <b>
-                  {references.length}/3 · {t.referencesOptional}
-                </b>
-              </label>
-              <div className="cover-references image-generator-references">
-                {Array.from({ length: 3 }, (_, index) => {
-                  const reference = references[index];
-                  return reference ? (
-                    <figure key={`${reference.name}-${index}`}>
-                      <img src={reference.data} alt={reference.name} />
-                      <button
-                        onClick={() =>
-                          setReferences((current) =>
-                            current.filter(
-                              (_, itemIndex) => itemIndex !== index,
-                            ),
-                          )
-                        }
-                        disabled={isGenerating}
-                        aria-label={`${t.remove} ${reference.name}`}
-                      >
-                        ×
-                      </button>
-                      <figcaption>
-                        {String(index + 1).padStart(2, "0")}
-                      </figcaption>
-                    </figure>
-                  ) : (
-                    <button
-                      className="cover-add-reference"
-                      key={`empty-${index}`}
-                      onClick={() => referenceInputRef.current?.click()}
-                      onDragOver={(event) => {
-                        if (active) event.preventDefault();
-                      }}
-                      onDrop={(event) => {
-                        if (!active) return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        void addReferenceFiles(
-                          Array.from(event.dataTransfer.files),
-                        );
-                      }}
-                      disabled={isGenerating}
-                      aria-label={`${t.addImage.replace("\n", " ")} ${index + 1}`}
-                    >
-                      <b>+</b>
-                      <span>
-                        {t.addImage.split("\n").map((line, lineIndex) => (
-                          <span key={line}>
-                            {line}
-                            {lineIndex === 0 && <br />}
-                          </span>
-                        ))}
-                      </span>
-                      <small>{String(index + 1).padStart(2, "0")}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="cover-control cover-render-controls">
-              <label htmlFor="image-generator-medium">{t.style}</label>
-              <select
-                id="image-generator-medium"
-                value={medium}
-                onChange={(event) =>
-                  setMedium(event.target.value as ImageMedium)
-                }
-                disabled={isGenerating}
-              >
-                <option value="match">{t.styleMatch}</option>
-                <option value="photo">{t.stylePhoto}</option>
-                <option value="illustration">{t.styleIllustration}</option>
-                <option value="3d">{t.style3d}</option>
-                <option value="storybook-object">
-                  {t.stylePresetStorybookObject}
-                </option>
-                <option value="storybook-character">
-                  {t.stylePresetStorybookCharacter}
-                </option>
-              </select>
-              <label htmlFor="image-generator-quality">{t.quality}</label>
-              <select
-                id="image-generator-quality"
-                value={quality}
-                onChange={(event) =>
-                  setQuality(event.target.value as ImageQuality)
-                }
-                disabled={isGenerating}
-              >
-                <option value="fidelity">{t.qualityFidelity}</option>
-                <option value="fast">{t.qualityFast}</option>
-              </select>
-              {quality === "fidelity" && <small>{t.fidelityNote}</small>}
-            </section>
-
-          </>
-        ) : (
-          <>
-            <section className="cover-control cover-render-controls image-generator-model-control">
-              <label htmlFor="image-generator-model">{t.model}</label>
-              <select
-                id="image-generator-model"
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                disabled={isGenerating || !models.length}
-              >
-                {models.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.name}
-                  </option>
-                ))}
-                {!models.length && (
-                  <option value="">
-                    {catalogLoading ? t.modelLoading : t.catalogError}
-                  </option>
-                )}
-              </select>
-              {catalogError && (
-                <p className="image-generator-limit" role="status">
-                  {catalogError}
-                </p>
-              )}
-            </section>
-
-            <section className="cover-control cover-input-control image-generator-subjects-control">
-              <label>
-                {t.subjects}{" "}
-                <b>
-                  {advancedFields.subjects.length} · {t.subjectsHint}
-                </b>
-              </label>
-              {advancedFields.subjects.map((subject, index) => (
-                <div className="image-generator-subject" key={index}>
-                  <div className="image-generator-subject-head">
-                    <label>
-                      {t.subject} {String(index + 1).padStart(2, "0")}
-                    </label>
-                    {advancedFields.subjects.length > 1 && (
-                      <button
-                        type="button"
-                        className="image-generator-remove-subject"
-                        onClick={() => removeSubject(index)}
-                        disabled={isGenerating}
-                        aria-label={`${t.removeSubject} ${index + 1}`}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  <label
-                    htmlFor={`image-generator-subject-description-${index}`}
+        <section className="cover-control cover-reference-control">
+          <label>
+            {t.references}{" "}
+            <b>
+              {references.length}/3 · {t.referencesOptional}
+            </b>
+          </label>
+          <div className="cover-references image-generator-references">
+            {Array.from({ length: 3 }, (_, index) => {
+              const reference = references[index];
+              return reference ? (
+                <figure key={`${reference.name}-${index}`}>
+                  <img src={reference.data} alt={reference.name} />
+                  <button
+                    onClick={() =>
+                      setReferences((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                    disabled={isGenerating}
+                    aria-label={`${t.remove} ${reference.name}`}
                   >
-                    {t.description}
-                  </label>
-                  <textarea
-                    id={`image-generator-subject-description-${index}`}
-                    value={subject.description}
-                    onChange={(event) =>
-                      updateSubject(index, { description: event.target.value })
-                    }
-                    placeholder={t.subjectDescriptionPlaceholder}
-                    rows={3}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor={`image-generator-subject-position-${index}`}>
-                    {t.position}
-                  </label>
-                  <input
-                    id={`image-generator-subject-position-${index}`}
-                    type="text"
-                    value={subject.position}
-                    onChange={(event) =>
-                      updateSubject(index, { position: event.target.value })
-                    }
-                    placeholder={t.subjectPositionPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor={`image-generator-subject-action-${index}`}>
-                    {t.action}
-                  </label>
-                  <input
-                    id={`image-generator-subject-action-${index}`}
-                    type="text"
-                    value={subject.action}
-                    onChange={(event) =>
-                      updateSubject(index, { action: event.target.value })
-                    }
-                    placeholder={t.subjectActionPlaceholder}
-                    disabled={isGenerating}
-                  />
-                </div>
-              ))}
+                    ×
+                  </button>
+                  <figcaption>{String(index + 1).padStart(2, "0")}</figcaption>
+                </figure>
+              ) : (
+                <button
+                  className="cover-add-reference"
+                  key={`empty-${index}`}
+                  onClick={() => referenceInputRef.current?.click()}
+                  onDragOver={(event) => {
+                    if (active) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    if (!active) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void addReferenceFiles(
+                      Array.from(event.dataTransfer.files),
+                    );
+                  }}
+                  disabled={isGenerating}
+                  aria-label={`${t.addImage.replace("\n", " ")} ${index + 1}`}
+                >
+                  <b>+</b>
+                  <span>
+                    {t.addImage.split("\n").map((line, lineIndex) => (
+                      <span key={line}>
+                        {line}
+                        {lineIndex === 0 && <br />}
+                      </span>
+                    ))}
+                  </span>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="cover-control cover-render-controls image-generator-section image-generator-style-section">
+          <label htmlFor="image-generator-style">{t.style}</label>
+          <textarea
+            id="image-generator-style"
+            value={advancedFields.style}
+            onChange={(event) => {
+              setStylePreset("");
+              setAdvancedFields((current) => ({
+                ...current,
+                style: event.target.value,
+              }));
+            }}
+            placeholder={t.stylePlaceholder}
+            rows={4}
+            disabled={isGenerating}
+          />
+          <label htmlFor="image-generator-medium">{t.presets}</label>
+          <select
+            id="image-generator-medium"
+            value={stylePreset}
+            onChange={(event) => {
+              const presetId = event.target.value;
+              setStylePreset(presetId);
+              const preset = imageStylePresets.find(
+                (entry) => entry.id === presetId,
+              );
+              if (!preset) return;
+              setAdvancedFields((current) => ({
+                ...current,
+                style: preset.prompt,
+              }));
+              if (preset.seed !== undefined) setSeed(String(preset.seed));
+            }}
+            disabled={isGenerating}
+          >
+            <option value="">{t.presetsCustom}</option>
+            {imageStylePresets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {stylePresetLabels[preset.id]}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section className="cover-control image-generator-section image-generator-parameters-section">
+          <div className="image-generator-section-head">
+            <label>{t.parameters}</label>
+          </div>
+          <div
+            className="image-generator-chips"
+            role="group"
+            aria-label={t.parameters}
+          >
+            {parameterChips.map((chip) => (
               <button
+                key={chip.id}
                 type="button"
-                className="image-generator-add-subject"
-                onClick={addSubject}
-                disabled={
-                  isGenerating ||
-                  advancedFields.subjects.length >= MAX_ADVANCED_SUBJECTS
+                className={`image-generator-chip${openParameter === chip.id ? " active" : ""}`}
+                aria-pressed={openParameter === chip.id}
+                onClick={() =>
+                  setOpenParameter((current) =>
+                    current === chip.id ? null : chip.id,
+                  )
                 }
+                disabled={isGenerating}
               >
-                + {t.addSubject}
+                <span>{chip.label}</span>
+                <b>{chip.value}</b>
               </button>
-            </section>
-
-            <section className="cover-control cover-input-control image-generator-scene-control">
-              <label htmlFor="image-generator-scene">{t.scene}</label>
-              <textarea
-                id="image-generator-scene"
-                value={advancedFields.scene}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    scene: event.target.value,
-                  }))
-                }
-                placeholder={t.scenePlaceholder}
-                rows={3}
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-advanced-style">{t.style}</label>
-              <textarea
-                id="image-generator-advanced-style"
-                value={advancedFields.style}
-                onChange={(event) => {
-                  setStylePreset("");
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    style: event.target.value,
-                  }));
-                }}
-                placeholder={t.stylePlaceholder}
-                rows={4}
-                disabled={isGenerating}
-              />
-              <label htmlFor="image-generator-style-preset">
-                {t.stylePreset}
-              </label>
-              <select
-                id="image-generator-style-preset"
-                value={stylePreset}
-                onChange={(event) => {
-                  const presetId = event.target.value;
-                  setStylePreset(presetId);
-                  const preset = imageStylePresets.find(
-                    (entry) => entry.id === presetId,
-                  );
-                  if (!preset) return;
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    style: preset.prompt,
-                  }));
-                  if (preset.seed !== undefined) setSeed(String(preset.seed));
-                }}
-                disabled={isGenerating}
-              >
-                <option value="">{t.stylePresetCustom}</option>
-                {imageStylePresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {stylePresetLabels[preset.id]}
-                  </option>
-                ))}
-              </select>
-              <small>{t.stylePresetHelp}</small>
-              <label htmlFor="image-generator-advanced-prompt">
-                {t.advancedPrompt}
-              </label>
-              <textarea
-                id="image-generator-advanced-prompt"
-                value={advancedFields.prompt}
-                onChange={(event) =>
-                  setAdvancedFields((current) => ({
-                    ...current,
-                    prompt: event.target.value,
-                  }))
-                }
-                placeholder={t.advancedPromptPlaceholder}
-                rows={4}
-                disabled={isGenerating}
-              />
-            </section>
-
-            <section className="cover-control cover-input-control image-generator-details-control">
-              <div className="image-generator-details-head">
-                <label>
-                  {t.advancedDetails} <b>{t.advancedDetailsHint}</b>
-                </label>
+            ))}
+          </div>
+          {activeParameter && (
+            <div className="image-generator-param-window">
+              <div className="image-generator-param-head">
+                <b className="image-generator-param-title">
+                  {activeParameter.label}
+                </b>
+                <small className="image-generator-param-tag">
+                  {activeParameter.tag}
+                </small>
                 <button
                   type="button"
-                  className="image-generator-details-toggle"
-                  onClick={() => setDetailsOpen((open) => !open)}
-                  aria-expanded={detailsOpen}
-                  aria-controls="image-generator-details"
+                  className="image-generator-param-close"
+                  onClick={() => setOpenParameter(null)}
                   disabled={isGenerating}
+                  aria-label={t.close}
                 >
-                  {detailsOpen ? "−" : "+"}
+                  ×
                 </button>
               </div>
-              {detailsOpen && (
-                <div
-                  id="image-generator-details"
-                  className="image-generator-details"
-                >
-                  <label htmlFor="image-generator-lighting">{t.lighting}</label>
-                  <input
-                    id="image-generator-lighting"
-                    type="text"
-                    value={advancedFields.lighting}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        lighting: event.target.value,
-                      }))
+              <p className="image-generator-param-help">
+                {activeParameter.help}
+              </p>
+              {activeParameter.id === "scene" && (
+                <textarea
+                  id="image-generator-scene"
+                  value={advancedFields.scene}
+                  onChange={(event) =>
+                    setAdvancedFields((current) => ({
+                      ...current,
+                      scene: event.target.value,
+                    }))
+                  }
+                  placeholder={t.scenePlaceholder}
+                  rows={3}
+                  disabled={isGenerating}
+                />
+              )}
+              {activeParameter.id === "subjects" && (
+                <div className="image-generator-subjects">
+                  {advancedFields.subjects.map((subject, index) => (
+                    <div className="image-generator-subject" key={index}>
+                      <div className="image-generator-subject-head">
+                        <label>
+                          {t.subject} {String(index + 1).padStart(2, "0")}
+                        </label>
+                        {advancedFields.subjects.length > 1 && (
+                          <button
+                            type="button"
+                            className="image-generator-remove-subject"
+                            onClick={() => removeSubject(index)}
+                            disabled={isGenerating}
+                            aria-label={`${t.removeSubject} ${index + 1}`}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                      <label
+                        htmlFor={`image-generator-subject-description-${index}`}
+                      >
+                        {t.description}
+                      </label>
+                      <textarea
+                        id={`image-generator-subject-description-${index}`}
+                        value={subject.description}
+                        onChange={(event) =>
+                          updateSubject(index, {
+                            description: event.target.value,
+                          })
+                        }
+                        placeholder={t.subjectDescriptionPlaceholder}
+                        rows={3}
+                        disabled={isGenerating}
+                      />
+                      <label
+                        htmlFor={`image-generator-subject-position-${index}`}
+                      >
+                        {t.position}
+                      </label>
+                      <input
+                        id={`image-generator-subject-position-${index}`}
+                        type="text"
+                        value={subject.position}
+                        onChange={(event) =>
+                          updateSubject(index, {
+                            position: event.target.value,
+                          })
+                        }
+                        placeholder={t.subjectPositionPlaceholder}
+                        disabled={isGenerating}
+                      />
+                      <label
+                        htmlFor={`image-generator-subject-action-${index}`}
+                      >
+                        {t.action}
+                      </label>
+                      <input
+                        id={`image-generator-subject-action-${index}`}
+                        type="text"
+                        value={subject.action}
+                        onChange={(event) =>
+                          updateSubject(index, {
+                            action: event.target.value,
+                          })
+                        }
+                        placeholder={t.subjectActionPlaceholder}
+                        disabled={isGenerating}
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="image-generator-add-subject"
+                    onClick={addSubject}
+                    disabled={
+                      isGenerating ||
+                      advancedFields.subjects.length >= MAX_ADVANCED_SUBJECTS
                     }
-                    placeholder={t.lightingPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-mood">{t.mood}</label>
-                  <input
-                    id="image-generator-mood"
-                    type="text"
-                    value={advancedFields.mood}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        mood: event.target.value,
-                      }))
-                    }
-                    placeholder={t.moodPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-background">
-                    {t.background}
-                  </label>
-                  <input
-                    id="image-generator-background"
-                    type="text"
-                    value={advancedFields.background}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        background: event.target.value,
-                      }))
-                    }
-                    placeholder={t.backgroundPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-composition">
-                    {t.composition}
-                  </label>
-                  <input
-                    id="image-generator-composition"
-                    type="text"
-                    value={advancedFields.composition}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        composition: event.target.value,
-                      }))
-                    }
-                    placeholder={t.compositionPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-color-palette">
-                    {t.colorPalette}
-                  </label>
-                  <input
-                    id="image-generator-color-palette"
-                    type="text"
-                    value={advancedFields.colorPalette}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        colorPalette: event.target.value,
-                      }))
-                    }
-                    placeholder={t.colorPalettePlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label>{t.camera}</label>
-                  <label htmlFor="image-generator-camera-angle">
-                    {t.cameraAngle}
-                  </label>
-                  <input
-                    id="image-generator-camera-angle"
-                    type="text"
-                    value={advancedFields.cameraAngle}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        cameraAngle: event.target.value,
-                      }))
-                    }
-                    placeholder={t.cameraAnglePlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-camera-lens">
-                    {t.cameraLens}
-                  </label>
-                  <input
-                    id="image-generator-camera-lens"
-                    type="text"
-                    value={advancedFields.cameraLens}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        cameraLens: event.target.value,
-                      }))
-                    }
-                    placeholder={t.cameraLensPlaceholder}
-                    disabled={isGenerating}
-                  />
-                  <label htmlFor="image-generator-camera-depth">
-                    {t.cameraDepthOfField}
-                  </label>
-                  <input
-                    id="image-generator-camera-depth"
-                    type="text"
-                    value={advancedFields.cameraDepthOfField}
-                    onChange={(event) =>
-                      setAdvancedFields((current) => ({
-                        ...current,
-                        cameraDepthOfField: event.target.value,
-                      }))
-                    }
-                    placeholder={t.cameraDepthOfFieldPlaceholder}
-                    disabled={isGenerating}
-                  />
+                  >
+                    + {t.addSubject}
+                  </button>
                 </div>
               )}
-            </section>
-
-            <p className="cover-note">{t.advancedNote}</p>
-
-            <section className="cover-control cover-input-control image-generator-seed-control">
-              <label htmlFor="image-generator-seed">
-                {t.seed} <b>{t.seedHint}</b>
-              </label>
-              <input
-                id="image-generator-seed"
-                type="text"
-                inputMode="numeric"
-                maxLength={10}
-                value={seed}
-                onChange={(event) =>
-                  setSeed(event.target.value.replace(/[^\d]/g, ""))
-                }
-                placeholder={t.seedPlaceholder}
-                disabled={isGenerating}
-              />
-            </section>
-          </>
-        )}
+              {activeParameter.id === "seed" && (
+                <div className="image-generator-seed-row">
+                  <input
+                    id="image-generator-seed"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={seed}
+                    onChange={(event) =>
+                      setSeed(event.target.value.replace(/[^\d]/g, ""))
+                    }
+                    placeholder={t.seedPlaceholder}
+                    disabled={isGenerating}
+                  />
+                  <button
+                    type="button"
+                    className="image-generator-seed-random"
+                    onClick={() =>
+                      setSeed(
+                        String(Math.floor(Math.random() * (MAX_SEED + 1))),
+                      )
+                    }
+                    disabled={isGenerating}
+                    aria-label={t.randomSeed}
+                    title={t.randomSeed}
+                  >
+                    ↻
+                  </button>
+                </div>
+              )}
+              {detailParameters.map((parameter) =>
+                activeParameter.id === parameter.id ? (
+                  <input
+                    key={parameter.id}
+                    id={parameter.inputId}
+                    type="text"
+                    value={advancedFields[parameter.field]}
+                    onChange={(event) =>
+                      setAdvancedFields((current) => {
+                        const next = { ...current };
+                        next[parameter.field] = event.target.value;
+                        return next;
+                      })
+                    }
+                    placeholder={parameter.placeholder}
+                    disabled={isGenerating}
+                  />
+                ) : null,
+              )}
+            </div>
+          )}
+          <p className="image-generator-note">{t.advancedNote}</p>
+        </section>
 
         {error && (
           <p className="extraction-error" role="alert">
@@ -1376,6 +1406,7 @@ export function ImageGeneratorMainInterface({
               <small>{t.transparentBackgroundHelp}</small>
             </span>
           </label>
+
           <div className="cover-generate-group image-generator-generate-group">
             <label>
               <span>{t.concurrency}</span>
@@ -1407,7 +1438,16 @@ export function ImageGeneratorMainInterface({
                         : formatUsd(selectedModel.pricePerImage)}
                     </dd>
                   </div>
-                  <div title={t.creditHint}>
+                  <div
+                    title={`${t.creditHint}${
+                      creditLimit === null
+                        ? ""
+                        : ` ${t.creditLimitHint.replace(
+                            "{limit}",
+                            formatUsd(creditLimit),
+                          )}`
+                    }`}
+                  >
                     <dt>{t.credit}</dt>
                     <dd>
                       {credit === null
@@ -1429,12 +1469,7 @@ export function ImageGeneratorMainInterface({
             <button
               className={`cover-generate action-button action-button-primary ${isGenerating ? "image-generator-stop" : ""}`}
               onClick={() => void startGeneration()}
-              disabled={
-                !isGenerating &&
-                (mode === "advanced"
-                  ? !advancedReady || !model
-                  : !queuedPrompts.length)
-              }
+              disabled={!isGenerating && !queuedPrompts.length}
             >
               <span>
                 {isGenerating

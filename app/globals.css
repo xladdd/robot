@@ -7704,41 +7704,220 @@ button {
     }
 }
 
-/* Image Generator – Advanced mode */
+/* Image Generator – Toolbar controls */
 
-.image-generator-model-meta {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin-top: 8px;
-    border: 1px solid var(--ink);
+.image-generator-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
 }
-.image-generator-model-meta > div {
-    min-width: 0;
-    padding: 7px 8px;
-}
-.image-generator-model-meta > div + div {
-    border-left: 1px solid var(--ink);
-}
-.image-generator-model-meta small {
-    display: block;
+.image-generator-section-head > label {
+    margin-bottom: 0;
     color: var(--muted);
-    font-size: 7px;
-    letter-spacing: 0.08em;
 }
-.image-generator-model-meta b {
-    display: block;
-    margin-top: 3px;
+
+.image-generator-add-button {
+    display: flex;
+    width: 100%;
+    min-height: 35px;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
     font-size: 10px;
+}
+.image-generator-add-button:hover:not(:disabled) {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+.image-generator-add-button:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-compare-row {
+    display: flex;
+    gap: 6px;
+}
+.image-generator-compare-row select {
+    flex: 1;
+    min-width: 0;
+}
+.image-generator-compare-remove {
+    flex: none;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+}
+.image-generator-compare-remove:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 2px var(--teal);
+}
+.image-generator-compare-remove:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-style-source {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    word-break: break-all;
+}
+.image-generator-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.image-generator-chip {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: baseline;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 9px;
+}
+.image-generator-chip b {
+    max-width: 130px;
+    overflow: hidden;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.image-generator-chip:hover:not(:disabled) {
+    border-color: var(--ink);
+}
+.image-generator-chip.active {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--ink);
+}
+.image-generator-chip:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+.image-generator-param-window {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    background: var(--paper);
+}
+.image-generator-param-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.image-generator-param-title {
+    font-size: 11px;
     letter-spacing: 0.04em;
+}
+.image-generator-param-tag {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 8px;
+}
+.image-generator-param-close {
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+}
+.image-generator-param-close:hover:not(:disabled) {
+    border-color: var(--ink);
+}
+.image-generator-param-close:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
+.image-generator-param-help {
+    margin: 8px 0 10px;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.5;
+}
+.image-generator-param-window textarea,
+.image-generator-param-window input[type="text"] {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    outline: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 11px/1.5 var(--font-sans);
+    resize: vertical;
+}
+.image-generator-param-window textarea:focus,
+.image-generator-param-window input[type="text"]:focus {
+    border-color: var(--ink);
+    box-shadow: none;
+}
+.image-generator-subjects {
+    display: grid;
+    gap: 8px;
 }
 .image-generator-subject {
     display: grid;
     gap: 7px;
     padding: 10px;
     border: 1px solid var(--line);
+    border-radius: 0;
 }
 .image-generator-subject label {
-    margin-bottom: 0;
+    display: block;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.image-generator-subject-head label {
+    color: var(--ink);
+}
+.image-generator-subject textarea,
+.image-generator-subject input[type="text"] {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    outline: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 11px/1.5 var(--font-sans);
+    resize: vertical;
+}
+.image-generator-subject textarea:focus,
+.image-generator-subject input[type="text"]:focus {
+    border-color: var(--ink);
+    box-shadow: none;
 }
 .image-generator-subject-head {
     display: flex;
@@ -7784,45 +7963,78 @@ button {
     cursor: default;
     opacity: 0.4;
 }
+.image-generator-seed-row {
+    display: flex;
+    gap: 6px;
+}
+.image-generator-seed-row input {
+    flex: 1;
+    min-width: 0;
+}
+.image-generator-seed-random {
+    flex: none;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--soft-line);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+}
+.image-generator-seed-random:hover:not(:disabled) {
+    border-color: var(--ink);
+}
+.image-generator-seed-random:disabled {
+    cursor: default;
+    opacity: 0.4;
+}
 .image-generator-toolbar input:disabled {
     cursor: default;
     opacity: 0.55;
 }
-.image-generator-details-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+.image-generator-note {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 8px;
+    line-height: 1.6;
 }
-.image-generator-details-head label {
-    margin-bottom: 0;
+.image-generator-credits {
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
 }
-.image-generator-details-toggle {
-    flex: none;
-    width: 20px;
-    height: 20px;
-    padding: 0;
+.image-generator-credit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+}
+.image-generator-credit-grid > div {
+    display: grid;
+    min-width: 0;
+    grid-template-rows: auto auto;
+    align-content: start;
+    gap: 2px;
+    padding: 6px 7px;
     border: 1px solid var(--ink);
     background: var(--bg);
+}
+.image-generator-credit-grid > div + div {
+    border-left: 0;
+}
+.image-generator-credit-grid dt {
+    color: var(--teal);
+    font: 400 7px/1.25 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.image-generator-credit-grid dd {
+    min-width: 0;
+    margin: 0;
     color: var(--ink);
-    cursor: pointer;
-    font-size: 11px;
-    line-height: 1;
-}
-.image-generator-details-toggle:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--teal) 13%, transparent);
-}
-.image-generator-details-toggle:disabled {
-    cursor: default;
-    opacity: 0.4;
-}
-.image-generator-details {
-    display: grid;
-    gap: 7px;
-    margin-top: 7px;
-}
-.image-generator-details label {
-    margin-bottom: 0;
+    font: 400 11px/1.2 var(--font-mono);
+    overflow-wrap: anywhere;
 }
 
 /* Visual Workbench – Multiple */
@@ -9605,6 +9817,10 @@ button {
     border: 1px solid var(--ink);
     background: var(--bg);
 }
+.concept-illustrator-add-reference {
+    border-style: dashed;
+    background: transparent;
+}
 .concept-illustrator-reference-grid figure img {
     display: block;
     width: 100%;
@@ -9643,17 +9859,24 @@ button {
     cursor: pointer;
     text-align: center;
 }
-.concept-illustrator-add-reference:hover:not(:disabled) {
-    border-color: var(--teal);
-    color: var(--teal);
+.concept-illustrator-add-reference:hover:not(:disabled),
+.concept-illustrator-add-reference:focus-visible:not(:disabled) {
+    border-color: var(--ink);
+    border-style: solid;
+    outline: 0;
+    background: color-mix(in srgb, var(--teal) 13%, transparent);
+    color: var(--muted);
 }
 .concept-illustrator-add-reference b {
+    color: var(--teal);
     font-size: 18px;
     font-weight: 400;
 }
 .concept-illustrator-add-reference span {
+    color: var(--muted);
     font-size: 6px;
     letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 .concept-illustrator-local-note {
     margin: 0 18px;
@@ -9765,64 +9988,211 @@ button {
     }
 }
 
-.image-generator-credits {
-    padding-top: 12px;
-    border-top: 1px solid var(--line);
-}
-.image-generator-credit-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-}
-.image-generator-credit-grid > div {
-    display: grid;
-    min-width: 0;
-    grid-template-rows: auto auto;
-    align-content: start;
-    gap: 2px;
-    padding: 6px 7px;
-    border: 1px solid var(--ink);
-    background: var(--bg);
-}
-.image-generator-credit-grid > div + div {
-    border-left: 0;
-}
-.image-generator-credit-grid dt {
-    color: var(--teal);
-    font: 400 7px/1.25 var(--font-sans);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-.image-generator-credit-grid dd {
-    min-width: 0;
-    margin: 0;
-    color: var(--ink);
-    font: 400 11px/1.2 var(--font-mono);
-    overflow-wrap: anywhere;
+/* Map Maker viewport, print-detail, and compact-layout corrections */
+.map-module {
+    --map-stage-left: calc((100% - var(--map-stage-right)) / 2);
+    --map-stage-width: min(
+        calc(100% - var(--map-stage-right) - 48px),
+        calc((100vh - 130px) * 10 / 7)
+    );
 }
 
-.concept-illustrator-add-reference {
-    border-style: dashed;
-    background: transparent;
+.map-module .map-export-crop,
+.map-module .map-editor-canvas > .map-transform {
+    box-sizing: border-box;
+    top: 50% !important;
+    left: var(--map-stage-left) !important;
+    width: var(--map-stage-width) !important;
+    height: auto !important;
+    aspect-ratio: 10 / 7;
+    transform: translate(-50%, -50%) !important;
 }
-.concept-illustrator-add-reference:hover:not(:disabled),
-.concept-illustrator-add-reference:focus-visible:not(:disabled) {
+
+.map-module .map-editor-canvas > .map-transform {
+    position: absolute;
+    max-width: none;
+    overflow: visible;
+}
+
+.map-module .map-editor-canvas > .map-transform > svg {
+    display: block;
+    width: 100% !important;
+    max-width: none;
+    height: 100% !important;
+    overflow: visible;
+}
+
+/* Keep cartographic line weights thin and visually stable at every zoom. */
+.map-module .map-transform .base-land path,
+.map-module .map-transform .coast-overlay path {
+    stroke-width: var(--map-coast-width, 0.35px) !important;
+}
+.map-module .map-transform .regions path {
+    stroke-width: var(--map-border-width, 0.4px) !important;
+}
+.map-module .map-transform .natural-rivers path {
+    stroke-width: var(--map-river-width, 0.3px) !important;
+}
+.map-module .map-transform .natural-lakes path {
+    stroke-width: var(--map-lake-width, 0.3px) !important;
+}
+.map-module .map-transform .disputed-boundaries path {
+    stroke-width: var(--map-disputed-width, 0.55px) !important;
+}
+.map-module .map-transform .graticule path {
+    stroke-width: var(--map-graticule-width, 0.2px) !important;
+}
+
+.map-module .map-export-crop {
+    overflow: visible;
+}
+.map-module .map-export-crop .map-legend {
+    right: clamp(8px, 2.2%, 16px);
+    bottom: clamp(8px, 2.2%, 16px);
+    box-sizing: border-box;
+    width: max-content;
+    max-width: min(42%, 190px);
+    max-height: calc(100% - 16px);
+    overflow: visible;
+    padding: clamp(7px, 1.25vw, 10px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(8px, 0.75vw, 9px);
+    font-style: normal;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+.map-module .map-export-crop .map-legend > b {
+    font-size: 8px;
+    line-height: 1.2;
+}
+.map-module .map-export-crop .map-legend-row {
+    min-width: 0;
+}
+
+/* AI state belongs with the prompt, not in a detached panel header. */
+.map-module .figure-controls > .processing-badge {
+    display: none;
+    margin: 0;
+}
+.map-module .map-prompt-field {
+    position: relative;
+}
+.map-module .map-prompt-field:has(.map-ai-indicator) {
+    padding-bottom: 46px;
+}
+.map-module .map-prompt-field .map-ai-indicator {
+    position: absolute;
+    right: 11px;
+    bottom: 11px;
+    display: inline-flex;
+    min-height: 25px;
+    align-items: center;
+    padding: 0 9px;
+    border: 1px solid var(--ink);
+    background: var(--orange);
+    color: var(--on-accent);
+    font: 700 8px/1 var(--font-sans);
+    font-style: normal;
+    letter-spacing: 0.1em;
+    box-shadow: 2px 2px 0 var(--ink);
+    pointer-events: none;
+}
+
+/* Keep dense controls readable without changing the other tool families. */
+.map-module .map-editor-controls legend,
+.map-module .map-editor-controls .map-prompt-field span,
+.map-module .map-palette > span,
+.map-module .map-panel-warnings > span {
+    font-size: 9px;
+}
+.map-module .map-layer-note,
+.map-module .map-panel-warnings p,
+.map-module .map-climate-key span,
+.map-module .map-year-slider > div,
+.map-module .map-label-tools button,
+.map-module .map-label-tools .map-label-count,
+.map-module .map-draw-tools :is(.map-draw-kind, .map-draw-label) {
+    font-size: 9px !important;
+    line-height: 1.4;
+}
+.map-module :is(.map-prompt-field button, .map-palette button) {
+    font-size: 9px;
+}
+
+@media (max-width: 700px) {
+    .map-module {
+        --map-mobile-stage-height: clamp(360px, 60vh, 620px);
+        --map-stage-left: 50%;
+        --map-stage-width: min(
+            calc(100% - 24px),
+            calc((var(--map-mobile-stage-height) - 24px) * 10 / 7)
+        );
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 0;
+        overscroll-behavior: contain;
+    }
+    .map-module .map-workbench {
+        position: relative !important;
+        inset: auto !important;
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        height: auto;
+        flex-direction: column;
+        gap: 16px;
+        box-sizing: border-box;
+        overflow: visible;
+        padding: 12px 12px 32px;
+    }
+    .map-module .figure-preview-column {
+        position: relative !important;
+        inset: auto !important;
+        order: 1;
+        width: 100%;
+        min-width: 0;
+        height: var(--map-mobile-stage-height);
+        min-height: 360px;
+        flex: 0 0 auto;
+    }
+    .map-module .figure-result,
+    .map-module .figure-paper {
+        position: relative !important;
+        inset: auto !important;
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        min-height: 360px;
+    }
+    .map-module .figure-controls {
+        position: relative !important;
+        inset: auto !important;
+        order: 2;
+        box-sizing: border-box;
+        width: 100% !important;
+        max-width: 100%;
+        max-height: none;
+        margin: 0;
+        overflow: visible;
+    }
+    .map-module .map-editor-controls,
+    .map-module .map-editor-controls > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .map-module .map-export-crop .map-legend {
+        max-width: min(46%, 170px);
+        padding: 7px 8px;
+    }
+}
+
+.app-shell[data-theme="dark"] .map-module .map-export-crop .map-legend,
+.app-shell[data-theme="dark"] .map-module .map-rendering-status {
     border-color: var(--ink);
-    border-style: solid;
-    outline: 0;
-    background: color-mix(in srgb, var(--teal) 13%, transparent);
-    color: var(--muted);
-}
-.concept-illustrator-add-reference b {
-    color: var(--teal);
-    font-size: 18px;
-    font-weight: 400;
-}
-.concept-illustrator-add-reference span {
-    color: var(--muted);
-    font-size: 6px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    background: color-mix(in srgb, var(--panel-2) 96%, transparent);
+    color: var(--ink);
 }
 
 /* ==========================================================================
@@ -10618,211 +10988,4 @@ button {
     .map-layer-grid {
         grid-template-columns: 1fr;
     }
-}
-
-/* Map Maker viewport, print-detail, and compact-layout corrections */
-.map-module {
-    --map-stage-left: calc((100% - var(--map-stage-right)) / 2);
-    --map-stage-width: min(
-        calc(100% - var(--map-stage-right) - 48px),
-        calc((100vh - 130px) * 10 / 7)
-    );
-}
-
-.map-module .map-export-crop,
-.map-module .map-editor-canvas > .map-transform {
-    box-sizing: border-box;
-    top: 50% !important;
-    left: var(--map-stage-left) !important;
-    width: var(--map-stage-width) !important;
-    height: auto !important;
-    aspect-ratio: 10 / 7;
-    transform: translate(-50%, -50%) !important;
-}
-
-.map-module .map-editor-canvas > .map-transform {
-    position: absolute;
-    max-width: none;
-    overflow: visible;
-}
-
-.map-module .map-editor-canvas > .map-transform > svg {
-    display: block;
-    width: 100% !important;
-    max-width: none;
-    height: 100% !important;
-    overflow: visible;
-}
-
-/* Keep cartographic line weights thin and visually stable at every zoom. */
-.map-module .map-transform .base-land path,
-.map-module .map-transform .coast-overlay path {
-    stroke-width: var(--map-coast-width, 0.35px) !important;
-}
-.map-module .map-transform .regions path {
-    stroke-width: var(--map-border-width, 0.4px) !important;
-}
-.map-module .map-transform .natural-rivers path {
-    stroke-width: var(--map-river-width, 0.3px) !important;
-}
-.map-module .map-transform .natural-lakes path {
-    stroke-width: var(--map-lake-width, 0.3px) !important;
-}
-.map-module .map-transform .disputed-boundaries path {
-    stroke-width: var(--map-disputed-width, 0.55px) !important;
-}
-.map-module .map-transform .graticule path {
-    stroke-width: var(--map-graticule-width, 0.2px) !important;
-}
-
-.map-module .map-export-crop {
-    overflow: visible;
-}
-.map-module .map-export-crop .map-legend {
-    right: clamp(8px, 2.2%, 16px);
-    bottom: clamp(8px, 2.2%, 16px);
-    box-sizing: border-box;
-    width: max-content;
-    max-width: min(42%, 190px);
-    max-height: calc(100% - 16px);
-    overflow: visible;
-    padding: clamp(7px, 1.25vw, 10px) clamp(8px, 1.5vw, 12px);
-    font-size: clamp(8px, 0.75vw, 9px);
-    font-style: normal;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-.map-module .map-export-crop .map-legend > b {
-    font-size: 8px;
-    line-height: 1.2;
-}
-.map-module .map-export-crop .map-legend-row {
-    min-width: 0;
-}
-
-/* AI state belongs with the prompt, not in a detached panel header. */
-.map-module .figure-controls > .processing-badge {
-    display: none;
-    margin: 0;
-}
-.map-module .map-prompt-field {
-    position: relative;
-}
-.map-module .map-prompt-field:has(.map-ai-indicator) {
-    padding-bottom: 46px;
-}
-.map-module .map-prompt-field .map-ai-indicator {
-    position: absolute;
-    right: 11px;
-    bottom: 11px;
-    display: inline-flex;
-    min-height: 25px;
-    align-items: center;
-    padding: 0 9px;
-    border: 1px solid var(--ink);
-    background: var(--orange);
-    color: var(--on-accent);
-    font: 700 8px/1 var(--font-sans);
-    font-style: normal;
-    letter-spacing: 0.1em;
-    box-shadow: 2px 2px 0 var(--ink);
-    pointer-events: none;
-}
-
-/* Keep dense controls readable without changing the other tool families. */
-.map-module .map-editor-controls legend,
-.map-module .map-editor-controls .map-prompt-field span,
-.map-module .map-palette > span,
-.map-module .map-panel-warnings > span {
-    font-size: 9px;
-}
-.map-module .map-layer-note,
-.map-module .map-panel-warnings p,
-.map-module .map-climate-key span,
-.map-module .map-year-slider > div,
-.map-module .map-label-tools button,
-.map-module .map-label-tools .map-label-count,
-.map-module .map-draw-tools :is(.map-draw-kind, .map-draw-label) {
-    font-size: 9px !important;
-    line-height: 1.4;
-}
-.map-module :is(.map-prompt-field button, .map-palette button) {
-    font-size: 9px;
-}
-
-@media (max-width: 700px) {
-    .map-module {
-        --map-mobile-stage-height: clamp(360px, 60vh, 620px);
-        --map-stage-left: 50%;
-        --map-stage-width: min(
-            calc(100% - 24px),
-            calc((var(--map-mobile-stage-height) - 24px) * 10 / 7)
-        );
-        width: 100%;
-        min-width: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        padding: 0;
-        overscroll-behavior: contain;
-    }
-    .map-module .map-workbench {
-        position: relative !important;
-        inset: auto !important;
-        display: flex;
-        width: 100%;
-        min-width: 0;
-        min-height: 100%;
-        height: auto;
-        flex-direction: column;
-        gap: 16px;
-        box-sizing: border-box;
-        overflow: visible;
-        padding: 12px 12px 32px;
-    }
-    .map-module .figure-preview-column {
-        position: relative !important;
-        inset: auto !important;
-        order: 1;
-        width: 100%;
-        min-width: 0;
-        height: var(--map-mobile-stage-height);
-        min-height: 360px;
-        flex: 0 0 auto;
-    }
-    .map-module .figure-result,
-    .map-module .figure-paper {
-        position: relative !important;
-        inset: auto !important;
-        width: 100%;
-        min-width: 0;
-        height: 100%;
-        min-height: 360px;
-    }
-    .map-module .figure-controls {
-        position: relative !important;
-        inset: auto !important;
-        order: 2;
-        box-sizing: border-box;
-        width: 100% !important;
-        max-width: 100%;
-        max-height: none;
-        margin: 0;
-        overflow: visible;
-    }
-    .map-module .map-editor-controls,
-    .map-module .map-editor-controls > * {
-        min-width: 0;
-        max-width: 100%;
-    }
-    .map-module .map-export-crop .map-legend {
-        max-width: min(46%, 170px);
-        padding: 7px 8px;
-    }
-}
-
-.app-shell[data-theme="dark"] .map-module .map-export-crop .map-legend,
-.app-shell[data-theme="dark"] .map-module .map-rendering-status {
-    border-color: var(--ink);
-    background: color-mix(in srgb, var(--panel-2) 96%, transparent);
-    color: var(--ink);
 }
