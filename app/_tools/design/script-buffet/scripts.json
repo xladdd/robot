@@ -1,0 +1,140 @@
+[
+  {
+    "enabled": true,
+    "id": "make-silhouette-fill",
+    "name": "Make Silhouette Fill",
+    "description": "Creates a filled silhouette from selected vector page items while preserving the originals.",
+    "descriptionCs": "Vytvoří vyplněnou siluetu z vybraných vektorových objektů a zachová originály.",
+    "applications": {
+      "indesign": true,
+      "illustrator": false,
+      "photoshop": false
+    },
+    "scriptFile": "Make Silhouette Fill.jsx",
+    "previewFile": "Make-Silhouette-Fill-ID.gif",
+    "previewAlt": {
+      "en": "Animated preview of Make Silhouette Fill in InDesign",
+      "cs": "Animovaná ukázka skriptu Make Silhouette Fill v InDesignu"
+    }
+  },
+  {
+    "enabled": true,
+    "id": "opacity-set",
+    "name": "Opacity Set",
+    "description": "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
+    "descriptionCs": "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
+    "applications": {
+      "indesign": true,
+      "illustrator": false,
+      "photoshop": false
+    },
+    "scriptFile": "Opacity Set.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "split-text-frames-characters",
+    "name": "Split Text Frames into Characters",
+    "description": "Splits selected text frames into individually positioned character frames in one undoable action.",
+    "descriptionCs": "Rozdělí vybrané textové rámečky na samostatně umístěné rámečky znaků v jednom vratném kroku.",
+    "applications": {
+      "indesign": true,
+      "illustrator": false,
+      "photoshop": false
+    },
+    "scriptFile": "Split Text Frames into Characters.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "toggle-lock",
+    "name": "Toggle Lock",
+    "description": "Locks or unlocks selected objects based on the current state of the first selected object.",
+    "descriptionCs": "Zamkne nebo odemkne vybrané objekty podle aktuálního stavu prvního vybraného objektu.",
+    "applications": {
+      "indesign": true,
+      "illustrator": false,
+      "photoshop": false
+    },
+    "scriptFile": "toggle-lock.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "make-silhouette-fill-illustrator",
+    "name": "Make Silhouette Fill",
+    "description": "Creates a filled outer silhouette behind selected Illustrator vector artwork while preserving the originals.",
+    "descriptionCs": "Vytvoří vyplněnou vnější siluetu za vybranou vektorovou grafikou v Illustratoru a zachová originály.",
+    "applications": {
+      "indesign": false,
+      "illustrator": true,
+      "photoshop": false
+    },
+    "scriptFile": "Silhouette Fill Make.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "artboard-items-new-layers",
+    "name": "Move Artboard Items to New Layers",
+    "description": "Moves items from all or selected artboards into new layers, with options to name layers and remove empty ones.",
+    "descriptionCs": "Přesune objekty ze všech nebo vybraných kreslicích pláten do nových vrstev s možností vrstvy pojmenovat a prázdné odstranit.",
+    "applications": {
+      "indesign": false,
+      "illustrator": true,
+      "photoshop": false
+    },
+    "scriptFile": "artboardItemsMoveToNewLayer.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "check-ppi",
+    "name": "Check PPI",
+    "description": "Displays the width and filename of the first placed image in the active Illustrator document.",
+    "descriptionCs": "Zobrazí šířku a název souboru prvního vloženého obrázku v aktivním dokumentu Illustratoru.",
+    "applications": {
+      "indesign": false,
+      "illustrator": true,
+      "photoshop": false
+    },
+    "scriptFile": "checkPPI.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "bulk-remove-background",
+    "name": "Bulk Remove Background",
+    "description": "Removes backgrounds from a folder of PNG/JPEG images, converts them to CMYK, and saves layered PSD files beside the originals.",
+    "descriptionCs": "Dávkově odstraní pozadí z PNG/JPEG obrázků, převede je do CMYK a vedle originálů uloží vrstvené soubory PSD.",
+    "applications": {
+      "indesign": false,
+      "illustrator": false,
+      "photoshop": true
+    },
+    "scriptFile": "bulkRemoveBg.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  },
+  {
+    "enabled": true,
+    "id": "bulk-resize-images",
+    "name": "Bulk Resize Images",
+    "description": "Batch-resizes PNG/JPEG images to a chosen width or height and saves the results in a new subfolder.",
+    "descriptionCs": "Dávkově změní velikost PNG/JPEG obrázků podle zvolené šířky nebo výšky a výsledky uloží do nové podsložky.",
+    "applications": {
+      "indesign": false,
+      "illustrator": false,
+      "photoshop": true
+    },
+    "scriptFile": "bulkResizeImages.jsx",
+    "previewFile": null,
+    "previewAlt": null
+  }
+]

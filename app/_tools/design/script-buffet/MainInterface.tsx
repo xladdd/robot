@@ -4,43 +4,87 @@ import { useEffect, useState } from "react";
 import type { Language } from "../../registry";
 import type { ToolProps } from "../../types";
 import { ToolHeader } from "../../../_components/ToolChrome";
+import scriptData from "./scripts.json";
 
 type AdobeApp = "indesign" | "illustrator" | "photoshop";
 type Filter = "all" | AdobeApp;
 type Platform = "macos" | "windows";
 
-const scripts = [
-  {
-    id: "make-silhouette-fill",
-    name: "Make Silhouette Fill",
-    description:
-      "Creates a filled silhouette from selected vector page items while preserving the originals.",
-    descriptionCs:
-      "Vytvoří vyplněnou siluetu z vybraných vektorových objektů a zachová originály.",
-    apps: ["indesign"] as AdobeApp[],
-    href: "/script-buffet/Make Silhouette Fill.jsx",
-  },
-  {
-    id: "opacity-set",
-    name: "Opacity Set",
-    description:
-      "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
-    descriptionCs:
-      "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
-    apps: ["indesign"] as AdobeApp[],
-    href: "/script-buffet/Opacity Set.jsx",
-  },
-  {
-    id: "split-text-frames-characters",
-    name: "Split Text Frames into Characters",
-    description:
-      "Splits selected text frames into individually positioned character frames in one undoable action.",
-    descriptionCs:
-      "Rozdělí vybrané textové rámečky na samostatně umístěné rámečky znaků v jednom vratném kroku.",
-    apps: ["indesign"] as AdobeApp[],
-    href: "/script-buffet/Split Text Frames into Characters.jsx",
-  },
-] as const;
+type ScriptDefinition = {
+  enabled: boolean;
+  id: string;
+  name: string;
+  description: string;
+  descriptionCs: string;
+  applications: Record<AdobeApp, boolean>;
+  scriptFile: string;
+  previewFile: string | null;
+  previewAlt: Record<Language, string> | null;
+};
+
+type BuffetScript = {
+  id: string;
+  name: string;
+  description: string;
+  descriptionCs: string;
+  apps: AdobeApp[];
+  href: string;
+  preview?: string;
+  previewAlt?: Record<Language, string>;
+};
+
+const applicationIds: AdobeApp[] = ["indesign", "illustrator", "photoshop"];
+const scriptDefinitions: ScriptDefinition[] = scriptData;
+
+function createScriptCatalog(definitions: ScriptDefinition[]): BuffetScript[] {
+  const knownIds: Record<string, boolean> = {};
+
+  for (const definition of definitions) {
+    if (!definition.id.trim()) {
+      throw new Error("Script Buffet entries require a non-empty id.");
+    }
+    if (knownIds[definition.id]) {
+      throw new Error(`Duplicate Script Buffet id: ${definition.id}`);
+    }
+    if (!definition.scriptFile.trim()) {
+      throw new Error(
+        `Script Buffet entry ${definition.id} has no scriptFile.`,
+      );
+    }
+    if (definition.previewFile && !definition.previewAlt) {
+      throw new Error(
+        `Script Buffet entry ${definition.id} requires previewAlt for its preview.`,
+      );
+    }
+    knownIds[definition.id] = true;
+  }
+
+  return definitions
+    .filter((definition) => definition.enabled)
+    .map((definition) => {
+      const apps = applicationIds.filter((app) => definition.applications[app]);
+      if (!apps.length) {
+        throw new Error(
+          `Enabled Script Buffet entry ${definition.id} requires an application.`,
+        );
+      }
+
+      return {
+        id: definition.id,
+        name: definition.name,
+        description: definition.description,
+        descriptionCs: definition.descriptionCs,
+        apps,
+        href: `/script-buffet/scripts/${definition.scriptFile}`,
+        preview: definition.previewFile
+          ? `/script-buffet/images/${definition.previewFile}`
+          : undefined,
+        previewAlt: definition.previewAlt || undefined,
+      };
+    });
+}
+
+const scripts = createScriptCatalog(scriptDefinitions);
 
 const appNames: Record<Language, Record<AdobeApp, string>> = {
   en: {
@@ -233,11 +277,15 @@ export function ScriptBuffetMainInterface({
         {visible.map((script) => (
           <article className="buffet-card" key={script.id}>
             <img
-              src="/script-buffet/preview-placeholder.svg"
+              src={
+                script.preview ||
+                "/script-buffet/images/preview-placeholder.svg"
+              }
               alt={
-                cs
+                script.previewAlt?.[language] ||
+                (cs
                   ? `Dočasná ukázka skriptu ${script.name}`
-                  : `${script.name} placeholder preview`
+                  : `${script.name} placeholder preview`)
               }
             />
             <div className="buffet-card-body">

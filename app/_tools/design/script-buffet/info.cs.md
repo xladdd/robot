@@ -1,6 +1,6 @@
 ### Co to je?
 
-Připravené rozhraní katalogu skriptů Adobe, aktuálně vypnuté v postranním panelu. Obsahuje tři skripty InDesignu; širší filtry InDesign, Illustrator a Photoshop jsou připravené, ale neznamenají dostupnost skriptů pro každou aplikaci.
+Připravené rozhraní katalogu skriptů Adobe, aktuálně vypnuté v postranním panelu. Obsahuje devět skriptů: čtyři pro InDesign, tři pro Illustrator a dva pro Photoshop.
 
 ### Jak to funguje?
 

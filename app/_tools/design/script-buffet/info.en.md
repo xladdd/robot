@@ -1,6 +1,6 @@
 ### What is this?
 
-A prepared catalogue interface for Adobe scripts, currently disabled in the sidebar. It contains three InDesign scripts; broader InDesign, Illustrator, and Photoshop filters are prepared but do not imply that scripts for every application are available.
+A prepared catalogue interface for Adobe scripts, currently disabled in the sidebar. It contains nine scripts: four for InDesign, three for Illustrator, and two for Photoshop.
 
 ### How does it work?
 
