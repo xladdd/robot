@@ -9422,3 +9422,858 @@ button {
         grid-column: 1;
     }
 }
+
+.image-generator-credits {
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+.image-generator-credit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+}
+.image-generator-credit-grid > div {
+    display: grid;
+    min-width: 0;
+    grid-template-rows: auto auto;
+    align-content: start;
+    gap: 2px;
+    padding: 6px 7px;
+    border: 1px solid var(--ink);
+    background: var(--bg);
+}
+.image-generator-credit-grid > div + div {
+    border-left: 0;
+}
+.image-generator-credit-grid dt {
+    color: var(--teal);
+    font: 400 7px/1.25 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.image-generator-credit-grid dd {
+    min-width: 0;
+    margin: 0;
+    color: var(--ink);
+    font: 400 11px/1.2 var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.concept-illustrator-add-reference {
+    border-style: dashed;
+    background: transparent;
+}
+.concept-illustrator-add-reference:hover:not(:disabled),
+.concept-illustrator-add-reference:focus-visible:not(:disabled) {
+    border-color: var(--ink);
+    border-style: solid;
+    outline: 0;
+    background: color-mix(in srgb, var(--teal) 13%, transparent);
+    color: var(--muted);
+}
+.concept-illustrator-add-reference b {
+    color: var(--teal);
+    font-size: 18px;
+    font-weight: 400;
+}
+.concept-illustrator-add-reference span {
+    color: var(--muted);
+    font-size: 6px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Toolbar control system
+   --------------------------------------------------------------------------
+   Keep these rules scoped to control panels and the two opted-in toolbar
+   variants. Document workbenches and compact utility forms retain their own
+   geometry until they receive a separate interface pass.
+   ========================================================================== */
+
+.editor-sidebar {
+    box-sizing: border-box;
+    padding: 14px 18px 18px;
+}
+
+.cover-toolbar > .cover-control {
+    padding: 12px 0;
+}
+.cover-toolbar > .cover-control:first-of-type {
+    padding-top: 0;
+}
+.cover-toolbar
+    > .cover-control
+    > label:not(.cover-checkbox):not(.graph-value-labels),
+.cover-toolbar .figure-label-row label,
+.cover-toolbar .figure-palette > span,
+.cover-toolbar .figure-references > span,
+.cover-toolbar .diagram-brief > span,
+.cover-toolbar .diagram-candidates > span,
+.cover-toolbar .diagram-review > span,
+.cover-toolbar .image-generator-section-head > label,
+.cover-splitter-file-controls > span {
+    color: var(--teal);
+    font-size: 8px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.cover-toolbar
+    > .cover-control
+    > label:not(.cover-checkbox):not(.graph-value-labels),
+.cover-toolbar .figure-label-row {
+    margin-bottom: 8px;
+}
+.cover-toolbar .cover-control label b {
+    font-size: 7px;
+    line-height: 1.25;
+}
+.cover-toolbar .cover-control > small,
+.cover-toolbar .cover-note,
+.cover-toolbar .graph-data-help,
+.cover-toolbar .graph-value-labels small,
+.cover-splitter-controls :is(p, small) {
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.5;
+}
+.cover-toolbar .cover-control > small {
+    display: block;
+    margin-top: 6px;
+}
+
+.cover-toolbar .cover-control textarea,
+.image-generator-param-window :is(textarea, input[type="text"]),
+.image-generator-subject :is(textarea, input[type="text"]) {
+    padding: 8px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    outline: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 10px/1.5 var(--font-sans);
+}
+.cover-toolbar .cover-control textarea {
+    min-height: 80px;
+}
+.cover-toolbar :is(textarea, input, select):focus-visible,
+.image-generator-param-window :is(textarea, input[type="text"]):focus-visible,
+.image-generator-subject :is(textarea, input[type="text"]):focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+.cover-toolbar .cover-input-control,
+.cover-toolbar .cover-render-controls {
+    gap: 0;
+}
+.cover-toolbar .cover-input-control :is(select, input),
+.cover-toolbar .cover-render-controls select {
+    height: 32px;
+    padding: 0 8px;
+    font: 10px/1.5 var(--font-sans);
+}
+.cover-toolbar .cover-input-control > label,
+.cover-toolbar .cover-render-controls > label,
+.cover-toolbar
+    .cover-input-control
+    > :is(.cover-style-label, .cover-keywords-label) {
+    margin: 0 0 8px;
+}
+.cover-toolbar
+    .cover-input-control
+    > :is(select, input, textarea)
+    + :is(label, .cover-style-label, .cover-keywords-label),
+.cover-toolbar .cover-render-controls > :is(select, textarea) + label {
+    margin-top: 12px;
+}
+.cover-toolbar .cover-input-control > select + input {
+    margin-top: 8px;
+}
+.cover-toolbar .cover-keywords-label + textarea {
+    margin-top: 0;
+}
+.image-generator-model-section
+    > select
+    + :is(.image-generator-add-button, .image-generator-compare-row) {
+    margin-top: 8px;
+}
+.cover-toolbar .cover-input-control > small,
+.cover-toolbar .cover-render-controls > small,
+.image-generator-prompt-control > small,
+.image-generator-note,
+.style-trainer-chat small,
+.style-trainer-summary > small {
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.diagram-toolbar .cover-control textarea {
+    min-height: 144px;
+}
+.graph-toolbar .graph-prompt {
+    min-height: 96px;
+}
+.graph-toolbar .graph-data,
+.image-generator-toolbar .image-generator-prompt-control textarea {
+    min-height: 144px;
+}
+.style-trainer-toolbar .cover-control textarea {
+    min-height: 96px;
+}
+
+.cover-generate {
+    min-height: 40px;
+    margin-top: 12px;
+}
+.cover-generate-group > label {
+    grid-template-rows: auto 40px;
+}
+.cover-generate-group > label select,
+.cover-generate-group select {
+    height: 40px;
+    font: 10px/1.5 var(--font-sans);
+}
+.cover-generate-group > label span {
+    color: var(--teal);
+    font-size: 8px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.12em;
+}
+.cover-generator-generate-group {
+    align-items: end;
+}
+.cover-generator-count-heading {
+    grid-column: 1 / -1;
+    color: var(--teal);
+    font: 400 8px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.cover-generator-generate-group > select,
+.cover-generator-generate-group > .cover-generate {
+    height: 40px;
+}
+.cover-generator-generate-group > .cover-generate {
+    min-height: 40px;
+    margin-top: 0;
+}
+.image-generator-generate-group > .image-generator-queue-note {
+    margin: 0;
+}
+.image-generator-generate-group > .image-generator-credits {
+    padding-top: 0;
+    border-top: 0;
+}
+.cover-overlay-options button {
+    min-height: 32px;
+    font: 400 9px/1 var(--font-sans);
+    letter-spacing: 0.04em;
+}
+
+.cover-control .cover-checkbox,
+.image-generator-bottom-actions .cover-checkbox {
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 8px;
+}
+.cover-checkbox input,
+.graph-value-labels input,
+.cover-splitter-inside-option input,
+.map-layer-grid input {
+    display: grid;
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    place-content: center;
+    margin: 0;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    appearance: none;
+    background: var(--bg);
+    color: var(--ink);
+    cursor: pointer;
+}
+.cover-checkbox input::before,
+.graph-value-labels input::before,
+.cover-splitter-inside-option input::before,
+.map-layer-grid input::before {
+    width: 8px;
+    height: 8px;
+    transform: scale(0);
+    background: var(--orange);
+    content: "";
+}
+.cover-checkbox input:checked::before,
+.graph-value-labels input:checked::before,
+.cover-splitter-inside-option input:checked::before,
+.map-layer-grid input:checked::before {
+    transform: scale(1);
+}
+.cover-checkbox input:focus-visible,
+.graph-value-labels input:focus-visible,
+.cover-splitter-inside-option input:focus-visible,
+.map-layer-grid input:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+}
+.cover-toolbar .cover-control > .graph-value-labels {
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 28px;
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.cover-toolbar .cover-control > .graph-value-labels > span {
+    gap: 4px;
+}
+.cover-toolbar .cover-control > .graph-value-labels b,
+.cover-checkbox span b {
+    color: var(--ink);
+    font-size: 9px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+.cover-toolbar .cover-control > .graph-value-labels small {
+    font-size: 9px;
+    line-height: 1.45;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.diagram-toolbar .figure-label-row label {
+    min-height: 24px;
+    align-items: center;
+    margin: 0;
+}
+.diagram-toolbar .figure-label-row button {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    font-weight: 400;
+}
+.editor-sidebar button,
+.editor-sidebar button b,
+.concept-illustrator-style-rail button,
+.concept-illustrator-style-rail button b,
+.buffet-filters button {
+    font-weight: 400;
+}
+
+/* Reserve the five pixels occupied by the panel's hard right shadow. */
+.cover-module {
+    grid-template-columns: minmax(0, 1fr) 335px;
+}
+.cover-toolbar.editor-sidebar {
+    width: 330px;
+    margin-right: 0;
+}
+.cover-splitter-workbench {
+    grid-template-columns: minmax(0, 1fr) 335px;
+}
+.cover-splitter-controls.editor-sidebar {
+    width: 330px;
+    margin-right: 0;
+}
+
+.cover-splitter-controls {
+    gap: 12px;
+}
+.cover-splitter-controls > .cover-splitter-local-note {
+    margin: -4px 0 0;
+}
+.cover-splitter-controls .cover-splitter-add {
+    min-height: 40px;
+    padding: 8px 10px;
+    font: 10px/1.25 var(--font-sans);
+    text-align: left;
+}
+.cover-splitter-controls .cover-splitter-add > span {
+    padding-right: 8px;
+    overflow: visible;
+    font-size: 10px;
+    line-height: 1.25;
+    text-overflow: clip;
+    white-space: normal;
+}
+.cover-splitter-inside-option {
+    gap: 6px;
+    padding: 10px;
+}
+.cover-splitter-inside-option label {
+    gap: 8px;
+    font-size: 9px;
+}
+.cover-splitter-file-controls > span {
+    padding: 8px 10px;
+}
+.barcode-toolbar .barcode-controls {
+    padding: 0 0 12px;
+}
+.barcode-controls > input {
+    outline: 0;
+}
+.barcode-controls > input:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.image-generator-add-button,
+.image-generator-compare-remove {
+    min-height: 32px;
+    height: 32px;
+}
+.image-generator-chips {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+.image-generator-chip {
+    display: grid;
+    min-width: 0;
+    min-height: 44px;
+    align-content: center;
+    justify-items: start;
+    gap: 4px;
+    padding: 7px 8px;
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--panel) 55%, var(--bg));
+    text-align: left;
+}
+.image-generator-chip span {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--teal);
+    font-size: 7px;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.image-generator-chip b {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--ink);
+    font: 400 8px/1.25 var(--font-sans);
+    letter-spacing: 0.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.image-generator-chip:hover:not(:disabled) {
+    border-color: var(--ink);
+    background: color-mix(in srgb, var(--teal) 10%, var(--bg));
+}
+.image-generator-chip.active {
+    border-color: var(--ink);
+    background: color-mix(in srgb, var(--teal) 16%, var(--bg));
+    box-shadow: inset 0 -2px 0 var(--teal);
+}
+.image-generator-param-window {
+    padding: 10px;
+    border-color: var(--ink);
+    background: var(--bg);
+}
+.image-generator-param-title {
+    font-size: 9px;
+    font-weight: 400;
+}
+.image-generator-subject {
+    padding: 8px;
+    border-color: var(--ink);
+    background: var(--bg);
+}
+.image-generator-subject label {
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+}
+.image-generator-seed-random {
+    width: 32px;
+    height: 32px;
+    border-color: var(--ink);
+    background: var(--bg);
+}
+
+.style-trainer-toolbar .cover-reference-control > small,
+.style-trainer-toolbar .cover-control > small {
+    display: block;
+    margin-top: 6px;
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+/* Map Maker keeps its overlay geometry but adopts the shared control language. */
+.map-module .figure-controls {
+    padding: 14px 18px 18px;
+}
+.map-module .figure-controls > .processing-badge {
+    display: inline-flex;
+    width: fit-content;
+    margin: 0 0 12px;
+}
+.map-editor-controls {
+    gap: 12px;
+}
+.map-year-field > div {
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+}
+.map-year-field button {
+    min-height: 56px;
+}
+.map-year-field button i {
+    width: 20px;
+    height: 26px;
+}
+.map-editor-controls .map-year-field input {
+    font-size: 28px;
+}
+.map-view-buttons button {
+    min-height: 32px;
+    font: 9px/1.2 var(--font-sans);
+}
+.map-control-section {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line);
+}
+.map-control-section > h2,
+.map-palette > span,
+.map-panel-warnings > span {
+    margin: 0;
+    color: var(--teal);
+    font: 400 8px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.map-projection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.map-projection > h2,
+.map-projection > .map-layer-note {
+    grid-column: 1 / -1;
+}
+.map-projection label,
+.map-draw-tools :is(.map-draw-kind, .map-draw-label) {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+    color: var(--ink);
+    font: 400 9px/1.2 var(--font-sans);
+}
+
+.map-projection select,
+.map-draw-tools :is(select, input) {
+    box-sizing: border-box;
+    width: 100%;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    outline: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 10px/1.5 var(--font-sans);
+}
+.map-projection :is(select, input):focus-visible,
+.map-draw-tools :is(select, input):focus-visible,
+.map-prompt-field textarea:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+}
+.map-editor-controls .map-prompt-field {
+    grid-template-columns: 1fr;
+}
+.map-editor-controls .map-prompt-field textarea {
+    min-height: 88px;
+    padding: 8px;
+    font: 10px/1.5 var(--font-sans);
+}
+.map-prompt-field button {
+    min-height: 32px;
+    margin-top: 0;
+    padding: 0 10px;
+    background: var(--panel);
+    font: 400 9px/1 var(--font-sans);
+    letter-spacing: 0.04em;
+}
+.map-prompt-field button:not(:disabled) {
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.map-layer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+}
+.map-layer-grid label {
+    display: flex;
+    min-width: 0;
+    min-height: 28px;
+    align-items: center;
+    gap: 8px;
+    font: 10px/1.2 var(--font-sans);
+    text-transform: none;
+}
+.map-fill-toggle,
+.map-label-toggle {
+    min-height: 32px;
+    gap: 8px;
+    padding: 0 9px;
+    font: 400 9px/1.2 var(--font-sans);
+    letter-spacing: 0.04em;
+}
+.map-fill-toggle i,
+.map-label-toggle i {
+    width: 14px;
+    height: 14px;
+}
+.map-editor-controls p,
+.map-layer-note,
+.map-panel-warnings p,
+.map-climate-key span,
+.map-year-slider > div,
+.map-label-tools button,
+.map-label-tools .map-label-count,
+.map-draw-tools :is(.map-draw-kind, .map-draw-label) {
+    font-size: 9px !important;
+    line-height: 1.5;
+}
+.map-palette > button,
+.map-palette > div:last-child button {
+    min-height: 32px;
+    font: 9px/1.2 var(--font-sans);
+}
+.map-purpose-controls > h2:not(:first-child) {
+    margin-top: 4px;
+}
+.map-purpose-grid,
+.map-density-grid {
+    display: grid;
+    gap: 0;
+}
+.map-purpose-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.map-purpose-grid .map-choice-button:last-child {
+    grid-column: 1 / -1;
+}
+.map-density-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.map-choice-button {
+    min-width: 0;
+    min-height: 32px;
+    padding: 5px 7px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    background: var(--panel);
+    color: var(--ink);
+    font: 400 9px/1.2 var(--font-sans);
+}
+.map-choice-button + .map-choice-button {
+    margin-left: -1px;
+}
+.map-purpose-grid .map-choice-button:nth-child(3),
+.map-purpose-grid .map-choice-button:nth-child(5) {
+    margin-left: 0;
+}
+.map-purpose-grid .map-choice-button:nth-child(n + 3) {
+    margin-top: -1px;
+}
+.map-choice-button[aria-pressed="true"] {
+    position: relative;
+    z-index: 1;
+    background: var(--orange);
+    color: var(--on-accent);
+}
+.map-choice-button:focus-visible {
+    position: relative;
+    z-index: 2;
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+}
+.map-purpose-custom {
+    margin: 0;
+    color: var(--orange) !important;
+    font-weight: 700;
+}
+.map-print-controls > select {
+    box-sizing: border-box;
+    width: 100%;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    outline: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 10px/1.5 var(--font-sans);
+}
+.map-print-controls > select:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+}
+.map-export-metadata-fields {
+    display: grid;
+    gap: 7px;
+}
+.map-export-metadata-fields label {
+    display: grid;
+    gap: 3px;
+    color: var(--muted);
+    font: 8px/1.3 var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.map-export-metadata-fields input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    outline: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 9px/1.4 var(--font-sans);
+    letter-spacing: 0;
+    text-transform: none;
+}
+.map-export-metadata-fields input:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+}
+.map-publication-preflight {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--line);
+}
+.map-publication-preflight > span {
+    padding: 8px;
+    border-bottom: 1px solid var(--line);
+    color: var(--teal);
+    font: 400 8px/1.3 var(--font-sans);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.map-publication-preflight p {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 6px;
+    margin: 0;
+    padding: 6px 8px;
+    color: var(--muted);
+    font: 8px/1.4 var(--font-sans);
+}
+.map-publication-preflight p + p {
+    border-top: 1px solid var(--line);
+}
+.map-publication-preflight p b {
+    color: var(--teal);
+}
+.map-publication-preflight p.warning b {
+    color: var(--orange);
+}
+
+/* Opted-in bespoke toolbar variants. */
+.concept-illustrator-rail-header {
+    gap: 10px;
+    padding: 14px 18px;
+}
+.concept-illustrator-rail-header h2,
+.concept-illustrator-style-references h3,
+.concept-illustrator-style-guidance > span,
+.concept-illustrator-aspect-ratio > span {
+    color: var(--teal);
+    font: 400 8px/1 var(--font-sans);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.concept-illustrator-style-guidance,
+.concept-illustrator-aspect-ratio,
+.concept-illustrator-style-references {
+    margin: 14px 18px;
+}
+.concept-illustrator-style-guidance textarea {
+    min-height: 96px;
+    padding: 8px;
+    font: 10px/1.5 var(--font-sans);
+}
+.concept-illustrator-aspect-ratio select {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 8px;
+    font: 10px/1.5 var(--font-sans);
+}
+.concept-illustrator-style-guidance textarea:focus-visible,
+.concept-illustrator-aspect-ratio select:focus-visible {
+    outline: 1px solid var(--teal);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+.concept-illustrator-style-references {
+    padding-top: 12px;
+}
+.concept-illustrator-style-references > p,
+.concept-illustrator-local-note {
+    font-size: 8px;
+    line-height: 1.5;
+}
+
+.buffet-filters {
+    max-width: 100%;
+    min-height: 32px;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.buffet-filters button {
+    min-height: 32px;
+    flex: 0 0 auto;
+    padding: 0 14px;
+    font: 9px/1 var(--font-sans);
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+    .cover-splitter-controls.editor-sidebar {
+        width: 330px;
+        margin: 18px 0 0;
+    }
+}
+
+@media (max-width: 1100px) {
+    .cover-toolbar.editor-sidebar {
+        width: auto;
+        margin: 18px 23px 0 18px;
+    }
+}
+
+@media (max-width: 900px) {
+    .cover-toolbar.editor-sidebar,
+    .visual-single-toolbar.editor-sidebar,
+    .cover-splitter-controls.editor-sidebar {
+        box-sizing: border-box;
+        width: calc(100% - 5px);
+        margin: 18px 5px 0 0;
+    }
+}
+
+@media (max-width: 700px) {
+    .image-generator-chips {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .map-projection,
+    .map-layer-grid {
+        grid-template-columns: 1fr;
+    }
+}

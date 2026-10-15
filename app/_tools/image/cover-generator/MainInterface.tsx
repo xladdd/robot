@@ -615,22 +615,24 @@ export function CoverGeneratorMainInterface({
             {error}
           </p>
         )}
-        <div className="cover-generate-group">
-          <label>
-            <span>
-              {language === "cs" ? "POČET NÁVRHŮ" : "NUMBER OF CONCEPTS"}
-            </span>
-            <select
-              value={requestedCount}
-              onChange={(event) =>
-                setRequestedCount(Number(event.target.value) as 1 | 2 | 4)
-              }
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={4}>4</option>
-            </select>
-          </label>
+        <div className="cover-generate-group cover-generator-generate-group">
+          <span
+            className="cover-generator-count-heading"
+            id="cover-generator-count-heading"
+          >
+            {language === "cs" ? "POČET NÁVRHŮ" : "NUMBER OF CONCEPTS"}
+          </span>
+          <select
+            value={requestedCount}
+            onChange={(event) =>
+              setRequestedCount(Number(event.target.value) as 1 | 2 | 4)
+            }
+            aria-labelledby="cover-generator-count-heading"
+          >
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+            <option value={4}>4</option>
+          </select>
           <button
             className="cover-generate action-button action-button-primary"
             onClick={() => onGenerateSketches(requestedCount)}

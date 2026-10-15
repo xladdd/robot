@@ -975,25 +975,9 @@ export function ImageGeneratorMainInterface({
                 <option value="fidelity">{t.qualityFidelity}</option>
                 <option value="fast">{t.qualityFast}</option>
               </select>
-              <label htmlFor="image-generator-concurrency">
-                {t.concurrency}
-              </label>
-              <select
-                id="image-generator-concurrency"
-                value={concurrency}
-                onChange={(event) =>
-                  setConcurrency(Number(event.target.value) as QueueConcurrency)
-                }
-                disabled={isGenerating}
-              >
-                <option value={1}>{t.concurrencyOne}</option>
-                <option value={2}>{t.concurrencyTwo}</option>
-                <option value={3}>{t.concurrencyThree}</option>
-              </select>
               {quality === "fidelity" && <small>{t.fidelityNote}</small>}
             </section>
 
-            <p className="cover-note">{t.queueNote}</p>
           </>
         ) : (
           <>
@@ -1016,35 +1000,6 @@ export function ImageGeneratorMainInterface({
                   </option>
                 )}
               </select>
-              <div className="image-generator-model-meta">
-                <div>
-                  <small>{t.pricePerImage}</small>
-                  <b>
-                    {selectedModel?.pricePerImage === null ||
-                    selectedModel?.pricePerImage === undefined
-                      ? t.creditUnavailable
-                      : formatUsd(selectedModel.pricePerImage)}
-                  </b>
-                </div>
-                <div title={creditLimit !== null ? t.creditHint : undefined}>
-                  <small>{t.credit}</small>
-                  <b>
-                    {credit === null
-                      ? t.creditUnavailable
-                      : creditLimit !== null
-                        ? `${formatUsd(credit)} / ${formatUsd(creditLimit)}`
-                        : formatUsd(credit)}
-                  </b>
-                </div>
-                <div title={t.accountCreditHint}>
-                  <small>{t.accountCredit}</small>
-                  <b>
-                    {accountCredit === null
-                      ? t.creditUnavailable
-                      : formatUsd(accountCredit)}
-                  </b>
-                </div>
-              </div>
               {catalogError && (
                 <p className="image-generator-limit" role="status">
                   {catalogError}
@@ -1422,6 +1377,55 @@ export function ImageGeneratorMainInterface({
             </span>
           </label>
           <div className="cover-generate-group image-generator-generate-group">
+            <label>
+              <span>{t.concurrency}</span>
+              <select
+                id="image-generator-concurrency"
+                value={concurrency}
+                onChange={(event) =>
+                  setConcurrency(Number(event.target.value) as QueueConcurrency)
+                }
+                disabled={isGenerating}
+              >
+                <option value={1}>{t.concurrencyOne}</option>
+                <option value={2}>{t.concurrencyTwo}</option>
+                <option value={3}>{t.concurrencyThree}</option>
+              </select>
+            </label>
+            <p className="cover-note image-generator-queue-note">
+              {t.queueNote}
+            </p>
+            {mode === "advanced" && (
+              <div className="image-generator-credits">
+                <dl className="image-generator-credit-grid">
+                  <div>
+                    <dt>{t.pricePerImage}</dt>
+                    <dd>
+                      {selectedModel?.pricePerImage === null ||
+                      selectedModel?.pricePerImage === undefined
+                        ? t.creditUnavailable
+                        : formatUsd(selectedModel.pricePerImage)}
+                    </dd>
+                  </div>
+                  <div title={t.creditHint}>
+                    <dt>{t.credit}</dt>
+                    <dd>
+                      {credit === null
+                        ? t.creditUnavailable
+                        : formatUsd(credit)}
+                    </dd>
+                  </div>
+                  <div title={t.accountCreditHint}>
+                    <dt>{t.accountCredit}</dt>
+                    <dd>
+                      {accountCredit === null
+                        ? t.creditUnavailable
+                        : formatUsd(accountCredit)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
             <button
               className={`cover-generate action-button action-button-primary ${isGenerating ? "image-generator-stop" : ""}`}
               onClick={() => void startGeneration()}

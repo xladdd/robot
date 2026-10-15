@@ -688,6 +688,11 @@ test("keeps the documented document and visual workspace families", async () => 
     css,
     /\.cover-toolbar\.editor-sidebar\s*\{[^}]*box-shadow:\s*5px 5px 0 var\(--ink\)/s,
   );
+  assert.match(
+    css,
+    /\.cover-module\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 335px/s,
+  );
+  assert.match(css, /\.editor-sidebar\s*\{[^}]*padding:\s*14px 18px 18px/s);
   assert.match(css, /\.visual-single-toolbar\.editor-sidebar/);
   assert.match(
     css,

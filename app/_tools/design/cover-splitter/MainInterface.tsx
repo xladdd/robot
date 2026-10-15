@@ -794,6 +794,10 @@ export function CoverSplitterMainInterface({
             <b aria-hidden="true">→</b>
           </button>
 
+          <p className="solutions-privacy cover-splitter-local-note">
+            {t.localProcessing}
+          </p>
+
           {result && (
             <div className="cover-splitter-downloads">
               <div className="cover-splitter-export-actions">
@@ -839,8 +843,6 @@ export function CoverSplitterMainInterface({
               </button>
             </div>
           )}
-
-          <p className="solutions-privacy">{t.localProcessing}</p>
 
           {consoleLines.length > 0 && (
             <section className="cover-splitter-console" aria-label={t.console}>

@@ -1339,7 +1339,7 @@ export function ConceptIllustratorMainInterface({
                 updateStyleProfile({ styleGuidance: event.target.value })
               }
               placeholder={t.stylePlaceholder}
-              rows={10}
+              rows={5}
               disabled={Boolean(busy)}
             />
           </label>
