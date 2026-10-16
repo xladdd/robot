@@ -4,8 +4,8 @@ Popište biologický objekt a struktury, které se mají zobrazit, případně p
 
 ### Jak to funguje?
 
-Pracovní postup používá pouze OpenRouter: plánovací model vytvoří opatrné biologické zadání, nakonfigurovaný obrázkový model vytvoří kandidátní kompozice a nakonfigurovaný multimodální model vybraný návrh překreslí do úplných vektorových tvarů ve vrstvách. Popisky a odkazové čáry se přidají až potom jako samostatné upravitelné objekty SVG. Přísný serverový čistič odmítá skripty, rastrové obrázky, masky, ořezové cesty, externí adresy a CSS z modelu. Volitelná vizuální a biologická kontrola může doporučit jednu omezenou opravu.
+Požadavky na modely procházejí přes OpenRouter: plánovací model vytvoří opatrné biologické zadání, nakonfigurovaný obrázkový model vytvoří kandidátní kompozice a nakonfigurovaný multimodální model vybraný návrh překreslí do úplných vektorových tvarů ve vrstvách. Popisky a odkazové čáry se přidají až potom jako samostatné upravitelné objekty SVG. Přísný serverový čistič odmítá skripty, rastrové obrázky, masky, ořezové cesty, externí adresy a CSS z modelu. Volitelná vizuální a biologická kontrola může doporučit jednu omezenou opravu.
 
 Kontrola úplnosti cílí na častý problém „díry pod jádrem“: podkladová cytoplazma nebo tkáň musí být úplný tvar, nikoli výřez nebo záplata v barvě pozadí. Automatické kontroly nejsou odborným biologickým ověřením. Před publikací zkontrolujte obrázek, popisky, práva ke zdrojům a nejistou anatomii.
 
-Sekce modelů níže zahrnuje volitelné kontroly a starší endpoint pro přímé SVG; ne všechny se volají při každém požadavku.
+Nakonfigurované modelové kroky zahrnují také volitelné kontroly a starší endpoint pro přímé SVG; ne každý krok se spouští při každém požadavku.

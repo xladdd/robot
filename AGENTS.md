@@ -20,7 +20,7 @@ The API-safe baseline `1ee73a6` and v0.5 folder-registry restructure `bc8fe9e` a
 - Model-backed tools use canonical owned `model-definitions.ts` for actual defaults, environment precedence and failure fallbacks. Handlers and live info share them. Model environment resolution and generated explicit model imports are server-only; never use runtime path/import magic or maintain a competing old model table.
 - Keep stable OpenRouter instructions in owned `prompts/*.md`; server code adds changing request data. Preserve deployment tracing of these files.
 - Do not create category-wide abstractions by default. Extract a small shared utility only for identical, tested behavior in at least two tools without pulling unrelated data/model logic into either.
-- Keep tool prose out of `app/content/ui.ts`. `info.en.md` and `info.cs.md` are live content; resolved model sections are appended inline by the server loader.
+- Keep tool prose out of `app/content/ui.ts`. `info.en.md` and `info.cs.md` are live content; resolved model details are appended as prose within “How does it work?” by the server loader. Keep exactly two localized sections (“What is this?” and “How does it work?”), with only the general drawer adding its version.
 - Manual chapter sources are `design-manual/manual.en.md` and `manual.cs.md`; retain relative `images/` paths. Run `npm run manual:pdf` after manual/changelog changes; the changelog is appended to both editions. PDF export currently needs macOS Verdana paths (configure them for other platforms).
 - Stable public URLs derive from manifest assets pointing to owned files. Preserve symlinks and Vercel build materialization; do not duplicate downloads or datasets.
 

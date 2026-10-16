@@ -4,6 +4,6 @@ Přidejte jedno nebo více PDF s rozloženou obálkou, pro každý soubor zvolte
 
 ### Jak to funguje?
 
-`PDF.js` zobrazí v prohlížeči náhled první strany každého souboru. Po spuštění dělení běží `Pyodide`, Python a `pypdf` v pomocném procesu prohlížeče a oříznou zdrojové strany bez rastrování jejich vektorů. Výstupy se pojmenují `_BACK.pdf` a `_FRONT.pdf`, při zvolené vnitřní obálce se doplní odpovídající vnitřní soubory, a vše se zabalí do ZIP; žádné PDF se neodesílá. PNG a JPG se místně vytvoří až po volbě jejich tlačítka pro stažení a následně se přidají do ZIP vedle původních vektorových PDF.
+`PDF.js` zobrazí v prohlížeči náhled první strany každého souboru. Po spuštění dělení běží `Pyodide`, `Python` a `pypdf` v pomocném procesu prohlížeče a oříznou zdrojové strany bez rastrování jejich vektorů. Výstupy se pojmenují `_BACK.pdf` a `_FRONT.pdf`, při zvolené vnitřní obálce se doplní odpovídající vnitřní soubory, a vše se zabalí do ZIP; žádné PDF se neodesílá. PNG a JPG se místně vytvoří až po volbě jejich tlačítka pro stažení a následně se přidají do ZIP vedle původních vektorových PDF.
 
-Runtime Pythonu a balíčky prohlížeče se mohou stahovat; zdrojová PDF zůstávají místně. Zkontrolujte polohy dělení a rozlišení rastrového exportu.
+Běhové prostředí `Python` a balíčky prohlížeče se mohou stahovat; zdrojová PDF zůstávají místně. Zkontrolujte polohy dělení a rozlišení rastrového exportu.

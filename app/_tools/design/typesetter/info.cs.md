@@ -4,16 +4,8 @@ Sazeč převádí nejednotně stylovaný rukopis ve Wordu na zkontrolovaný sém
 
 ### Jak to funguje?
 
-1. V InDesignu připravte a zřetězte hlavní textové rámečky. První rámeček označte v panelu Popisek skriptu jako `typesetter:story:main`, vytvořte potřebné odstavcové styly a šablonu exportujte jako IDML.
-2. Nahrajte rukopis jako DOCX a šablonu jako IDML. Oba balíčky se otevřou místně v prohlížeči.
-3. Nechte AI navrhnout malou řízenou sadu sémantických rolí. Potvrďte potřebné role a každou namapujte na styl nalezený v nahraném IDML.
-4. Spusťte úplnou analýzu a zkontrolujte všechny nejisté nebo nepodporované bloky. Původní text a pořadí rukopisu zůstanou zachovány.
-5. Stáhněte zkontrolovaný JSON a `import_typesetter.jsx`. Skript spusťte na kopii odpovídajícího souboru InDesignu a projděte všechny strany.
+V InDesignu připravte a zřetězte hlavní textové rámečky. První rámeček označte v panelu Popisek skriptu jako `typesetter:story:main`, vytvořte potřebné odstavcové styly a šablonu exportujte jako IDML. Načtěte rukopis jako DOCX a šablonu jako IDML; oba balíčky se otevřou místně v prohlížeči. Extrakce zachovává prostý text a původní pořadí, nikoli formátování Wordu. Pro místní extrakci se může stahovat běhové prostředí `Python` pro prohlížeč.
 
-### Data a omezení
+Při předběžné a úplné analýze se přes OpenRouter nakonfigurovanému modelu odesílají extrahované bloky rukopisu; soubory DOCX a IDML zůstávají v prohlížeči a soubor IDML se neodesílá. Z navržené řízené sady potvrďte potřebné sémantické role a každou namapujte na odstavcový styl nalezený v IDML. Spusťte úplnou analýzu, zkontrolujte nejisté nebo nepodporované bloky a stáhněte zkontrolovaný JSON `indesign-typesetter-v1` a `import_typesetter.jsx`.
 
-Soubory DOCX a IDML zůstávají v prohlížeči. Při předběžné a úplné analýze se nakonfigurovanému modelu OpenRouter odesílají extrahované bloky rukopisu; soubor IDML se neodesílá. V1 podporuje jeden hlavní článek, odstavcové styly, jednoduché seznamy, popisky a požadavky na obrázky. Nenavrhuje stránky, nesází složité tabulky ani neopravuje přetečený text.
-
-Požadavky na obrázky vznikají jako běžné neukotvené rámečky ve vrstvě `IMAGE REQUESTS`. Umístěte nebo nahraďte je ručně. Importér vždy spouštějte na kopii a celý výsledek zkontrolujte.
-
-Extrakce zachovává prostý text a pořadí, nikoli formátování Wordu. Importér nahradí označený hlavní článek a přeskočí nepodporované bloky; práce s tabulkami je omezená, proto na kopii zkontrolujte vynechaný obsah i sazbu. Pro místní extrakci se mohou stahovat runtime Pythonu v prohlížeči.
+Importér nahradí označený hlavní článek a přeskočí nepodporované bloky. Podporuje odstavcové styly, jednoduché seznamy, popisky a požadavky na obrázky, ale nenavrhuje stránky, nesází složité tabulky ani neopravuje přetečený text. Požadavky na obrázky vznikají jako běžné neukotvené rámečky ve vrstvě `IMAGE REQUESTS` k ručnímu umístění nebo nahrazení. Skript spusťte na kopii odpovídajícího souboru InDesignu a na každé straně zkontrolujte vynechaný obsah i sazbu.

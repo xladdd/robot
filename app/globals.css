@@ -5577,11 +5577,18 @@ button {
     letter-spacing: -0.04em;
 }
 .drawer-content code {
+    overflow-wrap: anywhere;
     padding: 1px 4px;
     border: 1px solid var(--line);
     background: var(--panel);
     color: var(--ink);
-    font: 10px/1.5 var(--font-mono);
+    /* Bypass --font-mono's bundled monochrome Noto Emoji for native flags. */
+    font:
+        10px/1.5 "IBM Plex Mono",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Noto Color Emoji",
+        monospace;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
 }

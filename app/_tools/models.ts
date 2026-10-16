@@ -26,8 +26,29 @@ function cell(value: string): string {
   return value.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 }
 
+// Developer origin, not the inference provider's hosting location.
+const modelOrigins: Readonly<Record<string, string>> = {
+  anthropic: "🇺🇸",
+  "black-forest-labs": "🇩🇪",
+  "bytedance-seed": "🇨🇳",
+  google: "🇺🇸",
+  inclusionai: "🇨🇳",
+  mistralai: "🇫🇷",
+  "mistral-ocr": "🇫🇷",
+  openai: "🇺🇸",
+  qwen: "🇨🇳",
+  // Tesseract.js wraps the engine originally developed in Bristol and Greeley.
+  // https://github.com/tesseract-ocr/tesseract#brief-history
+  "tesseract.js": "🇬🇧 🇺🇸",
+};
+
 function modelId(value: string): string {
-  return `\`${cell(value).replace(/`/g, "")}\``;
+  const developer = value.split("/")[0].trim().toLowerCase();
+  const origin = Object.hasOwn(modelOrigins, developer)
+    ? modelOrigins[developer]
+    : undefined;
+  // Leave unknown model origins unlabelled rather than guessing a country.
+  return `\`${cell(value).replace(/`/g, "")}${origin ? ` ${origin}` : ""}\``;
 }
 
 /** Pure Markdown formatter. Resolve configuration on the server before calling it. */
@@ -37,34 +58,36 @@ export function buildModelMarkdown(
 ): string {
   if (!definitions.length) return "";
   const cs = language === "cs";
-  const rows = definitions.map((stage) => {
+  const paragraphs = definitions.map((stage) => {
     const configured =
       "configuredModel" in stage ? stage.configuredModel : stage.defaultModel;
     const fallbacks =
       "configuredFallbackModels" in stage
         ? stage.configuredFallbackModels
         : stage.failureFallbackModels.map((fallback) => fallback.defaultModel);
-    return `- **${cell(stage.label[language])}** — ${cs ? "nakonfigurováno" : "configured"}: ${modelId(configured)}; ${cs ? "výchozí" : "default"}: ${modelId(stage.defaultModel)}; ${cs ? "záloha při selhání" : "failure fallback"}: ${fallbacks.map(modelId).join(", ") || "—"}.`;
-  });
-  const notes = definitions.flatMap((stage) => {
-    const values = [
+    const defaultNote =
+      configured !== stage.defaultModel
+        ? ` (${cs ? "výchozí" : "default"}: ${modelId(stage.defaultModel)})`
+        : "";
+    return [
+      `${cell(stage.label[language])}: ${modelId(configured)}${defaultNote}.`,
+      ...(fallbacks.length
+        ? [
+            `${cs ? "Záloha při selhání" : "Failure fallback"}: ${fallbacks.map(modelId).join(", ")}.`,
+          ]
+        : []),
       stage.data?.[language],
       stage.providerNotes?.[language],
-    ].filter(Boolean);
-    return values.length
-      ? [`- **${cell(stage.label[language])}:** ${values.join(" ")}`]
-      : [];
+    ]
+      .filter(Boolean)
+      .join(" ");
   });
-  return [
-    `### ${cs ? "Modely a zpracování" : "Models and processing"}`,
-    "",
-    cs
-      ? "Konfigurace serveru při načtení informací; konkrétní požadavek může použít zvolený model nebo záložní model. Nejde o záznam uskutečněného volání."
-      : "Server configuration when this information is loaded; an individual request may use a selected model or a fallback. This is not a record of an executed call.",
-    "",
-
-    ...rows,
-    ...(notes.length ? ["", ...notes] : []),
-    "",
-  ].join("\n");
+  return (
+    [
+      cs
+        ? "Modely odpovídají konfiguraci serveru při načtení těchto informací. Konkrétní požadavek může použít zvolený nebo záložní model; nejde o záznam uskutečněného volání. Vlajky označují původ vývojáře modelu, nikoli místo zpracování dat."
+        : "Models reflect the server configuration when this information is loaded. An individual request may use a selected model or a fallback; this is not a record of an executed call. Flags indicate the model developer’s origin, not where data is processed.",
+      ...paragraphs,
+    ].join("\n\n") + "\n"
+  );
 }

@@ -4,16 +4,8 @@ Typesetter turns an inconsistently styled Word manuscript into reviewed semantic
 
 ### How does it work?
 
-1. Prepare and thread the main text frames in InDesign. Label the first frame `typesetter:story:main` in the Script Label panel, create the required paragraph styles, and export the template as IDML.
-2. Upload the manuscript as DOCX and the template as IDML. Both packages are opened locally in your browser.
-3. Let AI suggest a small controlled set of semantic roles. Accept the roles you need and map each one to a style found in the uploaded IDML.
-4. Run the complete analysis and review all uncertain or unsupported blocks. The original manuscript text and source order are preserved.
-5. Download the reviewed JSON and `import_typesetter.jsx`. Run the script on a copy of the matching InDesign file and inspect every page.
+Prepare and thread the main text frames in InDesign. Label the first frame `typesetter:story:main` in the Script Label panel, create the required paragraph styles, and export the template as IDML. Load the manuscript as DOCX and the template as IDML; both packages are opened locally in your browser. Extraction preserves plain text and source order, not Word formatting. Browser `Python` runtimes may be downloaded for local extraction.
 
-### Data and limitations
+Extracted manuscript blocks are sent through OpenRouter to the configured model during pre-scan and classification; the DOCX and IDML files remain in the browser, and the IDML file is not sent. Accept the semantic roles you need from the proposed controlled set and map each one to a paragraph style found in the IDML. Run the complete analysis and review uncertain or unsupported blocks, then download the reviewed `indesign-typesetter-v1` JSON and `import_typesetter.jsx`.
 
-The DOCX and IDML files remain in the browser. Extracted manuscript blocks are sent to the configured OpenRouter model during pre-scan and classification; the IDML file is not sent. V1 supports one main story, paragraph-level styles, simple lists, captions, and image requests. It does not design pages, compose complex tables, or repair overset text.
-
-Image requests are created as ordinary, unanchored frames on the `IMAGE REQUESTS` layer. Position or replace them manually. Always run the importer on a copy and check the complete result.
-
-Extraction preserves plain text and source order, not Word formatting. The importer replaces the labelled main story and skips unsupported blocks; table handling is limited, so review omissions and layout on a copy. Browser Python runtimes may be downloaded for local extraction.
+The importer replaces the labelled main story and skips unsupported blocks. It supports paragraph-level styles, simple lists, captions, and image requests, but does not design pages, compose complex tables, or repair overset text. Image requests become ordinary, unanchored frames on the `IMAGE REQUESTS` layer for manual placement or replacement. Run the script on a copy of the matching InDesign file and inspect every page for omissions and layout problems.

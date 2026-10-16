@@ -39,6 +39,7 @@ export async function loadInfoDrawers(): Promise<InfoDrawers> {
             models.get(app.folder) ?? [],
             language,
           );
+          // The final Markdown section is “How does it work?”; models continue its prose.
           result[language][app.id] = modelMarkdown
             ? `${markdown.trimEnd()}\n\n${modelMarkdown}`
             : markdown;

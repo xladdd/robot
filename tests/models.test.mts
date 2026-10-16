@@ -139,7 +139,7 @@ test("all registered AI tools own unique bilingual, configurable stage definitio
         }
         const markdown = buildModelMarkdown([resolved[index]], language);
         assert.ok(markdown.includes(stage.label[language]));
-        assert.ok(markdown.includes(`\`${stage.defaultModel}\``));
+        assert.ok(markdown.includes(`\`${stage.defaultModel} `));
       }
       for (const choice of [stage, ...stage.failureFallbackModels]) {
         assert.ok(choice.defaultModel.trim());
@@ -241,7 +241,7 @@ test("failure fallbacks are configured separately, deduplicated and exclude the 
   assert.equal(JSON.stringify(sample), original);
 });
 
-test("bilingual Markdown distinguishes configured IDs, defaults and fallback IDs with localized notes", () => {
+test("bilingual model prose keeps configured IDs, distinct defaults, fallbacks and notes together", () => {
   const resolved = resolveModelDefinitions([sample], (name) =>
     name === "PRIMARY_MODEL"
       ? "example/configured"
@@ -251,18 +251,16 @@ test("bilingual Markdown distinguishes configured IDs, defaults and fallback IDs
   );
   for (const language of ["en", "cs"] as const) {
     const markdown = buildModelMarkdown(resolved, language);
-    assert.ok(markdown.includes(`**${sample.label[language]}**`));
-    const configuredLabel =
-      language === "cs" ? "nakonfigurováno" : "configured";
+    assert.ok(markdown.includes(sample.label[language]));
     const defaultLabel = language === "cs" ? "výchozí" : "default";
     const fallbackLabel =
-      language === "cs" ? "záloha při selhání" : "failure fallback";
+      language === "cs" ? "Záloha při selhání" : "Failure fallback";
     assert.ok(
       markdown.includes(
-        `- **${sample.label[language]}** — ${configuredLabel}: \`example/configured\`; ${defaultLabel}: \`example/default\`; ${fallbackLabel}: \`example/backup\`, \`example/fallback\`.`,
+        `${sample.label[language]}: \`example/configured\` (${defaultLabel}: \`example/default\`). ${fallbackLabel}: \`example/backup\`, \`example/fallback\`. ${sample.data![language]} ${sample.providerNotes![language]}`,
       ),
     );
-    assert.doesNotMatch(markdown, /\| --- \|/);
+    assert.doesNotMatch(markdown, /^\s*(?:#|[-*] |\d+\. |\|)|\*\*/m);
     assert.ok(markdown.includes(sample.data![language]));
     assert.ok(markdown.includes(sample.providerNotes![language]));
     assert.ok(
@@ -275,22 +273,28 @@ test("bilingual Markdown distinguishes configured IDs, defaults and fallback IDs
     assert.equal(buildModelMarkdown([], language), "");
     const defaults = buildModelMarkdown([sample], language);
     assert.ok(
-      defaults.includes(
-        `${configuredLabel}: \`example/default\`; ${defaultLabel}: \`example/default\`; ${fallbackLabel}: \`example/fallback\`, \`example/fallback\`.`,
-      ),
+      defaults.includes(`${sample.label[language]}: \`example/default\`.`),
     );
+    assert.ok(defaults.includes(`${fallbackLabel}: \`example/fallback\``));
+    assert.doesNotMatch(defaults, new RegExp(`${defaultLabel}:`));
+    assert.equal(defaults.split("`example/default`").length - 1, 1);
     const noFallback = buildModelMarkdown(
       [{ ...sample, failureFallbackModels: [] }],
       language,
     );
     assert.ok(
-      noFallback.includes(
-        `${configuredLabel}: \`example/default\`; ${defaultLabel}: \`example/default\`; ${fallbackLabel}: —.`,
-      ),
+      noFallback.includes(`${sample.label[language]}: \`example/default\`.`),
     );
+    assert.ok(!noFallback.includes(fallbackLabel));
   }
-  assert.match(buildModelMarkdown(resolved, "en"), /Models and processing/);
-  assert.match(buildModelMarkdown(resolved, "cs"), /Modely a zpracování/);
+  assert.match(
+    buildModelMarkdown(resolved, "en"),
+    /Models reflect the server configuration/,
+  );
+  assert.match(
+    buildModelMarkdown(resolved, "cs"),
+    /Modely odpovídají konfiguraci serveru/,
+  );
   const escaped = buildModelMarkdown(
     [
       {
@@ -303,6 +307,90 @@ test("bilingual Markdown distinguishes configured IDs, defaults and fallback IDs
   );
   assert.ok(escaped.includes("Stage \\| label line"));
   assert.ok(escaped.includes("`example/model\\|id next`"));
+});
+
+test("every registered default and fallback model includes native origin flag emoji inside its code span", () => {
+  const flag =
+    /^(?:\p{Regional_Indicator}{2})(?: \p{Regional_Indicator}{2})*`/u;
+  for (const { folder, definitions } of tools) {
+    for (const stage of definitions) {
+      for (const language of ["en", "cs"] as const) {
+        const markdown = buildModelMarkdown([stage], language);
+        for (const choice of [stage, ...stage.failureFallbackModels]) {
+          const marker = `\`${choice.defaultModel} `;
+          const position = markdown.indexOf(marker);
+          assert.ok(position >= 0, `${folder}/${stage.stageId}: ${marker}`);
+          assert.match(markdown.slice(position + marker.length), flag);
+        }
+        assert.doesNotMatch(markdown, /!\[|<img|<svg/);
+      }
+    }
+  }
+});
+
+test("origin flags track actual configured developers, defaults and fallbacks in both languages", () => {
+  const resolved = resolveModelDefinitions(
+    [
+      {
+        ...sample,
+        defaultModel: "mistralai/default",
+        failureFallbackModels: [
+          { defaultModel: "qwen/backup", environmentPrecedence: [] },
+        ],
+      },
+    ],
+    () => "openai/configured",
+  );
+  const origins = [
+    ["anthropic/model", "🇺🇸"],
+    ["black-forest-labs/model", "🇩🇪"],
+    ["bytedance-seed/model", "🇨🇳"],
+    ["google/model", "🇺🇸"],
+    ["inclusionai/model", "🇨🇳"],
+    ["mistral-ocr", "🇫🇷"],
+    ["Tesseract.js / ces", "🇬🇧 🇺🇸"],
+  ];
+  for (const language of ["en", "cs"] as const) {
+    const markdown = buildModelMarkdown(resolved, language);
+    for (const [id, emoji] of [
+      ["openai/configured", "🇺🇸"],
+      ["mistralai/default", "🇫🇷"],
+      ["qwen/backup", "🇨🇳"],
+    ])
+      assert.ok(markdown.includes(`\`${id} ${emoji}\``));
+    for (const [id, emoji] of origins) {
+      assert.ok(
+        buildModelMarkdown(
+          [
+            {
+              ...sample,
+              defaultModel: id,
+              failureFallbackModels: [],
+            },
+          ],
+          language,
+        ).includes(`\`${id} ${emoji}\``),
+      );
+    }
+    for (const unknown of [
+      "unknown/model",
+      "constructor/model",
+      "__proto__/model",
+    ]) {
+      const prose = buildModelMarkdown(
+        [
+          {
+            ...sample,
+            defaultModel: unknown,
+            failureFallbackModels: [],
+          },
+        ],
+        language,
+      );
+      assert.ok(prose.includes(`\`${unknown}\`.`));
+      assert.doesNotMatch(prose, /\p{Regional_Indicator}/u);
+    }
+  }
 });
 
 test("every remote stage uses its owning definition in server selection rather than duplicated environment chains", async () => {

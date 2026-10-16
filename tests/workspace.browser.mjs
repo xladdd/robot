@@ -41,6 +41,7 @@ export async function runWorkspaceBrowserTests({
     await import("../app/_tools/generated/registry.data.ts");
   const { modelDefinitions } =
     await import("../app/_tools/image/image-generator/model-definitions.ts");
+  const { appVersion } = await import("../app/_tools/registry.ts");
   const pdf = {
     name: "synthetic-barcode.pdf",
     mimeType: "application/pdf",
@@ -1237,6 +1238,48 @@ export async function runWorkspaceBrowserTests({
       }
       for (const language of ["en", "cs"]) {
         await stage(
+          `Main and local ${language.toUpperCase()} drawers keep the shared section structure`,
+          async () => {
+            const drawer = page.locator(".info-drawer");
+            const wanted = language === "cs" ? "CZ" : "EN";
+            try {
+              if (
+                (await page
+                  .locator(".utility.language .active-option")
+                  .innerText()) !== wanted
+              ) {
+                await page.locator(".utility.language").focus();
+                await page.keyboard.press("Space");
+              }
+              await page.locator(".brand-name").click();
+              await page.locator(".topbar-controls button").last().click();
+              await expect(drawer).toHaveAttribute("aria-hidden", "false");
+              const sections =
+                language === "cs"
+                  ? ["Co to je?", "Jak to funguje?"]
+                  : ["What is this?", "How does it work?"];
+              await expect(drawer.locator("h3")).toHaveText([
+                ...sections,
+                language === "cs" ? "Verze" : "Version",
+              ]);
+              await expect(drawer).toContainText(appVersion);
+              await settledDrawer(drawer, language, "general");
+              await page.screenshot({
+                path: resolve(output, `${size}-general-info-${language}.png`),
+                fullPage: true,
+              });
+              await drawer.locator(".drawer-header button").click();
+              await select("barcode");
+              await page.locator(".topbar-controls button").last().click();
+              await expect(drawer.locator("h3")).toHaveText(sections);
+              await settledDrawer(drawer, language, "local-tool");
+            } finally {
+              if ((await drawer.getAttribute("aria-hidden")) === "false")
+                await drawer.locator(".drawer-header button").click();
+            }
+          },
+        );
+        await stage(
           `Image-specific ${language.toUpperCase()} help, settled drawer and model layout`,
           async () => {
             const drawer = page.locator(".info-drawer");
@@ -1272,40 +1315,101 @@ export async function runWorkspaceBrowserTests({
                 fullPage: true,
               });
 
+              await expect(content.locator("h3")).toHaveText(
+                language === "cs"
+                  ? ["Co to je?", "Jak to funguje?"]
+                  : ["What is this?", "How does it work?"],
+              );
+              await expect(
+                content.locator("ul, ol, table, strong, h4, h5, h6"),
+              ).toHaveCount(0);
               const heading = content.getByRole("heading", {
                 name:
-                  language === "cs"
-                    ? "Modely a zpracování"
-                    : "Models and processing",
+                  language === "cs" ? "Jak to funguje?" : "How does it work?",
                 exact: true,
               });
-              await expect(heading).toHaveCount(1);
-              const list = heading.locator("xpath=following-sibling::ul[1]");
+              const paragraphs = heading.locator("xpath=following-sibling::p");
               for (const model of modelDefinitions) {
-                await expect(list).toContainText(model.label[language]);
-                await expect(
-                  list
-                    .locator("code")
-                    .filter({ hasText: model.defaultModel })
-                    .first(),
-                ).toBeAttached();
+                const paragraph = paragraphs
+                  .filter({ hasText: model.label[language] })
+                  .first();
+                await expect(paragraph).toContainText(model.defaultModel);
+                await expect(paragraph).toHaveCSS("font-size", "11px");
+                await expect(paragraph).toHaveCSS("line-height", "18.7px");
+                const modelCode = paragraph
+                  .locator("code")
+                  .filter({ hasText: model.defaultModel })
+                  .first();
+                await expect(modelCode).toHaveText(`${model.defaultModel} 🇩🇪`);
+                const fontFamily = await modelCode.evaluate(
+                  (node) => getComputedStyle(node).fontFamily,
+                );
+                expect(fontFamily).toContain('"IBM Plex Mono"');
+                expect(fontFamily).toContain('"Apple Color Emoji"');
+                expect(fontFamily).toContain('"Segoe UI Emoji"');
+                expect(fontFamily).toContain('"Noto Color Emoji"');
+                expect(fontFamily).not.toContain('"Noto Emoji"');
               }
-              // Scroll the real drawer, preserving the model heading and as much of its section as fits.
-              await heading.evaluate((node) => {
+              // Verify the actual glyph source, not just the requested CSS fallback stack.
+              const fontSession = await context.newCDPSession(page);
+              try {
+                await fontSession.send("DOM.enable");
+                await fontSession.send("CSS.enable");
+                const { root } = await fontSession.send("DOM.getDocument");
+                const { nodeIds } = await fontSession.send(
+                  "DOM.querySelectorAll",
+                  {
+                    nodeId: root.nodeId,
+                    selector: ".info-drawer code",
+                  },
+                );
+                let nativeEmojiFound = false;
+                for (const nodeId of nodeIds) {
+                  const { outerHTML } = await fontSession.send(
+                    "DOM.getOuterHTML",
+                    { nodeId },
+                  );
+                  if (!outerHTML.includes("🇩🇪")) continue;
+                  const { fonts } = await fontSession.send(
+                    "CSS.getPlatformFontsForNode",
+                    { nodeId },
+                  );
+                  nativeEmojiFound = fonts.some(
+                    (font) =>
+                      !font.isCustomFont &&
+                      /emoji/i.test(font.familyName) &&
+                      font.glyphCount > 0,
+                  );
+                  break;
+                }
+                expect(
+                  nativeEmojiFound,
+                  "flag glyphs must come from a native system emoji font",
+                ).toBe(true);
+              } finally {
+                await fontSession.detach();
+              }
+              // Scroll to model prose inside “How does it work?”, not a separate section.
+              const firstModel = paragraphs
+                .filter({ hasText: modelDefinitions[0].label[language] })
+                .first();
+              await firstModel.evaluate((node) => {
                 const container = node.closest(".drawer-content");
                 container.scrollTop +=
                   node.getBoundingClientRect().top -
                   container.getBoundingClientRect().top -
                   16;
               });
-              await expect(heading).toBeInViewport();
+              await expect(firstModel).toBeInViewport();
               await settledDrawer(drawer, language, "models");
               const layout = await content.evaluate(
                 (node, modelIds) => {
                   const rect = node.getBoundingClientRect();
                   const codes = Array.from(
                     node.querySelectorAll("code"),
-                  ).filter((code) => modelIds.includes(code.textContent));
+                  ).filter((code) =>
+                    modelIds.some((id) => code.textContent === `${id} 🇩🇪`),
+                  );
                   const overflowingIds = codes.flatMap((code) =>
                     Array.from(code.getClientRects())
                       .filter(
@@ -1331,6 +1435,9 @@ export async function runWorkspaceBrowserTests({
                   };
                 },
                 modelDefinitions.map((model) => model.defaultModel),
+              );
+              expect(layout.modelCodeCount).toBeGreaterThanOrEqual(
+                modelDefinitions.length,
               );
               report.modelLayouts.push({ size, language, ...layout });
               await page.screenshot({

@@ -147,7 +147,7 @@ Detailed current behavior belongs in each tool's live info drawer and tests, not
 
 The canonical source is each model-backed tool's `model-definitions.ts`: the integrated registry covers 35 model stages, including actual server defaults, environment precedence and failure fallbacks. Request code and drawer documentation share these definitions. Do not maintain a separate historical model table or hardcode a competing list in Markdown.
 
-`models-server.ts` resolves configured model values only on the server. The generated `registry.models.ts` uses explicit imports, never runtime path construction/import magic. `info.ts` loads `info.en.md`/`info.cs.md` and appends the resolved model sections inline in both languages. No inference key or arbitrary environment value is exposed. Stable instructions remain in tool-owned `prompts/*.md`; TypeScript adds changing request data. Ensure prompt files remain included in deployed server tracing (`next.config.ts`).
+`models-server.ts` resolves configured model values only on the server. The generated `registry.models.ts` uses explicit imports, never runtime path construction/import magic. `info.ts` loads `info.en.md`/`info.cs.md` and appends resolved model details as prose within the final “How does it work?” section in both languages. Every tool drawer has exactly two sections, “What is this?” and “How does it work?”; only the general drawer adds a version section. No inference key or arbitrary environment value is exposed. Stable instructions remain in tool-owned `prompts/*.md`; TypeScript adds changing request data. Ensure prompt files remain included in deployed server tracing (`next.config.ts`).
 
 ## Privacy, authentication and external services
 

@@ -24,7 +24,7 @@ Taktik Robot is a private, bilingual workspace for preparing textbook text, artw
 | [Typesetter](app/_tools/design/typesetter/info.en.md)                  | Inventories DOCX/IDML locally, uses AI for controlled semantic roles, and exports reviewed `indesign-typesetter-v1` JSON and an importer. Layout and image placement still need designer review.     |
 | [Style Trainer](app/_tools/design/style-trainer/info.en.md)            | Refines a reusable style prompt through reference analysis, seeded image rounds and voting; a reviewed style request can be submitted to Asana.                                                      |
 
-Each tool's English and Czech `info.*.md` is live drawer content. Model sections are appended inline from canonical tool-owned model definitions and server-resolved settings; there is no separate model table to maintain here.
+Each tool's English and Czech `info.*.md` is live drawer content. Model details are included as prose within “How does it work?” from canonical tool-owned model definitions and server-resolved settings; there is no separate model table to maintain here.
 
 The [Design Manual](app/_tools/design-manual/manual.en.md) uses local English/Czech Markdown and images. The Brand Manual link opens the existing external document.
 
