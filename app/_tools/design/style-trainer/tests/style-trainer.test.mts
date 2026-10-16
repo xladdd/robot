@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { normalizeStylePlan, STYLE_ID_PATTERN } from "../code/plan.ts";
+import {
+  normalizeStylePlan,
+  STYLE_ID_PATTERN,
+  stylePlanResponseSchema,
+} from "../code/plan.ts";
 import {
   MAX_STYLE_REFERENCES,
   MAX_SEED,
@@ -14,6 +19,31 @@ import {
   formatStyleTaskNotes,
   styleTaskTitle,
 } from "../code/style-request.ts";
+
+test("planner describes evidence before synthesizing an arbitrary FLUX style", () => {
+  assert.equal(Object.keys(stylePlanResponseSchema.properties)[0], "analysis");
+  const analyze = readFileSync(
+    new URL("../prompts/analyze-style.md", import.meta.url),
+    "utf8",
+  );
+  const refine = readFileSync(
+    new URL("../prompts/refine-style.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(analyze, /any supplied image style/);
+  assert.match(
+    analyze,
+    /one explicit (?:shared )?medium\/technique at the start/,
+  );
+  assert.match(analyze, /do not add volume to genuinely flat artwork/);
+  assert.match(analyze, /acknowledge actual differences/);
+  assert.match(analyze, /source capture\/production/);
+  assert.match(analyze, /Do not invent a habitat/);
+  assert.match(analyze, /Separate style from content/);
+  assert.match(refine, /Reinspect the original references/);
+  assert.match(refine, /correcting deviations/);
+  assert.match(refine, /Seeds are selected separately/);
+});
 
 const validDataUrl = "data:image/jpeg;base64,aGVsbG8=";
 const config = {

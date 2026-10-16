@@ -7635,15 +7635,35 @@ button {
 
 /* Style Trainer */
 
+.style-trainer-rounds {
+    display: grid;
+    flex: 1 0 auto;
+    align-content: start;
+    gap: 28px;
+    padding-top: 24px;
+}
+.style-trainer-round {
+    min-width: 0;
+}
 .style-trainer-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.style-trainer-round .style-trainer-grid {
+    padding-top: 0;
+}
+.style-trainer-round-label {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font: 9px/1.5 var(--font-mono);
 }
 .style-trainer-grid .cover-image img {
-    aspect-ratio: 1;
+    aspect-ratio: auto;
+    height: auto;
 }
-.style-trainer-grid.has-results .cover-card {
-    max-width: calc(100vh - 245px);
+.style-trainer-analysis-loading .loading-copy {
+    width: 100%;
 }
+
 .style-trainer-references {
     grid-template-columns: repeat(3, 1fr);
 }
@@ -7661,15 +7681,20 @@ button {
     justify-content: space-between;
 }
 .style-trainer-select.action-button {
-    border-color: var(--orange);
+    border-color: var(--ink);
 }
-.style-trainer-select-active {
-    background: var(--orange);
+.style-trainer-select-active.action-button {
+    background: var(--teal);
     color: var(--on-accent);
 }
 .style-trainer-plan label:first-child,
 .style-trainer-plan label:nth-of-type(2) {
     margin-bottom: 6px;
+}
+.style-trainer-chat .cover-checkbox {
+    min-height: 28px;
+    align-items: center;
+    margin: 0 0 14px;
 }
 .style-trainer-chat small {
     display: block;
@@ -7704,8 +7729,12 @@ button {
 }
 .style-trainer-revise {
     width: 100%;
-    min-height: 37px;
+    min-height: 40px;
     margin-top: 9px;
+    padding: 0 12px;
+    font: 400 9px/1.2 var(--font-sans);
+    letter-spacing: 0.04em;
+    text-align: left;
 }
 .style-trainer-summary dl {
     display: grid;
@@ -7725,8 +7754,8 @@ button {
 .style-trainer-summary dt {
     margin: 0;
     color: var(--muted);
-    font-size: 7px;
-    letter-spacing: 0.09em;
+    font-size: 9px;
+    line-height: 1.5;
 }
 .style-trainer-summary dd {
     margin: 0;
@@ -7752,9 +7781,11 @@ button {
 }
 .style-trainer-submit-heading {
     margin: 0 0 8px;
-    color: var(--ink);
+    color: var(--teal);
     font-size: 8px;
-    letter-spacing: 0.11em;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 .style-trainer-summary > small {
@@ -10428,6 +10459,23 @@ button {
 }
 .style-trainer-toolbar .cover-control textarea {
     min-height: 96px;
+}
+.style-trainer-toolbar .style-trainer-plan textarea,
+.style-trainer-toolbar .style-trainer-summary textarea[readonly] {
+    min-height: 144px;
+}
+.style-trainer-toolbar .style-trainer-plan label + label,
+.style-trainer-toolbar .style-trainer-summary dl + label {
+    margin-top: 12px;
+}
+.style-trainer-toolbar .style-trainer-plan label b {
+    color: var(--ink);
+    font: 9px/1.5 var(--font-sans);
+    letter-spacing: normal;
+    text-transform: none;
+}
+.style-trainer-toolbar .style-trainer-plan label:nth-of-type(2) b {
+    font-family: var(--font-mono);
 }
 
 .cover-generate {

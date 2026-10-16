@@ -309,6 +309,14 @@ export function MapMainInterface({
       4000,
     );
   };
+  useEffect(() => {
+    if (active) return;
+    setTimeTravelNotice(false);
+    if (timeTravelTimerRef.current !== null) {
+      window.clearTimeout(timeTravelTimerRef.current);
+      timeTravelTimerRef.current = null;
+    }
+  }, [active]);
   useEffect(
     () => () => {
       if (timeTravelTimerRef.current !== null)
@@ -663,7 +671,8 @@ export function MapMainInterface({
                     <i />
                   </button>
                 </div>
-                {timeTravelNotice &&
+                {active &&
+                  timeTravelNotice &&
                   timeTooltipPos !== null &&
                   createPortal(
                     <span

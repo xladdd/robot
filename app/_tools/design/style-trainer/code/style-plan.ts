@@ -14,14 +14,13 @@ import {
   type StylePlannerMetadata,
 } from "./plan.ts";
 
-export const STYLE_PLANNER_FALLBACK_MODEL = modelStages.planner.failureFallbackModels[0].defaultModel;
+export const STYLE_PLANNER_FALLBACK_MODEL =
+  modelStages.planner.failureFallbackModels[0].defaultModel;
 
 const analyzePrompt = loadPrompt(
   "design/style-trainer/prompts/analyze-style.md",
 );
-const refinePrompt = loadPrompt(
-  "design/style-trainer/prompts/refine-style.md",
-);
+const refinePrompt = loadPrompt("design/style-trainer/prompts/refine-style.md");
 
 type PlannerResponse = {
   id?: string;
@@ -96,13 +95,15 @@ async function runPlanner(
   systemPrompt: string,
   operation: string,
 ): Promise<PlannerResult> {
-  const model =
-    resolveModel(modelStages['planner']);
+  const model = resolveModel(modelStages["planner"]);
   const content: Array<Record<string, unknown>> = [
     { type: "text", text: requestText },
   ];
-  for (const reference of input.references) {
-    content.push({ type: "text", text: "Style reference:" });
+  for (const [index, reference] of input.references.entries()) {
+    content.push({
+      type: "text",
+      text: `Original style reference ${index + 1}:`,
+    });
     content.push({ type: "image_url", image_url: { url: reference } });
   }
   if (input.preferredImage) {
@@ -122,7 +123,7 @@ async function runPlanner(
       models: [model, STYLE_PLANNER_FALLBACK_MODEL],
       route: "fallback",
       provider: { require_parameters: true },
-      temperature: 0.3,
+      temperature: 0.15,
       max_tokens: 2_000,
       messages: [
         { role: "system", content: systemPrompt },
@@ -169,7 +170,7 @@ export async function analyzeStyle(
     openRouter,
     input,
     [
-      "Study the supplied style reference images and write one reusable FLUX.2 Pro style prompt that captures the visual style they share.",
+      "Inspect each supplied image for visible rendering evidence, summarize that evidence in analysis first, then write one reusable FLUX style prompt. Preserve the actual medium, dimensionality, texture and lighting; do not infer a medium from palette or subject alone.",
       "Return the JSON object defined by the supplied schema and no explanation.",
     ].join("\n"),
     analyzePrompt,
@@ -192,7 +193,7 @@ export async function refineStyle(
       `Current style prompt:\n${input.currentPrompt}`,
       `User's revision instruction:\n${input.instruction}`,
       input.preferredImage
-        ? "The supplied preferred image is the user's selected test generation; treat it as visual guidance for the revision."
+        ? "The supplied preferred image is the user's selected test generation. Compare its rendering with the originals, preserve successful style traits, and correct deviations unless the user explicitly requests them. Do not copy its subject."
         : "",
       "Return the complete revised JSON object defined by the supplied schema and no explanation.",
     ]

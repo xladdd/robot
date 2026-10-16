@@ -11,12 +11,18 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { EmptyViewportState, ToolMeta } from "../../../_components/ToolChrome";
+import { LoadingText } from "../../../_components/LoadingText";
 import type { Language } from "../../registry";
 import type { ToolProps } from "../../types";
 import { styleTrainerUi } from "./copy";
 import type { StylePlan } from "./code/plan";
 
-type StyleReference = { name: string; data: string };
+type StyleReference = {
+  name: string;
+  data: string;
+  width: number;
+  height: number;
+};
 type ImageUsage = {
   cost: number | null;
   promptTokens: number | null;
@@ -33,6 +39,7 @@ type GeneratedImage = {
 };
 type RoundJob = {
   id: string;
+  round: number;
   status: "queued" | "generating" | "complete" | "failed" | "stopped";
   image?: GeneratedImage;
   error?: string;
@@ -57,7 +64,7 @@ function prepareReferenceImage(file: File) {
       new Error(`${file.name}: the source image is larger than 30 MB.`),
     );
 
-  return new Promise<string>((resolve, reject) => {
+  return new Promise<Omit<StyleReference, "name">>((resolve, reject) => {
     const image = new Image();
     const objectUrl = URL.createObjectURL(file);
     image.onload = () => {
@@ -88,7 +95,12 @@ function prepareReferenceImage(file: File) {
             return;
           }
           const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
+          reader.onload = () =>
+            resolve({
+              data: String(reader.result),
+              width: image.naturalWidth,
+              height: image.naturalHeight,
+            });
           reader.onerror = () =>
             reject(new Error(`${file.name}: the image could not be read.`));
           reader.readAsDataURL(blob);
@@ -152,12 +164,18 @@ export function StyleTrainerMainInterface({
     [],
   );
 
+  const currentRoundJobs = roundJobs.filter((job) => job.round === roundCount);
+  const roundBatches = Array.from({ length: roundCount }, (_, index) => ({
+    number: index + 1,
+    jobs: roundJobs.filter((job) => job.round === index + 1),
+  }));
+  const completedJobs = roundJobs.filter((job) => job.image);
   const votedJob =
     roundJobs.find((job) => job.id === votedId && job.image) || null;
-  const completedCount = roundJobs.filter(
+  const completedCount = currentRoundJobs.filter(
     (job) => job.status === "complete",
   ).length;
-  const zoomedJob = roundJobs.find((job) => job.id === zoomedId) || null;
+  const zoomedJob = completedJobs.find((job) => job.id === zoomedId) || null;
 
   async function addReferenceFiles(files: File[]) {
     if (isAnalyzing) return;
@@ -169,7 +187,7 @@ export function StyleTrainerMainInterface({
       const additions = await Promise.all(
         selected.map(async (file) => ({
           name: file.name,
-          data: await prepareReferenceImage(file),
+          ...(await prepareReferenceImage(file)),
         })),
       );
       setReferences((current) =>
@@ -211,6 +229,10 @@ export function StyleTrainerMainInterface({
           mode: "generate",
           stylePrompt,
           testPrompt,
+          referenceDimensions: references.map(({ width, height }) => ({
+            width,
+            height,
+          })),
         }),
       });
       const result = (await response.json()) as {
@@ -247,16 +269,25 @@ export function StyleTrainerMainInterface({
 
   // A round is three generations of the same style prompt and test prompt,
   // each with its own random seed; voting pins the selected image's seed.
+  function moveLightbox(direction: number) {
+    if (!zoomedId || completedJobs.length < 2) return;
+    const currentIndex = completedJobs.findIndex((job) => job.id === zoomedId);
+    const nextIndex =
+      (currentIndex + direction + completedJobs.length) % completedJobs.length;
+    setZoomedId(completedJobs[nextIndex].id);
+  }
+
   async function startRound(stylePrompt: string) {
     const runId = roundRunRef.current + 1;
     roundRunRef.current = runId;
     const nextRound = roundCount + 1;
     const jobs = Array.from({ length: ROUND_SIZE }, (_, index) => ({
       id: `round-${nextRound}-${index}`,
+      round: nextRound,
       status: "queued" as const,
     }));
     setRoundCount(nextRound);
-    setRoundJobs(jobs);
+    setRoundJobs((current) => [...current, ...jobs]);
     setVotedId(null);
     setError("");
     setIsGenerating(true);
@@ -444,12 +475,34 @@ export function StyleTrainerMainInterface({
   const primaryLabel = isGenerating
     ? `${t.stop} · ${t.progress
         .replace("{complete}", String(completedCount))
-        .replace("{total}", String(roundJobs.length))}`
+        .replace("{total}", String(currentRoundJobs.length))}`
     : isAnalyzing
       ? t.analyzing
       : !plan
         ? t.analyze
         : t.retest;
+
+  useEffect(() => {
+    if (!active || !zoomedId) return;
+    const handleLightboxKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setZoomedId(null);
+        return;
+      }
+      const direction =
+        event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+      if (!direction) return;
+      event.preventDefault();
+      setZoomedId((currentId) => {
+        const jobs = roundJobs.filter((job) => job.image);
+        const currentIndex = jobs.findIndex((job) => job.id === currentId);
+        if (currentIndex < 0 || jobs.length < 2) return currentId;
+        return jobs[(currentIndex + direction + jobs.length) % jobs.length].id;
+      });
+    };
+    window.addEventListener("keydown", handleLightboxKey);
+    return () => window.removeEventListener("keydown", handleLightboxKey);
+  }, [active, zoomedId, roundJobs]);
 
   useEffect(() => {
     if (!active || !onDiagnostics) return;
@@ -502,86 +555,98 @@ export function StyleTrainerMainInterface({
           <div className="tool-header-copy">
             <ToolMeta mode="ai" language={language} />
             <div className="cover-title-row">
-              <h1>
-                {t.heading}
-                {roundCount > 0 && phase === "testing" ? (
-                  <small>
-                    {t.roundLabel.replace("{count}", String(roundCount))}
-                  </small>
-                ) : null}
-              </h1>
+              <h1>{t.heading}</h1>
             </div>
           </div>
         </header>
-        <div
-          className={`cover-grid visual-multiple-grid style-trainer-grid ${roundJobs.length ? "has-results" : ""}`}
-          aria-live="polite"
-        >
-          {roundJobs.map((job, index) => (
-            <article
-              className={`cover-card visual-multiple-card style-trainer-card style-trainer-card-${job.status} ${job.image ? "" : "cover-loading"} ${job.id === votedId ? "selected" : ""}`}
-              key={job.id}
-            >
-              {job.image ? (
-                <button
-                  className="cover-image"
-                  onClick={() => setZoomedId(job.id)}
-                  aria-label={`${t.zoom} ${index + 1}`}
-                >
-                  <img src={job.image.data} alt={testPrompt} />
-                </button>
+        {roundBatches.length ? (
+          <div className="style-trainer-rounds" aria-live="polite">
+            {roundBatches.map((round) => (
+              <section className="style-trainer-round" key={round.number}>
+                <p className="pane-label style-trainer-round-label">
+                  {t.roundLabel.replace("{count}", String(round.number))}
+                </p>
+                <div className="cover-grid visual-multiple-grid style-trainer-grid has-results">
+                  {round.jobs.map((job, index) => (
+                    <article
+                      className={`cover-card visual-multiple-card style-trainer-card style-trainer-card-${job.status} ${job.image ? "" : "cover-loading"} ${job.id === votedId ? "selected" : ""}`}
+                      key={job.id}
+                    >
+                      {job.image ? (
+                        <button
+                          className="cover-image"
+                          onClick={() => setZoomedId(job.id)}
+                          aria-label={`${t.zoom} ${round.number}.${index + 1}`}
+                        >
+                          <img src={job.image.data} alt={testPrompt} />
+                        </button>
+                      ) : (
+                        <span>
+                          {job.status === "generating"
+                            ? t.generating
+                            : job.status === "failed"
+                              ? t.failed
+                              : job.status === "stopped"
+                                ? t.stopped
+                                : t.queued}
+                          <br />
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                      )}
+                      {job.image ? (
+                        <footer className="image-generator-card-actions style-trainer-card-actions">
+                          <button
+                            className={`action-button action-button-compact style-trainer-select ${job.id === votedId ? "style-trainer-select-active" : ""}`}
+                            onClick={() =>
+                              setVotedId((current) =>
+                                current === job.id ? null : job.id,
+                              )
+                            }
+                            aria-pressed={job.id === votedId}
+                          >
+                            {job.id === votedId ? t.selected : t.select}
+                          </button>
+                          <button
+                            className="action-button action-button-success action-button-compact"
+                            onClick={() => downloadImage(job)}
+                            aria-label={t.download}
+                          >
+                            ↓
+                          </button>
+                        </footer>
+                      ) : job.status === "failed" && !isGenerating ? (
+                        <footer className="image-generator-card-actions">
+                          <button
+                            className="action-button action-button-compact"
+                            onClick={() => void retryJob(job)}
+                          >
+                            ↻ {t.retry}
+                          </button>
+                        </footer>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="cover-grid visual-multiple-grid style-trainer-grid"
+            aria-live="polite"
+          >
+            {!isGenerating &&
+              (isAnalyzing ? (
+                <div className="cover-empty style-trainer-analysis-loading">
+                  <LoadingText items={t.analysisLoading} />
+                </div>
               ) : (
-                <span>
-                  {job.status === "generating"
-                    ? t.generating
-                    : job.status === "failed"
-                      ? t.failed
-                      : job.status === "stopped"
-                        ? t.stopped
-                        : t.queued}
-                  <br />
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-              )}
-              {job.image ? (
-                <footer className="image-generator-card-actions style-trainer-card-actions">
-                  <button
-                    className={`action-button action-button-compact style-trainer-select ${job.id === votedId ? "style-trainer-select-active" : ""}`}
-                    onClick={() =>
-                      setVotedId((current) =>
-                        current === job.id ? null : job.id,
-                      )
-                    }
-                    aria-pressed={job.id === votedId}
-                  >
-                    {job.id === votedId ? t.selected : t.select}
-                  </button>
-                  <button
-                    className="action-button action-button-compact"
-                    onClick={() => downloadImage(job)}
-                    aria-label={t.download}
-                  >
-                    ↓
-                  </button>
-                </footer>
-              ) : job.status === "failed" && !isGenerating ? (
-                <footer className="image-generator-card-actions">
-                  <button
-                    className="action-button action-button-compact"
-                    onClick={() => void retryJob(job)}
-                  >
-                    ↻ {t.retry}
-                  </button>
-                </footer>
-              ) : null}
-            </article>
-          ))}
-          {!roundJobs.length && !isGenerating && (
-            <EmptyViewportState className="cover-empty">
-              {t.empty}
-            </EmptyViewportState>
-          )}
-        </div>
+                <EmptyViewportState className="cover-empty">
+                  {t.empty}
+                </EmptyViewportState>
+              ))}
+          </div>
+        )}
       </section>
 
       <aside className="cover-toolbar editor-sidebar style-trainer-toolbar">
@@ -726,6 +791,7 @@ export function StyleTrainerMainInterface({
                 </span>
               </label>
               <textarea
+                aria-label={t.chatTitle}
                 value={instruction}
                 onChange={(event) => setInstruction(event.target.value)}
                 placeholder={t.chatPlaceholder}
@@ -734,7 +800,7 @@ export function StyleTrainerMainInterface({
               />
               <button
                 type="button"
-                className="action-button style-trainer-revise"
+                className="action-button action-button-primary style-trainer-revise"
                 onClick={() => void revise()}
                 disabled={isRevising || isGenerating || !instruction.trim()}
               >
@@ -769,7 +835,12 @@ export function StyleTrainerMainInterface({
               </div>
             </dl>
             <label>{t.summaryPrompt}</label>
-            <textarea value={plan.prompt} rows={7} readOnly />
+            <textarea
+              aria-label={t.summaryPrompt}
+              value={plan.prompt}
+              rows={7}
+              readOnly
+            />
             <div className="style-trainer-summary-actions">
               <button
                 type="button"
@@ -820,7 +891,7 @@ export function StyleTrainerMainInterface({
             ) : (
               <button
                 type="button"
-                className="action-button action-button-success style-trainer-submit"
+                className="action-button action-button-primary style-trainer-submit"
                 onClick={() => void submitStyleRequest()}
                 disabled={submission.status === "sending"}
               >
@@ -879,6 +950,7 @@ export function StyleTrainerMainInterface({
             role="dialog"
             aria-modal="true"
             aria-label={testPrompt}
+            data-job-id={zoomedJob.id}
             onClick={() => setZoomedId(null)}
           >
             <button
@@ -888,6 +960,18 @@ export function StyleTrainerMainInterface({
             >
               ×
             </button>
+            {completedJobs.length > 1 && (
+              <button
+                className="cover-lightbox-arrow previous"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  moveLightbox(-1);
+                }}
+                aria-label={t.previous}
+              >
+                ←
+              </button>
+            )}
             <figure onClick={(event) => event.stopPropagation()}>
               <img src={zoomedJob.image.data} alt={testPrompt} />
               <figcaption>
@@ -897,6 +981,18 @@ export function StyleTrainerMainInterface({
                 </small>
               </figcaption>
             </figure>
+            {completedJobs.length > 1 && (
+              <button
+                className="cover-lightbox-arrow next"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  moveLightbox(1);
+                }}
+                aria-label={t.next}
+              >
+                →
+              </button>
+            )}
           </div>,
           document.body,
         )}

@@ -51,10 +51,10 @@ export const stylePlanResponseSchema = {
   type: "object",
   additionalProperties: false,
   properties: {
+    analysis: { type: "string" },
     style_id: { type: "string" },
     style_name: { type: "string" },
     style_prompt: { type: "string" },
-    analysis: { type: "string" },
   },
   required: ["style_id", "style_name", "style_prompt", "analysis"],
 } as const;

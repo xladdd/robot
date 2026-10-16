@@ -167,7 +167,7 @@ export const toolDefinitions = [
     "category": "design",
     "folder": "design/style-trainer",
     "available": true,
-    "hidden": true,
+    "hidden": false,
     "label": {
       "en": "Style Trainer",
       "cs": "Trénování stylů"

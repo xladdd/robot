@@ -19,6 +19,14 @@ import {
 } from "../../../openrouter/server";
 import { analyzeStyle, refineStyle } from "./style-plan.ts";
 import {
+  selectImageFormat,
+  validateReferenceDimensions,
+  type ImageDimensions,
+  type ImageCapabilities,
+} from "./image-format.ts";
+import { StyleValidationError } from "./validation.ts";
+import { normalizeImageOutput } from "./image-output.ts";
+import {
   buildStyleTaskPayload,
   formatStyleTaskNotes,
 } from "./style-request.ts";
@@ -62,9 +70,7 @@ function userFacingError(error: unknown) {
 }
 
 function styleImageModel() {
-  return (
-    resolveModel(modelStages['image'])
-  );
+  return resolveModel(modelStages["image"]);
 }
 
 async function generateTestImage(
@@ -72,12 +78,41 @@ async function generateTestImage(
   openRouter: OpenRouterContext,
   stylePrompt: string,
   testPrompt: string,
+  referenceDimensions: ImageDimensions[],
 ) {
   // Test generations deliberately do not use the reference images: the final
   // style ships to the Image Generator as a prompt plus pinned seed alone,
   // so the round must reproduce the style without references.
   const seed = Math.floor(Math.random() * 2_000_000_000);
   const model = styleImageModel();
+  // Public discovery is not an inference call. Pin the endpoint whose capabilities
+  // we inspected; model-level unions can overstate an individual provider's support.
+  const discovery = await fetch(
+    `https://openrouter.ai/api/v1/images/models/${model.split("/").map(encodeURIComponent).join("/")}/endpoints`,
+    {
+      next: { revalidate: 300 },
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(10_000)]),
+    },
+  );
+  if (!discovery.ok)
+    throw new Error("Image provider capabilities could not be checked. Retry.");
+  const catalog = (await discovery.json()) as {
+    endpoints?: {
+      provider_tag?: string;
+      supported_parameters?: ImageCapabilities;
+    }[];
+  };
+  const endpoint = catalog.endpoints?.find(
+    (e) => e.provider_tag && e.supported_parameters,
+  );
+  if (!endpoint?.provider_tag || !endpoint.supported_parameters)
+    throw new Error(
+      "No image provider with declared capabilities is available.",
+    );
+  const format = selectImageFormat(
+    referenceDimensions,
+    endpoint.supported_parameters,
+  );
   const { response, result } = await requestOpenRouter<{
     id?: string;
     data?: ImageResult[];
@@ -93,24 +128,27 @@ async function generateTestImage(
         stylePrompt,
         testPrompt,
       }),
-      aspect_ratio: "1:1",
-      resolution: "1K",
+      ...format.parameters,
+      provider: { only: [endpoint.provider_tag], allow_fallbacks: false },
       output_format: "jpeg",
       seed,
     },
     { signal: request.signal },
   );
   const image = result.data?.[0];
-  const data = image?.b64_json
-    ? `data:image/jpeg;base64,${image.b64_json}`
-    : image?.url || "";
-  if (!response.ok || !data)
+  if (!response.ok || !image)
     throw new Error(result.error?.message || "OpenRouter returned no image.");
+  const { data, ...outputFormat } = await normalizeImageOutput(
+    image,
+    format.requestedDimensions,
+  );
   return {
     data,
     seed,
     model,
+    // Compatibility label only; it is not a measurement of native output pixels.
     resolution: "1K" as const,
+    format: { ...format, ...outputFormat },
     generationId: result.id,
     usage: {
       cost: typeof result.usage?.cost === "number" ? result.usage.cost : null,
@@ -235,11 +273,15 @@ export async function POST(request: Request) {
     if (body.mode === "generate") {
       const stylePrompt = validateStylePrompt(body.stylePrompt);
       const testPrompt = validateTestPrompt(body.testPrompt);
+      const referenceDimensions = validateReferenceDimensions(
+        body.referenceDimensions,
+      );
       const image = await generateTestImage(
         request,
         openRouter,
         stylePrompt,
         testPrompt,
+        referenceDimensions,
       );
       return NextResponse.json({ image });
     }
@@ -253,7 +295,7 @@ export async function POST(request: Request) {
       return new Response(null, { status: 499 });
     return NextResponse.json(
       { error: userFacingError(error) },
-      { status: 500 },
+      { status: error instanceof StyleValidationError ? 400 : 500 },
     );
   }
 }

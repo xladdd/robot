@@ -19,6 +19,7 @@ export function createHiddenMockState(png) {
     graphs: [],
     timelines: [],
     styleModes: [],
+    styleSubmissions: [],
     typesetterModes: [],
     conceptActions: [],
   };
@@ -55,29 +56,58 @@ export async function mockHiddenApi(route, state, json) {
   }
   if (url.pathname === "/api/style-trainer" && request.method() === "POST") {
     const body = request.postDataJSON();
-    if (!["analyze", "generate"].includes(body.mode)) return false;
+    if (!["analyze", "generate", "refine", "submit"].includes(body.mode))
+      return false;
     state.styleModes.push(body.mode);
-    await json(
-      route,
-      body.mode === "analyze"
-        ? {
-            plan: {
-              id: "synthetic-style",
-              name: "Synthetic Style",
-              prompt: "Synthetic gouache style",
-              analysis: "Synthetic fixture analysis",
-            },
-          }
-        : {
-            image: {
-              data: state.png,
-              seed: 4242,
-              model: "fixture/style",
-              resolution: 512,
-              usage: { cost: null },
-            },
-          },
-    );
+    if (body.mode === "analyze") {
+      await new Promise((resolve) => {
+        state.releaseStyleAnalysis = resolve;
+      });
+      await json(route, {
+        plan: {
+          id: "synthetic-style",
+          name: "Synthetic Style",
+          prompt: "Synthetic dimensional editorial style",
+          analysis: "Synthetic fixture analysis",
+        },
+      });
+      return true;
+    }
+    if (body.mode === "refine") {
+      expect(body.references).toHaveLength(1);
+      expect(body.currentPrompt).toBe("Synthetic dimensional editorial style");
+      expect(body.instruction).toBe("Use softer light and a warmer background");
+      expect(body.preferredImage).toBe(state.png);
+      await json(route, {
+        plan: {
+          id: "synthetic-style",
+          name: "Synthetic Style",
+          prompt: "Synthetic revised dimensional editorial style",
+          analysis: "Softened the light and warmed the background.",
+        },
+      });
+      return true;
+    }
+    if (body.mode === "submit") {
+      state.styleSubmissions.push(body);
+      await json(route, {
+        ok: true,
+        taskUrl: "https://app.asana.com/0/synthetic-style-task",
+      });
+      return true;
+    }
+    expect(body.referenceDimensions).toHaveLength(1);
+    expect(body.referenceDimensions[0].width).toBeGreaterThan(0);
+    expect(body.referenceDimensions[0].height).toBeGreaterThan(0);
+    await json(route, {
+      image: {
+        data: state.png,
+        seed: 4242,
+        model: "fixture/style",
+        resolution: 512,
+        usage: { cost: null },
+      },
+    });
     return true;
   }
   if (url.pathname === "/api/typesetter" && request.method() === "POST") {
@@ -396,9 +426,10 @@ export async function runHiddenLifecycleChecks({
   );
 
   await stage(
-    "Hidden Style Trainer plan/form/gallery retained; inactive portal disappears",
+    "Hidden Style Trainer full analyze/refine/rounds/lightbox/submit workflow",
     async () => {
       await select("styleTrainer");
+      await expect(page.locator(".map-time-tooltip")).toHaveCount(0);
       await slot("styleTrainer")
         .locator("#style-trainer-test-prompt")
         .fill("Synthetic editorial object");
@@ -409,18 +440,112 @@ export async function runHiddenLifecycleChecks({
         slot("styleTrainer").locator(".cover-references img"),
       ).toHaveCount(1);
       await slot("styleTrainer").locator(".cover-generate").click();
+      await expect(
+        slot("styleTrainer").locator(
+          ".style-trainer-analysis-loading .loading-copy[role=status]",
+        ),
+      ).toBeVisible();
+      await expect(
+        slot("styleTrainer").locator(".crosshair-instruction"),
+      ).toHaveCount(0);
+      state.releaseStyleAnalysis();
       await expect(slot("styleTrainer").locator(".cover-image")).toHaveCount(3);
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-analysis-loading"),
+      ).toHaveCount(0);
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-round-label"),
+      ).toHaveText(["ROUND 1"]);
+      await slot("styleTrainer")
+        .locator(".style-trainer-select")
+        .first()
+        .click();
+      const preferred = slot("styleTrainer").locator(
+        "label[for=style-trainer-use-preferred]",
+      );
+      const preferredInput = preferred.locator("input");
+      await expect(preferredInput).toBeEnabled();
+      await expect(preferredInput).toBeChecked();
+      const preferredGeometry = await preferred.evaluate((label) => {
+        const input = label.querySelector("input").getBoundingClientRect();
+        const text = label.querySelector("b").getBoundingClientRect();
+        const textarea = label.nextElementSibling.getBoundingClientRect();
+        return {
+          centerDelta: Math.abs(
+            input.top + input.height / 2 - (text.top + text.height / 2),
+          ),
+          spaceBelow: textarea.top - label.getBoundingClientRect().bottom,
+        };
+      });
+      expect(preferredGeometry.centerDelta).toBeLessThanOrEqual(2);
+      expect(preferredGeometry.spaceBelow).toBeGreaterThanOrEqual(12);
+      await slot("styleTrainer")
+        .locator(".style-trainer-chat textarea")
+        .fill("Use softer light and a warmer background");
+      const reviseButton = slot("styleTrainer").locator(
+        ".style-trainer-revise",
+      );
+      await expect(reviseButton).toBeEnabled();
+      expect(
+        await reviseButton.evaluate((button) => ({
+          fontSize: getComputedStyle(button).fontSize,
+          textAlign: getComputedStyle(button).textAlign,
+          height: button.getBoundingClientRect().height,
+        })),
+      ).toEqual({ fontSize: "9px", textAlign: "left", height: 40 });
+      await reviseButton.click();
+      await expect(slot("styleTrainer").locator(".cover-image")).toHaveCount(6);
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-round-label"),
+      ).toHaveText(["ROUND 1", "ROUND 2"]);
+      await expect(
+        slot("styleTrainer")
+          .locator(".style-trainer-round")
+          .nth(0)
+          .locator(".cover-image"),
+      ).toHaveCount(3);
+      await expect(
+        slot("styleTrainer")
+          .locator(".style-trainer-round")
+          .nth(1)
+          .locator(".cover-image"),
+      ).toHaveCount(3);
       await expect(
         slot("styleTrainer").locator("#style-trainer-style-prompt"),
       ).toBeEnabled();
-      await slot("styleTrainer")
-        .locator("#style-trainer-style-prompt")
-        .fill("Synthetic edited reusable gouache style");
+      await expect(
+        slot("styleTrainer").locator("#style-trainer-style-prompt"),
+      ).toHaveValue("Synthetic revised dimensional editorial style");
       await slot("styleTrainer")
         .locator(".style-trainer-chat textarea")
-        .fill("Synthetic refinement instruction retained");
-      await slot("styleTrainer").locator(".cover-image").first().click();
-      await expect(page.locator(".manual-lightbox[role=dialog]")).toBeVisible();
+        .fill("Synthetic next refinement retained");
+      if (size === "narrow") {
+        await slot("styleTrainer")
+          .locator(".style-trainer-rounds")
+          .scrollIntoViewIfNeeded();
+      } else {
+        await slot("styleTrainer")
+          .locator(".style-trainer-module")
+          .evaluate((module) => module.scrollTo({ top: 0 }));
+      }
+      await page.screenshot({
+        path: resolve(output, `${size}-style-trainer-rounds.png`),
+        fullPage: true,
+      });
+      await slot("styleTrainer").locator(".cover-image").nth(2).click();
+      const styleLightbox = page.locator(".manual-lightbox[role=dialog]");
+      await expect(styleLightbox).toBeVisible();
+      await expect(styleLightbox).toHaveAttribute("data-job-id", "round-1-2");
+      await page.keyboard.press("ArrowRight");
+      await expect(styleLightbox).toHaveAttribute("data-job-id", "round-2-0");
+      await styleLightbox
+        .getByRole("button", { name: "Previous image" })
+        .click();
+      await expect(styleLightbox).toHaveAttribute("data-job-id", "round-1-2");
+      await page.screenshot({
+        path: resolve(output, `${size}-style-trainer-lightbox.png`),
+        fullPage: true,
+      });
       await select("graph");
       await expect(page.locator(".manual-lightbox[role=dialog]")).toHaveCount(
         0,
@@ -432,11 +557,14 @@ export async function runHiddenLifecycleChecks({
       ).toHaveValue("Synthetic editorial object");
       await expect(
         slot("styleTrainer").locator("#style-trainer-style-prompt"),
-      ).toHaveValue("Synthetic edited reusable gouache style");
+      ).toHaveValue("Synthetic revised dimensional editorial style");
       await expect(
         slot("styleTrainer").locator(".style-trainer-chat textarea"),
-      ).toHaveValue("Synthetic refinement instruction retained");
-      await expect(slot("styleTrainer").locator(".cover-image")).toHaveCount(3);
+      ).toHaveValue("Synthetic next refinement retained");
+      await expect(slot("styleTrainer").locator(".cover-image")).toHaveCount(6);
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-round-label"),
+      ).toHaveText(["ROUND 1", "ROUND 2"]);
       // Opening state may be retained; only active tools may render this body portal.
       if (await page.locator(".manual-lightbox[role=dialog]").count()) {
         // The fixture selection bar intentionally stays above portals so tools can be switched.
@@ -446,12 +574,64 @@ export async function runHiddenLifecycleChecks({
           0,
         );
       }
+      await slot("styleTrainer")
+        .locator(".style-trainer-round")
+        .nth(1)
+        .locator(".style-trainer-select")
+        .first()
+        .click();
+      await slot("styleTrainer").locator(".cover-export").click();
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-summary"),
+      ).toBeVisible();
+      await expect(
+        slot("styleTrainer").locator(
+          ".style-trainer-summary textarea[readonly]",
+        ),
+      ).toHaveValue("Synthetic revised dimensional editorial style");
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-summary code"),
+      ).toContainText(["synthetic-style", "4242"]);
+      await page.screenshot({
+        path: resolve(output, `${size}-style-trainer-summary.png`),
+        fullPage: true,
+      });
+      await slot("styleTrainer")
+        .locator("#style-trainer-submit-notes")
+        .fill("Synthetic headless workflow review");
+      await slot("styleTrainer").locator(".style-trainer-submit").click();
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-submit-result"),
+      ).toContainText("style request was sent");
+      await page.screenshot({
+        path: resolve(output, `${size}-style-trainer-submitted.png`),
+        fullPage: true,
+      });
+      expect(state.styleSubmissions).toHaveLength(1);
+      expect(state.styleSubmissions[0]).toMatchObject({
+        styleId: "synthetic-style",
+        stylePrompt: "Synthetic revised dimensional editorial style",
+        seed: 4242,
+        testPrompt: "Synthetic editorial object",
+        roundCount: 2,
+        notes: "Synthetic headless workflow review",
+      });
+      await slot("styleTrainer").locator(".style-trainer-back").click();
+      await expect(
+        slot("styleTrainer").locator(".style-trainer-round-label"),
+      ).toHaveText(["ROUND 1", "ROUND 2"]);
       expect(
         state.styleModes.filter((mode) => mode === "analyze"),
       ).toHaveLength(1);
+      expect(state.styleModes.filter((mode) => mode === "refine")).toHaveLength(
+        1,
+      );
       expect(
         state.styleModes.filter((mode) => mode === "generate"),
-      ).toHaveLength(3);
+      ).toHaveLength(6);
+      expect(state.styleModes.filter((mode) => mode === "submit")).toHaveLength(
+        1,
+      );
     },
   );
 
