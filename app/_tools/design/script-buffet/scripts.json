@@ -21,16 +21,19 @@
     "enabled": true,
     "id": "opacity-set",
     "name": "Opacity Set",
-    "description": "Applies Multiply or Screen blending with a chosen opacity to selected objects.",
-    "descriptionCs": "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí.",
+    "description": "Applies Multiply or Screen blending with a chosen opacity to selected objects. Works well with a shortcut.",
+    "descriptionCs": "Použije na vybrané objekty režim násobení nebo závoje se zvolenou krytostí. Hodí se pro přiřazení klávesové zkratky.",
     "applications": {
       "indesign": true,
       "illustrator": false,
       "photoshop": false
     },
     "scriptFile": "Opacity Set.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Opacity-Set-ID.png",
+    "previewAlt": {
+      "en": "Preview of Opacity Set in InDesign",
+      "cs": "Ukázka skriptu Opacity Set v InDesignu"
+    }
   },
   {
     "enabled": true,
@@ -44,11 +47,14 @@
       "photoshop": false
     },
     "scriptFile": "Split Text Frames into Characters.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Split-Text-Frames-into-Characters-ID.gif",
+    "previewAlt": {
+      "en": "Animated preview of Split Text Frames into Characters in InDesign",
+      "cs": "Animovaná ukázka skriptu Split Text Frames into Characters v InDesignu"
+    }
   },
   {
-    "enabled": true,
+    "enabled": false,
     "id": "toggle-lock",
     "name": "Toggle Lock",
     "description": "Locks or unlocks selected objects based on the current state of the first selected object.",
@@ -74,8 +80,11 @@
       "photoshop": false
     },
     "scriptFile": "Silhouette Fill Make.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Make-Silhouette-Fill-AI.gif",
+    "previewAlt": {
+      "en": "Animated preview of Make Silhouette Fill in Illustrator",
+      "cs": "Animovaná ukázka skriptu Make Silhouette Fill v Illustratoru"
+    }
   },
   {
     "enabled": true,
@@ -89,11 +98,14 @@
       "photoshop": false
     },
     "scriptFile": "artboardItemsMoveToNewLayer.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Move-Artboard-Items-to-New-Layers-AI.png",
+    "previewAlt": {
+      "en": "Preview of Move Artboard Items to New Layers in Illustrator",
+      "cs": "Ukázka skriptu Move Artboard Items to New Layers v Illustratoru"
+    }
   },
   {
-    "enabled": true,
+    "enabled": false,
     "id": "check-ppi",
     "name": "Check PPI",
     "description": "Displays the width and filename of the first placed image in the active Illustrator document.",
@@ -119,8 +131,11 @@
       "photoshop": true
     },
     "scriptFile": "bulkRemoveBg.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Bulk-Remove-Background-PS.gif",
+    "previewAlt": {
+      "en": "Animated preview of Bulk Remove Background in Photoshop",
+      "cs": "Animovaná ukázka skriptu Bulk Remove Background v Photoshopu"
+    }
   },
   {
     "enabled": true,
@@ -134,7 +149,10 @@
       "photoshop": true
     },
     "scriptFile": "bulkResizeImages.jsx",
-    "previewFile": null,
-    "previewAlt": null
+    "previewFile": "Bulk-Resize-Images-PS.png",
+    "previewAlt": {
+      "en": "Preview of Bulk Resize Images in Photoshop",
+      "cs": "Ukázka skriptu Bulk Resize Images v Photoshopu"
+    }
   }
 ]

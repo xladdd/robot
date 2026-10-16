@@ -127,7 +127,7 @@ export const appRegistryEntries = [
     category: "design",
     folder: "design/style-trainer",
     available: true,
-    hidden: true,
+    hidden: false,
   },
   {
     id: "prompt",
